@@ -1,0 +1,55 @@
+{
+    "name": "sahelpay/sahelpay-php",
+    "description": "SDK PHP officiel pour l'API SahelPay - Solutions de paiement Mobile Money pour l'Afrique de l'Ouest",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "sahelpay",
+        "mobile money",
+        "payment",
+        "orange money",
+        "wave",
+        "moov",
+        "mali",
+        "senegal",
+        "africa",
+        "fintech"
+    ],
+    "authors": [
+        {
+            "name": "SahelPay",
+            "email": "dev@sahelpay.ml"
+        }
+    ],
+    "homepage": "https://sahelpay.ml",
+    "require": {
+        "php": "^8.0",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "SahelPay\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SahelPay\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SahelPay\\Laravel\\SahelPayServiceProvider"
+            ],
+            "aliases": {
+                "SahelPay": "SahelPay\\Laravel\\Facades\\SahelPay"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

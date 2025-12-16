@@ -1,0 +1,57 @@
+{
+    "name": "@sahelpay/sdk",
+    "version": "1.0.0",
+    "description": "SDK officiel SahelPay pour JavaScript/TypeScript - Paiements Mobile Money en Afrique de l'Ouest",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "npx --yes tsup src/index.ts --format cjs,esm --dts --cjsInterop",
+        "dev": "npx --yes tsup src/index.ts --format cjs,esm --dts --cjsInterop --watch",
+        "test": "npx --yes vitest",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "sahelpay",
+        "payment",
+        "mobile-money",
+        "orange-money",
+        "wave",
+        "moov",
+        "mali",
+        "senegal",
+        "africa",
+        "fintech",
+        "api",
+        "sdk"
+    ],
+    "author": "SahelPay <dev@sahelpay.ml>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sahelpay/sahelpay-js"
+    },
+    "homepage": "https://sahelpay.ml",
+    "bugs": {
+        "url": "https://github.com/sahelpay/sahelpay-js/issues"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "typescript": "^5.3.0",
+        "vitest": "^1.0.0"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    }
+}
