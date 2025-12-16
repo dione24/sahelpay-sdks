@@ -8,6 +8,9 @@ SDK officiel pour intégrer les paiements SahelPay dans vos applications Python.
 pip install sahelpay
 ```
 
+> Note: tant que le package n’est pas publié sur PyPI, installez-le depuis ce monorepo.
+> Voir `../README.md` (racine du repo) pour la procédure (ex: `pip install -e .`).
+
 ## Démarrage rapide
 
 ```python
@@ -281,7 +284,7 @@ import sahelpay
 async def create_payment_async():
     async with httpx.AsyncClient() as http:
         response = await http.post(
-            "https://api.sahelpay.ml/v1/payments/initiate",
+            "https://api.sahelpay.ml/v1/payments",
             headers={"Authorization": f"Bearer {secret_key}"},
             json={
                 "amount": 5000,

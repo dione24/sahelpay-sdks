@@ -38,7 +38,8 @@ class Payment
     {
         $this->validateRequired($data, ['amount', 'provider', 'customer_phone']);
         
-        return $this->client->post('/payments/initiate', $data);
+        // API core: POST /v1/payments
+        return $this->client->post('/payments', $data);
     }
 
     /**
@@ -68,7 +69,8 @@ class Payment
      */
     public function all(array $options = []): Response
     {
-        return $this->client->get('/transactions', $options);
+        // API core: GET /v1/payments/history
+        return $this->client->get('/payments/history', $options);
     }
 
     /**

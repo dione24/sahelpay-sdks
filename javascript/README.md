@@ -12,6 +12,15 @@ yarn add @sahelpay/sdk
 pnpm add @sahelpay/sdk
 ```
 
+> Note: si vous utilisez ce monorepo avant publication NPM, clonez le repo et installez le dossier `javascript/` en local.
+
+```bash
+git clone https://github.com/dione24/sahelpay-sdks.git
+cd sahelpay-sdks/javascript
+npm install
+npm run build
+```
+
 ## Démarrage rapide
 
 ```typescript

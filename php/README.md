@@ -5,8 +5,11 @@ SDK PHP officiel pour intégrer les paiements Mobile Money SahelPay dans vos app
 ## 📦 Installation
 
 ```bash
-mlposer require sahelpay/sahelpay-php
+composer require sahelpay/sahelpay-php
 ```
+
+> Note: tant que le package n’est pas publié sur Packagist, installez-le depuis ce monorepo (path repository).
+> Voir `../README.md` (racine du repo) pour la procédure complète.
 
 ## 🚀 Démarrage Rapide
 
@@ -96,7 +99,7 @@ foreach ($transactions->getData()['transactions'] as $tx) {
 $link = $sahelpay->paymentLinks->create([
     'amount' => 25000, // 25,000 FCFA
     'title' => 'Formation DevOps',
-    'description' => 'Cours mlplet DevOps avec certifications',
+    'description' => 'Cours complet DevOps avec certifications',
     'max_uses' => 50,
 ]);
 
@@ -126,7 +129,7 @@ $payout = $sahelpay->payouts->create([
 ]);
 
 echo $payout->reference;  // PAY_xxx
-echo $payout->status;     // pending, processing, mlpleted, failed
+echo $payout->status;     // pending, processing, completed, failed
 echo $payout->fee;        // Frais appliqués
 ```
 
@@ -135,7 +138,7 @@ echo $payout->fee;        // Frais appliqués
 ```php
 $payout = $sahelpay->payouts->get('PAY_xxx');
 
-if ($payout->status === 'mlpleted') {
+if ($payout->status === 'completed') {
     echo "Envoi réussi !";
 }
 ```
@@ -170,15 +173,15 @@ $event = $sahelpay->webhooks->parse($payload);
 switch ($event->getType()) {
     case 'payment.success':
         $referenceId = $event->getReferenceId();
-        // Marquer la mlmande mlme payée
+        // Marquer la commande comme payée
         Order::where('payment_ref', $referenceId)->update(['status' => 'paid']);
         break;
-        
+
     case 'payment.failed':
         // Gérer l'échec
         break;
-        
-    case 'payout.mlpleted':
+
+    case 'payout.completed':
         // Payout envoyé avec succès
         break;
 }
@@ -233,7 +236,7 @@ class CheckoutController extends Controller
             'provider' => $request->provider,
             'customer_phone' => $request->phone,
         ]);
-        
+
         return response()->json($payment->toArray());
     }
 }
@@ -255,19 +258,19 @@ class WebhookController extends Controller
     {
         $signature = $request->header('X-SahelPay-Signature');
         $payload = $request->getContent();
-        
+
         if (!$sahelpay->webhooks->verify($payload, $signature)) {
             return response('Invalid signature', 401);
         }
-        
+
         $event = $sahelpay->webhooks->parse($payload);
-        
+
         if ($event->isSuccess()) {
             // Traiter le paiement réussi
             $order = Order::where('payment_ref', $event->getReferenceId())->first();
             $order?->markAsPaid();
         }
-        
+
         return response()->json(['status' => 'ok']);
     }
 }
@@ -300,15 +303,15 @@ try {
 
 ## 📋 Providers Supportés
 
-| Provider | Code | Pays |
-|----------|------|------|
+| Provider     | Code           | Pays                         |
+| ------------ | -------------- | ---------------------------- |
 | Orange Money | `ORANGE_MONEY` | Mali, Sénégal, Côte d'Ivoire |
-| Wave | `WAVE` | Mali, Sénégal |
-| Moov Money | `MOOV` | Mali, Bénin |
+| Wave         | `WAVE`         | Mali, Sénégal                |
+| Moov Money   | `MOOV`         | Mali, Bénin                  |
 
 ## 🧪 Mode Sandbox
 
-Le SDK détecte automatiquement le mode sandbox si votre clé secrète mlmence par `sk_test_` :
+Le SDK détecte automatiquement le mode sandbox si votre clé secrète commence par `sk_test_` :
 
 ```php
 $sahelpay = new SahelPay('sk_test_xxx', 'pk_test_xxx');

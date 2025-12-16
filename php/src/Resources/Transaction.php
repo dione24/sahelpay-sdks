@@ -30,7 +30,8 @@ class Transaction
      */
     public function all(array $options = []): Response
     {
-        return $this->client->get('/transactions', $options);
+        // API core: GET /v1/payments/history
+        return $this->client->get('/payments/history', $options);
     }
 
     /**
@@ -38,7 +39,8 @@ class Transaction
      */
     public function get(string $referenceId): Response
     {
-        return $this->client->get("/transactions/{$referenceId}");
+        // API core: GET /v1/payments/:reference
+        return $this->client->get("/payments/{$referenceId}");
     }
 
     /**
