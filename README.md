@@ -8,6 +8,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 ## Table des matières
 
 - [Packages](#packages)
+- [Compatibilité (features par SDK)](#compatibilité-features-par-sdk)
 - [Concepts communs](#concepts-communs)
   - [Environnements & base URL](#environnements--base-url)
   - [Authentification](#authentification)
@@ -26,6 +27,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 - [Fonctionnalités couvertes](#fonctionnalités-couvertes)
 - [Exemples](#exemples)
 - [Publier (plus tard)](#publier-plus-tard)
+- [FAQ / Troubleshooting](#faq--troubleshooting)
 
 ## Packages
 
@@ -33,6 +35,25 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 - **PHP/Laravel**: `./php` (package cible: `sahelpay/sahelpay-php`)
 - **Python**: `./python` (package cible: `sahelpay`)
 - **Exemples multi-langages**: `./examples`
+
+## Compatibilité (features par SDK)
+
+| Feature                                             | API Core | JS/TS | PHP | Python |
+| --------------------------------------------------- | -------- | ----- | --- | ------ |
+| Paiements (create/status/retrieve/list)             | ✅       | ✅    | ✅  | ✅     |
+| Polling (attendre SUCCESS/FAILED)                   | ✅       | ✅    | ❌  | ✅     |
+| Providers list (`/v1/payments/providers`)           | ✅       | ✅    | ❌  | ✅     |
+| Recommend provider (`/v1/payments/recommend`)       | ✅       | ✅    | ❌  | ✅     |
+| Payment Links (create/list/retrieve/deactivate)     | ✅       | ✅    | ✅  | ✅     |
+| QR Code payment link (`/v1/payment-links/:slug/qr`) | ✅       | ✅    | ✅  | ❌     |
+| Payouts                                             | ✅       | ✅    | ✅  | ✅     |
+| Withdrawals                                         | ✅       | ✅    | ✅  | ❌     |
+| Webhook signature verify/parse                      | ✅       | ✅    | ✅  | ✅     |
+
+> Notes:
+>
+> - Les cases ❌ ne veulent pas dire “impossible”, juste “pas encore exposé par ce SDK”. On peut l’ajouter facilement.
+> - Pour le mapping exact des endpoints, voir les READMEs par langage.
 
 ## Concepts communs
 
@@ -256,3 +277,46 @@ Pour le détail complet, voir:
 - **NPM (JS)**: voir `javascript/PUBLISHING.md`
 - **Composer/Packagist (PHP)**: à ajouter (VCS/Packagist)
 - **PyPI (Python)**: à ajouter
+
+## FAQ / Troubleshooting
+
+### “401 INVALID_API_KEY” / “MISSING_API_KEY”
+
+- **Cause**: header `Authorization` absent ou mal formé.
+- **Fix**: envoyer exactement:
+
+```http
+Authorization: Bearer sk_test_...
+```
+
+### “Invalid webhook signature”
+
+Ca arrive presque toujours quand tu ne vérifies pas le **raw body**.
+
+- **Règle**: la signature est calculée sur le **corps brut JSON** (string) tel que reçu.
+- **Express**: utiliser `express.raw({ type: "application/json" })` sur la route webhook.
+- **Laravel**: utiliser `$request->getContent()` (pas `$request->all()`).
+- **Flask**: utiliser `request.data` / `request.get_data(as_text=True)`.
+
+### “Paiement reste PENDING”
+
+- Vérifier si le client a **validé** sur USSD / page opérateur.
+- Vérifier que le **webhook** arrive bien chez toi (HTTPS + route accessible).
+- En fallback, utilise l’endpoint de **status** (ou la “réconciliation” côté API core si activée).
+
+### “Timeout / network error”
+
+- Réessayer avec la **même** `x-idempotency-key` pour éviter de créer 2 paiements.
+- Vérifier les timeouts (client + reverse proxy / WAF).
+
+### “Sandbox vs Production”
+
+- `sk_test_...` = tests
+- `sk_live_...` = production
+- Sur un environnement staging, force un `baseUrl` explicite.
+
+### Installer avant publication (NPM/Packagist/PyPI)
+
+- **JS**: installer `./javascript` (voir `javascript/README.md`)
+- **PHP**: `path repository` composer (voir section PHP dans ce README)
+- **Python**: `pip install -e ./python`
