@@ -10,6 +10,9 @@ use SahelPay\Resources\PaymentLink;
 use SahelPay\Resources\Payout;
 use SahelPay\Resources\Transaction;
 use SahelPay\Resources\Webhook;
+use SahelPay\Resources\Plan;
+use SahelPay\Resources\Subscription;
+use SahelPay\Resources\Customer;
 
 /**
  * Client principal SahelPay
@@ -19,6 +22,9 @@ use SahelPay\Resources\Webhook;
  * @property-read Payout $payouts
  * @property-read Transaction $transactions
  * @property-read Webhook $webhooks
+ * @property-read Plan $plans
+ * @property-read Subscription $subscriptions
+ * @property-read Customer $customers
  */
 class SahelPay
 {
@@ -31,6 +37,9 @@ class SahelPay
     public Payout $payouts;
     public Transaction $transactions;
     public Webhook $webhooks;
+    public Plan $plans;
+    public Subscription $subscriptions;
+    public Customer $customers;
 
     /**
      * Créer une nouvelle instance SahelPay
@@ -73,6 +82,9 @@ class SahelPay
         $this->payouts = new Payout($this->client);
         $this->transactions = new Transaction($this->client);
         $this->webhooks = new Webhook($this->config);
+        $this->plans = new Plan($this->client);
+        $this->subscriptions = new Subscription($this->client);
+        $this->customers = new Customer($this->client);
     }
 
     /**

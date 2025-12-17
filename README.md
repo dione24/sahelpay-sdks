@@ -49,9 +49,9 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 | Payouts                                             | ✅       | ✅    | ✅  | ✅     |
 | Withdrawals                                         | ✅       | ✅    | ✅  | ❌     |
 | Webhook signature verify/parse                      | ✅       | ✅    | ✅  | ✅     |
-| **Plans** (create/list/deactivate/delete)           | ✅       | ✅    | ❌  | ✅     |
-| **Subscriptions** (create/list/cancel)              | ✅       | ✅    | ❌  | ✅     |
-| **Customers** (create/list/update/delete)           | ✅       | ✅    | ❌  | ✅     |
+| **Plans** (create/list/deactivate/delete)           | ✅       | ✅    | ✅  | ✅     |
+| **Subscriptions** (create/list/cancel)              | ✅       | ✅    | ✅  | ✅     |
+| **Customers** (create/list/update/delete)           | ✅       | ✅    | ✅  | ✅     |
 
 > Notes:
 >
