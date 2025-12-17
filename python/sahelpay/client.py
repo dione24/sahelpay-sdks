@@ -500,6 +500,213 @@ class WithdrawalsAPI:
         return response.get("data", {})
 
 
+class PlansAPI:
+    """API pour gérer les plans d'abonnement"""
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create(
+        self,
+        name: str,
+        amount: float,
+        interval: str = "MONTHLY",
+        description: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Créer un nouveau plan d'abonnement
+
+        Args:
+            name: Nom du plan
+            amount: Montant en FCFA
+            interval: WEEKLY ou MONTHLY
+            description: Description du plan (optionnel)
+
+        Returns:
+            Dict avec les détails du plan créé
+        """
+        data = {
+            "name": name,
+            "amount": amount,
+            "interval": interval,
+        }
+        if description:
+            data["description"] = description
+
+        response = self._client._request("POST", "/v1/plans", data)
+        return response.get("data", {})
+
+    def list(self) -> List[Dict[str, Any]]:
+        """Lister tous les plans"""
+        response = self._client._request("GET", "/v1/plans")
+        return response.get("data", [])
+
+    def retrieve(self, plan_id: str) -> Dict[str, Any]:
+        """Récupérer un plan par ID"""
+        response = self._client._request("GET", f"/v1/plans/{plan_id}")
+        return response.get("data", {})
+
+    def deactivate(self, plan_id: str) -> Dict[str, Any]:
+        """Désactiver un plan"""
+        response = self._client._request("PATCH", f"/v1/plans/{plan_id}/deactivate", {})
+        return response.get("data", {})
+
+    def delete(self, plan_id: str) -> None:
+        """Supprimer un plan"""
+        self._client._request("DELETE", f"/v1/plans/{plan_id}")
+
+
+class SubscriptionsAPI:
+    """API pour gérer les abonnements"""
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create(
+        self,
+        plan_id: str,
+        customer_phone: str,
+        start_date: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Créer un nouvel abonnement
+
+        Args:
+            plan_id: ID du plan
+            customer_phone: Numéro de téléphone du client
+            start_date: Date de début (ISO format, optionnel)
+
+        Returns:
+            Dict avec les détails de l'abonnement créé
+
+        Example:
+            >>> subscription = client.subscriptions.create(
+            ...     plan_id="plan_xxx",
+            ...     customer_phone="+22370000000"
+            ... )
+        """
+        data = {
+            "plan_id": plan_id,
+            "customer_phone": customer_phone,
+        }
+        if start_date:
+            data["start_date"] = start_date
+
+        response = self._client._request("POST", "/v1/subscriptions", data)
+        return response.get("data", {})
+
+    def list(
+        self,
+        plan_id: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """
+        Lister les abonnements
+
+        Args:
+            plan_id: Filtrer par plan (optionnel)
+            status: Filtrer par statut (ACTIVE, PAST_DUE, CANCELLED)
+            limit: Nombre max de résultats
+        """
+        params = {"limit": limit}
+        if plan_id:
+            params["plan_id"] = plan_id
+        if status:
+            params["status"] = status
+
+        response = self._client._request(
+            "GET",
+            f"/v1/subscriptions?{urlencode(params)}"
+        )
+        return response.get("data", {})
+
+    def retrieve(self, subscription_id: str) -> Dict[str, Any]:
+        """Récupérer un abonnement par ID"""
+        response = self._client._request("GET", f"/v1/subscriptions/{subscription_id}")
+        return response.get("data", {})
+
+    def cancel(self, subscription_id: str) -> Dict[str, Any]:
+        """Annuler un abonnement"""
+        response = self._client._request("DELETE", f"/v1/subscriptions/{subscription_id}")
+        return response
+
+
+class CustomersAPI:
+    """API pour gérer les clients"""
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create(
+        self,
+        phone: str,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Créer un nouveau client
+
+        Args:
+            phone: Numéro de téléphone
+            name: Nom du client (optionnel)
+            email: Email du client (optionnel)
+            metadata: Données personnalisées (optionnel)
+        """
+        data = {"phone": phone}
+        if name:
+            data["name"] = name
+        if email:
+            data["email"] = email
+        if metadata:
+            data["metadata"] = metadata
+
+        response = self._client._request("POST", "/v1/customers", data)
+        return response.get("data", {})
+
+    def list(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """Lister les clients"""
+        params = {"limit": limit, "offset": offset}
+        response = self._client._request(
+            "GET",
+            f"/v1/customers?{urlencode(params)}"
+        )
+        return response.get("data", {})
+
+    def retrieve(self, customer_id: str) -> Dict[str, Any]:
+        """Récupérer un client par ID"""
+        response = self._client._request("GET", f"/v1/customers/{customer_id}")
+        return response.get("data", {})
+
+    def update(
+        self,
+        customer_id: str,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Mettre à jour un client"""
+        data = {}
+        if name:
+            data["name"] = name
+        if email:
+            data["email"] = email
+        if metadata:
+            data["metadata"] = metadata
+
+        response = self._client._request("PATCH", f"/v1/customers/{customer_id}", data)
+        return response.get("data", {})
+
+    def delete(self, customer_id: str) -> None:
+        """Supprimer un client"""
+        self._client._request("DELETE", f"/v1/customers/{customer_id}")
+
+
 class Client:
     """
     Client principal SahelPay
@@ -511,11 +718,9 @@ class Client:
         ...     provider="ORANGE_MONEY",
         ...     customer_phone="+22370000000"
         ... )
-        >>> payout = client.payouts.create(
-        ...     amount=10000,
-        ...     provider="WAVE",
-        ...     recipient_phone="+22377000000"
-        ... )
+        >>> # Abonnements
+        >>> plan = client.plans.create(name="Premium", amount=5000, interval="MONTHLY")
+        >>> subscription = client.subscriptions.create(plan_id=plan["id"], customer_phone="+22370000000")
     """
 
     SANDBOX_URL = "https://sandbox.sahelpay.ml"
@@ -556,6 +761,9 @@ class Client:
         self.payouts = PayoutsAPI(self)
         self.withdrawals = WithdrawalsAPI(self)
         self.webhooks = WebhooksAPI(self)
+        self.plans = PlansAPI(self)
+        self.subscriptions = SubscriptionsAPI(self)
+        self.customers = CustomersAPI(self)
 
     def _request(
         self,

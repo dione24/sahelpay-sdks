@@ -117,9 +117,86 @@ export interface PayoutStats {
 }
 
 export interface WebhookEvent {
-  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed';
-  data: Payment | Payout;
+  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled';
+  data: Payment | Payout | SubscriptionWebhookData;
   timestamp: string;
+}
+
+// ==================== PLANS ====================
+
+export interface Plan {
+  id: string;
+  name: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  interval: 'WEEKLY' | 'MONTHLY';
+  is_active: boolean;
+  subscriber_count?: number;
+  created_at: string;
+}
+
+export interface CreatePlanParams {
+  name: string;
+  amount: number;
+  interval: 'WEEKLY' | 'MONTHLY';
+  description?: string;
+}
+
+// ==================== SUBSCRIPTIONS ====================
+
+export interface Subscription {
+  id: string;
+  plan_id: string;
+  plan_name?: string;
+  customer_phone: string;
+  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+  next_billing_date: string;
+  retry_count: number;
+  plan?: {
+    id: string;
+    name: string;
+    amount: number;
+    interval: string;
+  };
+  created_at: string;
+}
+
+export interface CreateSubscriptionParams {
+  plan_id: string;
+  customer_phone: string;
+  start_date?: string; // ISO date, defaults to now
+}
+
+export interface SubscriptionWebhookData {
+  subscription_id: string;
+  plan_id: string;
+  plan_name: string;
+  customer_phone: string;
+  amount: number;
+  currency: string;
+  payment_link_id: string;
+  payment_url: string;
+  billing_date: string;
+  expires_at?: string;
+}
+
+// ==================== CUSTOMERS ====================
+
+export interface Customer {
+  id: string;
+  phone: string;
+  name?: string;
+  email?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface CreateCustomerParams {
+  phone: string;
+  name?: string;
+  email?: string;
+  metadata?: Record<string, any>;
 }
 
 class PaymentsAPI {
@@ -581,6 +658,154 @@ class WithdrawalsAPI {
   }
 }
 
+// ==================== PLANS API ====================
+
+class PlansAPI {
+  constructor(private client: SahelPayClient) {}
+
+  /**
+   * Créer un nouveau plan d'abonnement
+   */
+  async create(params: CreatePlanParams): Promise<Plan> {
+    const response = await this.client.request('POST', '/v1/plans', params);
+    return response.data;
+  }
+
+  /**
+   * Lister tous les plans
+   */
+  async list(): Promise<Plan[]> {
+    const response = await this.client.request('GET', '/v1/plans');
+    return response.data || [];
+  }
+
+  /**
+   * Récupérer un plan par ID
+   */
+  async retrieve(id: string): Promise<Plan> {
+    const response = await this.client.request('GET', `/v1/plans/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Désactiver un plan
+   */
+  async deactivate(id: string): Promise<Plan> {
+    const response = await this.client.request('PATCH', `/v1/plans/${id}/deactivate`);
+    return response.data;
+  }
+
+  /**
+   * Supprimer un plan
+   */
+  async delete(id: string): Promise<void> {
+    await this.client.request('DELETE', `/v1/plans/${id}`);
+  }
+}
+
+// ==================== SUBSCRIPTIONS API ====================
+
+class SubscriptionsAPI {
+  constructor(private client: SahelPayClient) {}
+
+  /**
+   * Créer un nouvel abonnement
+   * @example
+   * ```typescript
+   * const subscription = await sahelpay.subscriptions.create({
+   *   plan_id: 'plan_xxx',
+   *   customer_phone: '+22370000000',
+   * });
+   * ```
+   */
+  async create(params: CreateSubscriptionParams): Promise<Subscription> {
+    const response = await this.client.request('POST', '/v1/subscriptions', params);
+    return response.data;
+  }
+
+  /**
+   * Lister tous les abonnements
+   */
+  async list(params?: { 
+    plan_id?: string; 
+    status?: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+    limit?: number;
+  }): Promise<{ subscriptions: Subscription[]; pagination: any }> {
+    const query = new URLSearchParams();
+    if (params?.plan_id) query.set('plan_id', params.plan_id);
+    if (params?.status) query.set('status', params.status);
+    if (params?.limit) query.set('limit', params.limit.toString());
+
+    const response = await this.client.request('GET', `/v1/subscriptions?${query.toString()}`);
+    return response.data;
+  }
+
+  /**
+   * Récupérer un abonnement par ID
+   */
+  async retrieve(id: string): Promise<Subscription> {
+    const response = await this.client.request('GET', `/v1/subscriptions/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Annuler un abonnement
+   */
+  async cancel(id: string): Promise<{ success: boolean }> {
+    const response = await this.client.request('DELETE', `/v1/subscriptions/${id}`);
+    return response;
+  }
+}
+
+// ==================== CUSTOMERS API ====================
+
+class CustomersAPI {
+  constructor(private client: SahelPayClient) {}
+
+  /**
+   * Créer un nouveau client
+   */
+  async create(params: CreateCustomerParams): Promise<Customer> {
+    const response = await this.client.request('POST', '/v1/customers', params);
+    return response.data;
+  }
+
+  /**
+   * Lister tous les clients
+   */
+  async list(params?: { limit?: number; offset?: number }): Promise<{ customers: Customer[]; pagination: any }> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.offset) query.set('offset', params.offset.toString());
+
+    const response = await this.client.request('GET', `/v1/customers?${query.toString()}`);
+    return response.data;
+  }
+
+  /**
+   * Récupérer un client par ID
+   */
+  async retrieve(id: string): Promise<Customer> {
+    const response = await this.client.request('GET', `/v1/customers/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Mettre à jour un client
+   */
+  async update(id: string, params: Partial<CreateCustomerParams>): Promise<Customer> {
+    const response = await this.client.request('PATCH', `/v1/customers/${id}`, params);
+    return response.data;
+  }
+
+  /**
+   * Supprimer un client
+   */
+  async delete(id: string): Promise<void> {
+    await this.client.request('DELETE', `/v1/customers/${id}`);
+  }
+}
+
 class WebhooksAPI {
   constructor(private client: SahelPayClient) {}
 
@@ -691,6 +916,23 @@ export class SahelPayError extends Error {
 
 /**
  * Client principal SahelPay
+ * 
+ * @example
+ * ```typescript
+ * import SahelPay from '@sahelpay/sdk';
+ * 
+ * const sahelpay = new SahelPay({
+ *   secretKey: 'sk_live_xxx',
+ *   environment: 'production'
+ * });
+ * 
+ * // Paiements
+ * const payment = await sahelpay.payments.create({ ... });
+ * 
+ * // Abonnements
+ * const plan = await sahelpay.plans.create({ name: 'Premium', amount: 5000, interval: 'MONTHLY' });
+ * const subscription = await sahelpay.subscriptions.create({ plan_id: plan.id, customer_phone: '+22370000000' });
+ * ```
  */
 export class SahelPay {
   private client: SahelPayClient;
@@ -700,6 +942,9 @@ export class SahelPay {
   public payouts: PayoutsAPI;
   public withdrawals: WithdrawalsAPI;
   public webhooks: WebhooksAPI;
+  public plans: PlansAPI;
+  public subscriptions: SubscriptionsAPI;
+  public customers: CustomersAPI;
 
   constructor(config: SahelPayConfig) {
     if (!config.secretKey) {
@@ -712,6 +957,9 @@ export class SahelPay {
     this.payouts = new PayoutsAPI(this.client);
     this.withdrawals = new WithdrawalsAPI(this.client);
     this.webhooks = new WebhooksAPI(this.client);
+    this.plans = new PlansAPI(this.client);
+    this.subscriptions = new SubscriptionsAPI(this.client);
+    this.customers = new CustomersAPI(this.client);
   }
 }
 

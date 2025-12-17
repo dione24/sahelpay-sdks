@@ -49,6 +49,9 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 | Payouts                                             | ✅       | ✅    | ✅  | ✅     |
 | Withdrawals                                         | ✅       | ✅    | ✅  | ❌     |
 | Webhook signature verify/parse                      | ✅       | ✅    | ✅  | ✅     |
+| **Plans** (create/list/deactivate/delete)           | ✅       | ✅    | ❌  | ✅     |
+| **Subscriptions** (create/list/cancel)              | ✅       | ✅    | ❌  | ✅     |
+| **Customers** (create/list/update/delete)           | ✅       | ✅    | ❌  | ✅     |
 
 > Notes:
 >
@@ -119,6 +122,8 @@ signature = hex(hmac_sha256(secret=WHSEC, message=raw_body))
 - `payment.cancelled`
 - `payout.completed`
 - `payout.failed`
+- `subscription.payment_due` - Un paiement d'abonnement est dû (contient le payment_url)
+- `subscription.cancelled` - Un abonnement a été annulé
 
 ### Bonnes pratiques sécurité
 
