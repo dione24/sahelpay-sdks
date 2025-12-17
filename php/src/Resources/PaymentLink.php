@@ -33,9 +33,22 @@ class PaymentLink
      */
     public function create(array $data): Response
     {
-        $this->validateRequired($data, ['amount', 'title']);
+        if (!isset($data['price']) && isset($data['amount'])) {
+            $data['price'] = $data['amount'];
+            unset($data['amount']);
+        }
+
+        $this->validateRequired($data, ['price', 'title']);
         
         return $this->client->post('/payment-links', $data);
+    }
+    public function deactivate(string $id): Response
+    {
+        return $this->client->patch("/payment-links/{$id}/deactivate", []);
+    }
+    public function activate(string $id): Response
+    {
+        return $this->client->patch("/payment-links/{$id}/activate", []);
     }
 
     /**
@@ -67,7 +80,7 @@ class PaymentLink
      */
     public function getUrl(string $slug): string
     {
-        return "https://sahelpay.ml/pay/{$slug}";
+        return "https://pay.sahelpay.ml/{$slug}";
     }
 
     /**

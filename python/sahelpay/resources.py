@@ -19,6 +19,11 @@ class Payment:
     status: str
     customer_phone: str
     description: Optional[str] = None
+    payment_method: Optional[str] = None
+    country: Optional[str] = None
+    provider_ref: Optional[str] = None
+    redirect_url: Optional[str] = None
+    expires_at: Optional[str] = None
     checkout_url: Optional[str] = None
     ussd_code: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -27,15 +32,22 @@ class Payment:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Payment":
+        payment_id = data.get("id", "")
+        reference_id = data.get("reference_id") or data.get("reference") or payment_id
         return cls(
-            id=data.get("id", ""),
-            reference_id=data.get("reference_id", ""),
+            id=payment_id,
+            reference_id=reference_id,
             amount=float(data.get("amount", 0)),
             currency=data.get("currency", "XOF"),
-            provider=data.get("provider", ""),
+            provider=data.get("provider") or data.get("payment_method", ""),
             status=data.get("status", "PENDING"),
             customer_phone=data.get("customer_phone", ""),
-            description=data.get("description"),
+            description=data.get("description") or (data.get("metadata") or {}).get("description"),
+            payment_method=data.get("payment_method"),
+            country=data.get("country"),
+            provider_ref=data.get("provider_ref"),
+            redirect_url=data.get("redirect_url"),
+            expires_at=data.get("expires_at"),
             checkout_url=data.get("checkout_url"),
             ussd_code=data.get("ussd_code"),
             metadata=data.get("metadata"),
@@ -69,13 +81,15 @@ class PaymentLink:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PaymentLink":
+        slug = data.get("slug", "")
+        url = data.get("url") or (f"https://pay.sahelpay.ml/{slug}" if slug else "")
         return cls(
             id=data.get("id", ""),
             title=data.get("title", ""),
             price=float(data.get("price", 0)),
             currency=data.get("currency", "XOF"),
-            slug=data.get("slug", ""),
-            url=data.get("url", ""),
+            slug=slug,
+            url=url,
             is_active=data.get("is_active", True),
             redirect_url=data.get("redirect_url"),
             created_at=data.get("created_at"),

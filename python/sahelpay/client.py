@@ -30,6 +30,12 @@ class PaymentsAPI:
         metadata: Optional[Dict[str, Any]] = None,
         callback_url: Optional[str] = None,
         return_url: Optional[str] = None,
+        payment_method: Optional[str] = None,
+        country: Optional[str] = None,
+        customer_name: Optional[str] = None,
+        customer_email: Optional[str] = None,
+        success_url: Optional[str] = None,
+        cancel_url: Optional[str] = None,
     ) -> Payment:
         """
         Créer un nouveau paiement
@@ -47,29 +53,65 @@ class PaymentsAPI:
         Returns:
             Payment: Objet paiement créé
         """
-        data = {
+        inferred_payment_method = payment_method
+        if not inferred_payment_method and provider in ["CARD", "CINETPAY", "GIM_UEMOA", "VISA", "MASTERCARD"]:
+            inferred_payment_method = "CARD"
+
+        if inferred_payment_method == "CARD":
+            if not customer_name:
+                raise ValidationError(
+                    "CinetPay CREDIT_CARD requires customerName", "VALIDATION_ERROR", 400)
+            if not customer_email:
+                raise ValidationError(
+                    "CinetPay CREDIT_CARD requires customerEmail", "VALIDATION_ERROR", 400)
+            if not customer_phone:
+                raise ValidationError(
+                    "CinetPay CREDIT_CARD requires customerPhone", "VALIDATION_ERROR", 400)
+
+        final_metadata: Dict[str, Any] = {}
+        if metadata:
+            final_metadata.update(metadata)
+        if description:
+            final_metadata.setdefault("description", description)
+        if callback_url:
+            final_metadata.setdefault("callback_url", callback_url)
+
+        data: Dict[str, Any] = {
             "amount": amount,
             "currency": currency,
             "provider": provider,
+            "payment_method": inferred_payment_method,
+            "country": country,
             "customer_phone": customer_phone,
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "return_url": return_url,
+            "success_url": success_url,
+            "cancel_url": cancel_url,
         }
 
-        if description:
-            data["description"] = description
-        if metadata:
-            data["metadata"] = metadata
-        if callback_url:
-            data["callback_url"] = callback_url
-        if return_url:
-            data["return_url"] = return_url
+        if final_metadata:
+            data["metadata"] = final_metadata
 
         response = self._client._request("POST", "/v1/payments", data)
-        return Payment.from_dict(response.get("data", {}))
+        payload = response.get("data", {})
+        payload["customer_phone"] = customer_phone
+        payload["provider"] = provider
+        if inferred_payment_method:
+            payload["payment_method"] = inferred_payment_method
+        if country:
+            payload["country"] = country
+        if final_metadata:
+            payload["metadata"] = final_metadata
+        return Payment.from_dict(payload)
 
-    def providers(self) -> List[str]:
+    def providers(self) -> List[Any]:
         """Obtenir les providers disponibles"""
         response = self._client._request("GET", "/v1/payments/providers")
-        return response.get("data", {}).get("providers", [])
+        data = response.get("data", [])
+        if isinstance(data, dict):
+            return data.get("providers", [])
+        return data
 
     def recommend(self, phone: str) -> Dict[str, Any]:
         """
@@ -130,7 +172,8 @@ class PaymentsAPI:
 
     def retrieve(self, reference_id: str) -> Payment:
         """Récupérer un paiement par référence"""
-        response = self._client._request("GET", f"/v1/payments/{reference_id}")
+        response = self._client._request(
+            "GET", f"/v1/payments/{reference_id}/status")
         return Payment.from_dict(response.get("data", {}))
 
     def check_status(self, reference_id: str) -> Dict[str, Any]:
@@ -146,10 +189,13 @@ class PaymentsAPI:
         self,
         limit: int = 20,
         page: int = 1,
+        offset: Optional[int] = None,
         status: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Lister les paiements"""
-        params = {"limit": limit, "page": page}
+        computed_offset = offset if offset is not None else max(
+            page - 1, 0) * limit
+        params = {"limit": limit, "offset": computed_offset}
         if status:
             params["status"] = status
 
@@ -203,7 +249,13 @@ class PaymentLinksAPI:
     def deactivate(self, link_id: str) -> PaymentLink:
         """Désactiver un lien"""
         response = self._client._request(
-            "DELETE", f"/v1/payment-links/{link_id}")
+            "PATCH", f"/v1/payment-links/{link_id}/deactivate", {})
+        return PaymentLink.from_dict(response.get("data", {}))
+
+    def activate(self, link_id: str) -> PaymentLink:
+        """Activer un lien"""
+        response = self._client._request(
+            "PATCH", f"/v1/payment-links/{link_id}/activate", {})
         return PaymentLink.from_dict(response.get("data", {}))
 
 

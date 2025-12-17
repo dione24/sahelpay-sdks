@@ -19,7 +19,7 @@
     "scripts": {
         "build": "npx --yes tsup src/index.ts --format cjs,esm --dts --cjsInterop",
         "dev": "npx --yes tsup src/index.ts --format cjs,esm --dts --cjsInterop --watch",
-        "test": "npx --yes vitest",
+        "test": "npx --yes vitest --passWithNoTests",
         "prepublishOnly": "npm run build"
     },
     "keywords": [

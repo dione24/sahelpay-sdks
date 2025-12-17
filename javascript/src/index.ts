@@ -24,6 +24,8 @@
  * ```
  */
 
+declare const require: any;
+
 export interface SahelPayConfig {
   secretKey: string;
   environment?: 'sandbox' | 'production';
@@ -34,8 +36,12 @@ export interface SahelPayConfig {
 export interface CreatePaymentParams {
   amount: number;
   currency?: string;
-  provider: 'ORANGE_MONEY' | 'WAVE' | 'MOOV';
+  provider?: string;
+  payment_method?: 'MOBILE_MONEY' | 'CARD';
+  country?: string;
   customer_phone: string;
+  customer_name?: string;
+  customer_email?: string;
   description?: string;
   metadata?: Record<string, any>;
   callback_url?: string;
@@ -51,6 +57,11 @@ export interface Payment {
   status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
   customer_phone: string;
   description?: string;
+  payment_method?: string;
+  country?: string;
+  provider_ref?: string;
+  redirect_url?: string;
+  expires_at?: string;
   checkout_url?: string;
   ussd_code?: string;
   created_at: string;
@@ -118,23 +129,64 @@ class PaymentsAPI {
    * Créer un nouveau paiement
    */
   async create(params: CreatePaymentParams): Promise<Payment> {
+    const provider = params.provider;
+    const inferredPaymentMethod: CreatePaymentParams['payment_method'] =
+      params.payment_method ||
+      (provider && ['CARD', 'CINETPAY', 'GIM_UEMOA', 'VISA', 'MASTERCARD'].includes(provider) ? 'CARD' : undefined);
+
+    const isCard = inferredPaymentMethod === 'CARD';
+    if (isCard) {
+      if (!params.customer_name) {
+        throw new SahelPayError('CinetPay CREDIT_CARD requires customerName', 'VALIDATION_ERROR', 400);
+      }
+      if (!params.customer_email) {
+        throw new SahelPayError('CinetPay CREDIT_CARD requires customerEmail', 'VALIDATION_ERROR', 400);
+      }
+      if (!params.customer_phone) {
+        throw new SahelPayError('CinetPay CREDIT_CARD requires customerPhone', 'VALIDATION_ERROR', 400);
+      }
+    }
+
     const response = await this.client.request('POST', '/v1/payments', {
       amount: params.amount,
       currency: params.currency || 'XOF',
-      provider: params.provider,
+      provider,
+      payment_method: inferredPaymentMethod,
+      country: params.country,
       customer_phone: params.customer_phone,
-      description: params.description,
-      metadata: params.metadata,
-      callback_url: params.callback_url,
+      customer_name: params.customer_name,
+      customer_email: params.customer_email,
+      metadata: {
+        ...(params.metadata || {}),
+        ...(params.description ? { description: params.description } : {}),
+      },
       return_url: params.return_url,
     });
-    return response.data;
+
+    const data = response.data;
+    return {
+      id: data.id,
+      reference_id: data.id,
+      amount: data.amount,
+      currency: data.currency,
+      provider: provider || data.payment_method,
+      status: data.status,
+      customer_phone: params.customer_phone,
+      description: params.description,
+      payment_method: data.payment_method,
+      country: data.country,
+      provider_ref: data.provider_ref,
+      redirect_url: data.redirect_url,
+      expires_at: data.expires_at,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
   }
 
   /**
    * Obtenir les providers disponibles
    */
-  async providers(): Promise<{ providers: string[] }> {
+  async providers(): Promise<any[]> {
     const response = await this.client.request('GET', '/v1/payments/providers');
     return response.data;
   }
@@ -142,7 +194,7 @@ class PaymentsAPI {
   /**
    * Recommander un provider basé sur le numéro de téléphone
    */
-  async recommend(phone: string): Promise<{ provider: string; confidence: number }> {
+  async recommend(phone: string): Promise<any> {
     const response = await this.client.request('GET', `/v1/payments/recommend?phone=${encodeURIComponent(phone)}`);
     return response.data;
   }
@@ -151,8 +203,24 @@ class PaymentsAPI {
    * Récupérer un paiement par référence
    */
   async retrieve(referenceId: string): Promise<Payment> {
-    const response = await this.client.request('GET', `/v1/payments/${referenceId}`);
-    return response.data;
+    const response = await this.client.request('GET', `/v1/payments/${referenceId}/status`);
+    const data = response.data;
+    return {
+      id: data.id,
+      reference_id: data.id,
+      amount: data.amount,
+      currency: data.currency,
+      provider: data.payment_method,
+      status: data.status,
+      customer_phone: '',
+      payment_method: data.payment_method,
+      country: data.country,
+      provider_ref: data.provider_ref,
+      redirect_url: data.redirect_url,
+      expires_at: data.expires_at,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
   }
 
   /**
@@ -160,17 +228,53 @@ class PaymentsAPI {
    */
   async checkStatus(referenceId: string): Promise<{ status: string; payment: Payment }> {
     const response = await this.client.request('GET', `/v1/payments/${referenceId}/status`);
-    return response.data;
+    const data = response.data;
+    return {
+      status: data.status,
+      payment: {
+        id: data.id,
+        reference_id: data.id,
+        amount: data.amount,
+        currency: data.currency,
+        provider: data.payment_method,
+        status: data.status,
+        customer_phone: '',
+        payment_method: data.payment_method,
+        country: data.country,
+        provider_ref: data.provider_ref,
+        redirect_url: data.redirect_url,
+        expires_at: data.expires_at,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      },
+    };
   }
 
-  async list(params?: { limit?: number; page?: number; status?: string }): Promise<{ payments: Payment[]; pagination: any }> {
+  async list(params?: { limit?: number; offset?: number; status?: string }): Promise<{ payments: Payment[]; pagination: any }> {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', params.limit.toString());
-    if (params?.page) query.set('page', params.page.toString());
+    if (params?.offset !== undefined) query.set('offset', params.offset.toString());
     if (params?.status) query.set('status', params.status);
     
     const response = await this.client.request('GET', `/v1/payments/history?${query.toString()}`);
-    return response.data;
+    const data = response.data;
+    const transactions = data.transactions || [];
+
+    return {
+      payments: transactions.map((tx: any) => ({
+        id: tx.id,
+        reference_id: tx.reference || tx.reference_id,
+        amount: Number(tx.amount),
+        currency: tx.currency,
+        provider: tx.provider,
+        status: tx.status,
+        customer_phone: tx.customer_phone,
+        description: tx.description,
+        created_at: tx.created_at,
+        updated_at: tx.created_at,
+      })),
+      pagination: data.pagination,
+    };
   }
 
   /**
@@ -237,7 +341,11 @@ class PaymentLinksAPI {
    */
   async create(params: { title: string; price: number; currency?: string; redirect_url?: string }): Promise<PaymentLink> {
     const response = await this.client.request('POST', '/v1/payment-links', params);
-    return response.data;
+    const link = response.data;
+    return {
+      ...link,
+      url: `https://pay.sahelpay.ml/${link.slug}`,
+    };
   }
 
   /**
@@ -245,7 +353,11 @@ class PaymentLinksAPI {
    */
   async list(): Promise<PaymentLink[]> {
     const response = await this.client.request('GET', '/v1/payment-links');
-    return response.data;
+    const links = response.data || [];
+    return links.map((link: any) => ({
+      ...link,
+      url: `https://pay.sahelpay.ml/${link.slug}`,
+    }));
   }
 
   /**
@@ -253,15 +365,32 @@ class PaymentLinksAPI {
    */
   async retrieve(slug: string): Promise<PaymentLink> {
     const response = await this.client.request('GET', `/v1/payment-links/${slug}`);
-    return response.data;
+    const link = response.data;
+    return {
+      ...link,
+      url: `https://pay.sahelpay.ml/${link.slug}`,
+    };
   }
 
   /**
    * Désactiver un lien
    */
   async deactivate(id: string): Promise<PaymentLink> {
-    const response = await this.client.request('DELETE', `/v1/payment-links/${id}`);
-    return response.data;
+    const response = await this.client.request('PATCH', `/v1/payment-links/${id}/deactivate`);
+    const link = response.data;
+    return {
+      ...link,
+      url: `https://pay.sahelpay.ml/${link.slug}`,
+    };
+  }
+
+  async activate(id: string): Promise<PaymentLink> {
+    const response = await this.client.request('PATCH', `/v1/payment-links/${id}/activate`);
+    const link = response.data;
+    return {
+      ...link,
+      url: `https://pay.sahelpay.ml/${link.slug}`,
+    };
   }
 
   /**

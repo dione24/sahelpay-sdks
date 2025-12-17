@@ -57,6 +57,10 @@ class Client
     {
         return $this->request('PUT', $endpoint, ['json' => $data]);
     }
+    public function patch(string $endpoint, array $data = []): Response
+    {
+        return $this->request('PATCH', $endpoint, ['json' => $data]);
+    }
 
     /**
      * Effectuer une requête DELETE
