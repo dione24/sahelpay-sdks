@@ -20,66 +20,53 @@
         "name": "Dashboard",
         "url": "https://dashboard.sahelpay.ml"
     },
-    "tabs": [{
-            "name": "API Reference",
-            "url": "api-reference"
-        },
-        {
-            "name": "SDKs",
-            "url": "sdks"
-        }
-    ],
     "anchors": [{
         "name": "GitHub",
         "icon": "github",
         "url": "https://github.com/dione24/sahelpay-sdks"
     }],
-    "navigation": [{
-            "group": "Getting Started",
-            "pages": [
-                "introduction",
-                "quickstart",
-                "authentication"
-            ]
-        },
-        {
-            "group": "Guides",
-            "pages": [
-                "guides/integration",
-                "guides/webhooks",
-                "guides/testing"
-            ]
-        },
-        {
-            "group": "API Reference",
-            "pages": [
-                "api-reference/overview",
-                "api-reference/payments/create",
-                "api-reference/payments/get",
-                "api-reference/payments/list",
-                "api-reference/payment-links/create",
-                "api-reference/payment-links/get",
-                "api-reference/webhooks/events",
-                "api-reference/webhooks/verify"
-            ]
-        },
-        {
-            "group": "SDKs",
-            "pages": [
-                "sdks/overview",
-                "sdks/javascript",
-                "sdks/php",
-                "sdks/python"
-            ]
-        },
-        {
-            "group": "Resources",
-            "pages": [
-                "resources/test-accounts",
-                "resources/error-codes"
-            ]
-        }
-    ],
+    "navigation": {
+        "tabs": [{
+                "tab": "Documentation",
+                "groups": [{
+                        "group": "Getting Started",
+                        "pages": ["introduction", "quickstart", "authentication"]
+                    },
+                    {
+                        "group": "Guides",
+                        "pages": ["guides/integration", "guides/webhooks", "guides/testing"]
+                    },
+                    {
+                        "group": "Resources",
+                        "pages": ["resources/test-accounts", "resources/error-codes"]
+                    }
+                ]
+            },
+            {
+                "tab": "API Reference",
+                "groups": [{
+                    "group": "API Reference",
+                    "pages": [
+                        "api-reference/overview",
+                        "api-reference/payments/create",
+                        "api-reference/payments/get",
+                        "api-reference/payments/list",
+                        "api-reference/payment-links/create",
+                        "api-reference/payment-links/get",
+                        "api-reference/webhooks/events",
+                        "api-reference/webhooks/verify"
+                    ]
+                }]
+            },
+            {
+                "tab": "SDKs",
+                "groups": [{
+                    "group": "SDKs",
+                    "pages": ["sdks/overview", "sdks/javascript", "sdks/php", "sdks/python"]
+                }]
+            }
+        ]
+    },
     "footerSocials": {
         "twitter": "https://twitter.com/sahelpay",
         "github": "https://github.com/dione24/sahelpay-sdks",
