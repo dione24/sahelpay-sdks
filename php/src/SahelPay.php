@@ -13,6 +13,7 @@ use SahelPay\Resources\Webhook;
 use SahelPay\Resources\Plan;
 use SahelPay\Resources\Subscription;
 use SahelPay\Resources\Customer;
+use SahelPay\Resources\Portal;
 
 /**
  * Client principal SahelPay
@@ -25,6 +26,7 @@ use SahelPay\Resources\Customer;
  * @property-read Plan $plans
  * @property-read Subscription $subscriptions
  * @property-read Customer $customers
+ * @property-read Portal $portal
  */
 class SahelPay
 {
@@ -40,6 +42,7 @@ class SahelPay
     public Plan $plans;
     public Subscription $subscriptions;
     public Customer $customers;
+    public Portal $portal;
 
     /**
      * Créer une nouvelle instance SahelPay
@@ -85,6 +88,7 @@ class SahelPay
         $this->plans = new Plan($this->client);
         $this->subscriptions = new Subscription($this->client);
         $this->customers = new Customer($this->client);
+        $this->portal = new Portal($this->client);
     }
 
     /**

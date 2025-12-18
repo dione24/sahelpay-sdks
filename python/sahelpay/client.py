@@ -548,7 +548,8 @@ class PlansAPI:
 
     def deactivate(self, plan_id: str) -> Dict[str, Any]:
         """Désactiver un plan"""
-        response = self._client._request("PATCH", f"/v1/plans/{plan_id}/deactivate", {})
+        response = self._client._request(
+            "PATCH", f"/v1/plans/{plan_id}/deactivate", {})
         return response.get("data", {})
 
     def delete(self, plan_id: str) -> None:
@@ -623,12 +624,14 @@ class SubscriptionsAPI:
 
     def retrieve(self, subscription_id: str) -> Dict[str, Any]:
         """Récupérer un abonnement par ID"""
-        response = self._client._request("GET", f"/v1/subscriptions/{subscription_id}")
+        response = self._client._request(
+            "GET", f"/v1/subscriptions/{subscription_id}")
         return response.get("data", {})
 
     def cancel(self, subscription_id: str) -> Dict[str, Any]:
         """Annuler un abonnement"""
-        response = self._client._request("DELETE", f"/v1/subscriptions/{subscription_id}")
+        response = self._client._request(
+            "DELETE", f"/v1/subscriptions/{subscription_id}")
         return response
 
 
@@ -699,12 +702,60 @@ class CustomersAPI:
         if metadata:
             data["metadata"] = metadata
 
-        response = self._client._request("PATCH", f"/v1/customers/{customer_id}", data)
+        response = self._client._request(
+            "PATCH", f"/v1/customers/{customer_id}", data)
         return response.get("data", {})
 
     def delete(self, customer_id: str) -> None:
         """Supprimer un client"""
         self._client._request("DELETE", f"/v1/customers/{customer_id}")
+
+
+class PortalAPI:
+    """API pour le Customer Portal (comme Stripe Billing Portal)"""
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create_session(
+        self,
+        customer_phone: str,
+        customer_name: Optional[str] = None,
+        customer_email: Optional[str] = None,
+        return_url: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Créer une session Customer Portal
+
+        Permet à vos clients de gérer leurs abonnements, méthodes de paiement
+        et consulter leur historique de transactions.
+
+        Args:
+            customer_phone: Numéro de téléphone du client
+            customer_name: Nom du client (optionnel)
+            customer_email: Email du client (optionnel)
+            return_url: URL de retour après utilisation du portal (optionnel)
+
+        Returns:
+            Dict avec id, url, customer_id, expires_at
+
+        Example:
+            >>> session = client.portal.create_session(
+            ...     customer_phone="+22370000000",
+            ...     return_url="https://monapp.com/account"
+            ... )
+            >>> # Redirigez le client vers session["url"]
+        """
+        data = {"customer_phone": customer_phone}
+        if customer_name:
+            data["customer_name"] = customer_name
+        if customer_email:
+            data["customer_email"] = customer_email
+        if return_url:
+            data["return_url"] = return_url
+
+        response = self._client._request("POST", "/v1/portal/sessions", data)
+        return response.get("data", {})
 
 
 class Client:
@@ -764,6 +815,7 @@ class Client:
         self.plans = PlansAPI(self)
         self.subscriptions = SubscriptionsAPI(self)
         self.customers = CustomersAPI(self)
+        self.portal = PortalAPI(self)
 
     def _request(
         self,

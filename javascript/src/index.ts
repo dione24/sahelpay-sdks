@@ -199,6 +199,22 @@ export interface CreateCustomerParams {
   metadata?: Record<string, any>;
 }
 
+// ==================== PORTAL ====================
+
+export interface PortalSession {
+  id: string;
+  url: string;
+  customer_id: string;
+  expires_at: string;
+}
+
+export interface CreatePortalSessionParams {
+  customer_phone: string;
+  customer_name?: string;
+  customer_email?: string;
+  return_url?: string;
+}
+
 class PaymentsAPI {
   constructor(private client: SahelPayClient) {}
 
@@ -806,6 +822,34 @@ class CustomersAPI {
   }
 }
 
+// ==================== PORTAL API ====================
+
+class PortalAPI {
+  constructor(private client: SahelPayClient) {}
+
+  /**
+   * Créer une session Customer Portal
+   * 
+   * Permet à vos clients de gérer leurs abonnements, méthodes de paiement
+   * et consulter leur historique de transactions.
+   * 
+   * @example
+   * ```typescript
+   * const session = await sahelpay.portal.createSession({
+   *   customer_phone: '+22370000000',
+   *   return_url: 'https://monapp.com/account'
+   * });
+   * 
+   * // Redirigez le client vers session.url
+   * window.location.href = session.url;
+   * ```
+   */
+  async createSession(params: CreatePortalSessionParams): Promise<PortalSession> {
+    const response = await this.client.request('POST', '/v1/portal/sessions', params);
+    return response.data;
+  }
+}
+
 class WebhooksAPI {
   constructor(private client: SahelPayClient) {}
 
@@ -945,6 +989,7 @@ export class SahelPay {
   public plans: PlansAPI;
   public subscriptions: SubscriptionsAPI;
   public customers: CustomersAPI;
+  public portal: PortalAPI;
 
   constructor(config: SahelPayConfig) {
     if (!config.secretKey) {
@@ -960,6 +1005,7 @@ export class SahelPay {
     this.plans = new PlansAPI(this.client);
     this.subscriptions = new SubscriptionsAPI(this.client);
     this.customers = new CustomersAPI(this.client);
+    this.portal = new PortalAPI(this.client);
   }
 }
 
