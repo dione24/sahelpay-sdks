@@ -10,11 +10,7 @@
     "colors": {
         "primary": "#00C853",
         "light": "#4CAF50",
-        "dark": "#00C853",
-        "anchors": {
-            "from": "#00C853",
-            "to": "#4CAF50"
-        }
+        "dark": "#00C853"
     },
     "topbarLinks": [{
         "name": "Support",
@@ -34,16 +30,10 @@
         }
     ],
     "anchors": [{
-            "name": "GitHub",
-            "icon": "github",
-            "url": "https://github.com/dione24/sahelpay-sdks"
-        },
-        {
-            "name": "Community",
-            "icon": "discord",
-            "url": "https://discord.gg/sahelpay"
-        }
-    ],
+        "name": "GitHub",
+        "icon": "github",
+        "url": "https://github.com/dione24/sahelpay-sdks"
+    }],
     "navigation": [{
             "group": "Getting Started",
             "pages": [
@@ -64,28 +54,13 @@
             "group": "API Reference",
             "pages": [
                 "api-reference/overview",
-                {
-                    "group": "Payments",
-                    "pages": [
-                        "api-reference/payments/create",
-                        "api-reference/payments/get",
-                        "api-reference/payments/list"
-                    ]
-                },
-                {
-                    "group": "Payment Links",
-                    "pages": [
-                        "api-reference/payment-links/create",
-                        "api-reference/payment-links/get"
-                    ]
-                },
-                {
-                    "group": "Webhooks",
-                    "pages": [
-                        "api-reference/webhooks/events",
-                        "api-reference/webhooks/verify"
-                    ]
-                }
+                "api-reference/payments/create",
+                "api-reference/payments/get",
+                "api-reference/payments/list",
+                "api-reference/payment-links/create",
+                "api-reference/payment-links/get",
+                "api-reference/webhooks/events",
+                "api-reference/webhooks/verify"
             ]
         },
         {
@@ -109,11 +84,5 @@
         "twitter": "https://twitter.com/sahelpay",
         "github": "https://github.com/dione24/sahelpay-sdks",
         "linkedin": "https://linkedin.com/company/sahelpay"
-    },
-    "api": {
-        "baseUrl": "https://api.sahelpay.ml",
-        "auth": {
-            "method": "bearer"
-        }
     }
 }
