@@ -1,0 +1,42 @@
+---
+title: Récupérer un lien de paiement
+api: GET /v1/payment-links/{id}
+description: "Récupérer les détails d'un lien de paiement"
+---
+
+# Récupérer un lien de paiement
+
+Récupère les détails d'un lien de paiement existant.
+
+## Endpoint
+
+```
+GET /v1/payment-links/{id}
+```
+
+## Exemple
+
+```bash
+curl https://api.sahelpay.ml/v1/payment-links/pl_xyz789 \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pl_xyz789",
+    "title": "Abonnement Premium",
+    "price": 10000,
+    "currency": "XOF",
+    "slug": "abonnement-premium-xyz789",
+    "url": "https://pay.sahelpay.ml/abonnement-premium-xyz789",
+    "is_active": true,
+    "total_payments": 25,
+    "total_revenue": 250000,
+    "created_at": "2025-12-18T16:45:00.000Z"
+  }
+}
+```

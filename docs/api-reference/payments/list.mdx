@@ -1,0 +1,55 @@
+---
+title: Lister les paiements
+api: GET /v1/payments
+description: "Lister tous les paiements"
+---
+
+# Lister les paiements
+
+Récupère la liste des paiements avec pagination.
+
+## Endpoint
+
+```
+GET /v1/payments
+```
+
+## Query Parameters
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Numéro de page (défaut: 1) |
+| `limit` | integer | Résultats par page (max: 100) |
+| `status` | string | Filtrer par statut |
+
+## Exemple
+
+```bash
+curl "https://api.sahelpay.ml/v1/payments?page=1&limit=20&status=SUCCESS" \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "payments": [
+      {
+        "id": "txn_abc123",
+        "status": "SUCCESS",
+        "amount": 5000,
+        "currency": "XOF",
+        "created_at": "2025-12-18T16:45:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 150,
+      "pages": 8
+    }
+  }
+}
+```

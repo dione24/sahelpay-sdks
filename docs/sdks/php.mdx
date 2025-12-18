@@ -1,0 +1,121 @@
+---
+title: PHP SDK
+description: "SDK PHP pour SahelPay"
+---
+
+# PHP SDK
+
+Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP et Laravel.
+
+## Installation
+
+```bash
+composer require sahelpay/php
+```
+
+<Note>
+  En attendant la publication sur Packagist, clonez le repo GitHub :
+  ```bash
+  git clone https://github.com/dione24/sahelpay-sdks.git
+  ```
+</Note>
+
+## Configuration
+
+```php
+use SahelPay\SahelPay;
+
+$sahelpay = new SahelPay('sk_test_xxx');
+```
+
+### Laravel
+
+```php
+// config/services.php
+'sahelpay' => [
+    'secret_key' => env('SAHELPAY_SECRET_KEY'),
+    'webhook_secret' => env('SAHELPAY_WEBHOOK_SECRET'),
+],
+```
+
+## Créer un lien de paiement
+
+```php
+$link = $sahelpay->paymentLinks->create([
+    'title' => 'Commande #123',
+    'price' => 5000,
+    'redirect_url' => 'https://votre-site.com/checkout/return',
+]);
+
+// Rediriger le client
+header('Location: ' . $link->url);
+exit;
+```
+
+## Vérifier le statut
+
+```php
+$payment = $sahelpay->payments->retrieve('txn_abc123');
+
+echo $payment->status; // 'PENDING', 'SUCCESS', 'FAILED'
+echo $payment->amount;
+```
+
+## Vérifier un webhook
+
+```php
+// Dans votre controller webhook
+$rawBody = file_get_contents('php://input');
+$signature = $_SERVER['HTTP_X_SAHELPAY_SIGNATURE'] ?? '';
+
+$isValid = $sahelpay->webhooks->verify($rawBody, $signature);
+
+if (!$isValid) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Invalid signature']);
+    exit;
+}
+
+$event = json_decode($rawBody, true);
+
+if ($event['event'] === 'payment.success') {
+    // Mettre à jour la commande
+}
+
+http_response_code(200);
+echo json_encode(['received' => true]);
+```
+
+## Laravel Controller
+
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use SahelPay\SahelPay;
+
+class WebhookController extends Controller
+{
+    public function handle(Request $request)
+    {
+        $sahelpay = new SahelPay(config('services.sahelpay.secret_key'));
+        
+        $isValid = $sahelpay->webhooks->verify(
+            $request->getContent(),
+            $request->header('X-SahelPay-Signature')
+        );
+
+        if (!$isValid) {
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+
+        $event = $request->all();
+
+        if ($event['event'] === 'payment.success') {
+            // Mettre à jour la commande
+        }
+
+        return response()->json(['received' => true]);
+    }
+}
+```

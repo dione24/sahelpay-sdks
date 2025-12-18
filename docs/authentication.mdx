@@ -1,0 +1,54 @@
+---
+title: Authentification
+description: "Comment s'authentifier avec l'API SahelPay"
+---
+
+# Authentification
+
+L'API SahelPay utilise des clés API pour authentifier les requêtes.
+
+## Clés API
+
+Vous avez deux types de clés :
+
+| Type | Préfixe | Usage |
+|------|---------|-------|
+| **Clé publique** | `pk_test_` / `pk_live_` | Côté client (frontend) |
+| **Clé secrète** | `sk_test_` / `sk_live_` | Côté serveur uniquement |
+
+<Warning>
+  **Ne jamais exposer votre clé secrète** côté client (JavaScript frontend, mobile app). 
+  Utilisez-la uniquement dans votre backend.
+</Warning>
+
+## Utilisation
+
+Incluez votre clé secrète dans le header `Authorization` :
+
+```bash
+curl https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+## Environnements
+
+| Environnement | Clés | URL |
+|---------------|------|-----|
+| **Sandbox** | `sk_test_xxx` | `https://sandbox.sahelpay.ml` |
+| **Production** | `sk_live_xxx` | `https://api.sahelpay.ml` |
+
+<Note>
+  Les clés `test` fonctionnent uniquement sur le sandbox. Les clés `live` uniquement en production.
+</Note>
+
+## Régénérer vos clés
+
+Si vous pensez que votre clé secrète a été compromise :
+
+1. Allez dans **Dashboard** → **Développeurs** → **Clés API**
+2. Cliquez sur **Régénérer**
+3. Mettez à jour votre application avec la nouvelle clé
+
+<Warning>
+  La régénération invalide immédiatement l'ancienne clé. Assurez-vous de mettre à jour votre application rapidement.
+</Warning>

@@ -1,0 +1,110 @@
+---
+title: JavaScript SDK
+description: "SDK JavaScript/TypeScript pour SahelPay"
+---
+
+# JavaScript SDK
+
+Le SDK JavaScript officiel pour intégrer SahelPay dans vos applications Node.js, TypeScript ou Deno.
+
+## Installation
+
+```bash
+npm install @sahelpay/sdk
+# ou
+yarn add @sahelpay/sdk
+```
+
+<Note>
+  En attendant la publication sur npm, clonez le repo GitHub :
+  ```bash
+  git clone https://github.com/dione24/sahelpay-sdks.git
+  ```
+</Note>
+
+## Configuration
+
+```typescript
+import { SahelPayMerchant } from '@sahelpay/sdk/merchant';
+
+const sahelpay = new SahelPayMerchant({
+  secretKey: process.env.SAHELPAY_SECRET_KEY!,
+  webhookSecret: process.env.SAHELPAY_WEBHOOK_SECRET,
+});
+```
+
+## Créer un paiement
+
+```typescript
+const payment = await sahelpay.createPayment({
+  amount: 5000,
+  orderId: 'order_123',
+  customerPhone: '+22370123456',
+  returnUrl: 'https://votre-site.com/checkout/return',
+  customerName: 'Amadou Diallo', // optionnel
+  description: 'Commande #123',  // optionnel
+});
+
+// Rediriger le client
+redirect(payment.redirectUrl);
+```
+
+## Vérifier le statut
+
+```typescript
+const status = await sahelpay.getPaymentStatus('txn_abc123');
+
+console.log(status.status); // 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
+console.log(status.amount);
+console.log(status.providerRef);
+```
+
+## Vérifier un webhook
+
+```typescript
+// Dans votre handler webhook
+export async function POST(request: Request) {
+  const rawBody = await request.text();
+  const signature = request.headers.get('x-sahelpay-signature');
+
+  const result = sahelpay.verifyWebhook(rawBody, signature);
+
+  if (!result.valid) {
+    return Response.json({ error: result.error }, { status: 401 });
+  }
+
+  const { event, data } = result.payload!;
+
+  if (event === 'payment.success') {
+    // Mettre à jour la commande
+  }
+
+  return Response.json({ received: true });
+}
+```
+
+## Types TypeScript
+
+```typescript
+import type {
+  PaymentResult,
+  PaymentStatus,
+  WebhookPayload,
+  WebhookVerificationResult,
+} from '@sahelpay/sdk/merchant';
+```
+
+## Gestion des erreurs
+
+```typescript
+import { SahelPayError } from '@sahelpay/sdk/merchant';
+
+try {
+  const payment = await sahelpay.createPayment({ ... });
+} catch (error) {
+  if (error instanceof SahelPayError) {
+    console.log(error.code);    // 'INVALID_AMOUNT'
+    console.log(error.message); // 'Montant minimum: 100 FCFA'
+  }
+}
+```

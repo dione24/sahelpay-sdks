@@ -1,0 +1,61 @@
+---
+title: Récupérer un paiement
+api: GET /v1/payments/{id}
+description: "Récupérer les détails d'un paiement"
+---
+
+# Récupérer un paiement
+
+Récupère les détails d'un paiement existant.
+
+## Endpoint
+
+```
+GET /v1/payments/{id}
+```
+
+## Paramètres
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `id` | string | ID du paiement (`txn_xxx`) |
+
+## Exemple
+
+```bash
+curl https://api.sahelpay.ml/v1/payments/txn_abc123 \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "txn_abc123def456",
+    "status": "SUCCESS",
+    "amount": 5000,
+    "currency": "XOF",
+    "provider": "ORANGE_MONEY",
+    "provider_ref": "OM123456789",
+    "customer_phone": "+22370123456",
+    "client_reference": "order_123",
+    "metadata": {
+      "order_id": "order_123"
+    },
+    "created_at": "2025-12-18T16:45:00.000Z",
+    "updated_at": "2025-12-18T16:50:00.000Z"
+  }
+}
+```
+
+## Statuts
+
+| Statut | Description |
+|--------|-------------|
+| `PENDING` | En attente de paiement |
+| `SUCCESS` | Paiement confirmé |
+| `FAILED` | Paiement échoué |
+| `EXPIRED` | Délai expiré |
+| `CANCELLED` | Annulé par le client |

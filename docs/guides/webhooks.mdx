@@ -1,0 +1,171 @@
+---
+title: Webhooks
+description: "Recevoir et traiter les notifications de paiement"
+---
+
+# Webhooks
+
+Les webhooks vous permettent de recevoir des notifications en temps réel sur les événements de paiement.
+
+<Warning>
+  **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu et vérifié un webhook `payment.success`.
+</Warning>
+
+## Événements
+
+| Événement | Description |
+|-----------|-------------|
+| `payment.success` | Paiement confirmé |
+| `payment.failed` | Paiement échoué |
+| `payment.cancelled` | Paiement annulé par le client |
+| `payment.expired` | Délai de paiement expiré |
+
+## Format du payload
+
+```json
+{
+  "event": "payment.success",
+  "version": "v1",
+  "timestamp": "2025-12-18T16:37:00.000Z",
+  "data": {
+    "id": "txn_abc123",
+    "amount": 5000,
+    "currency": "XOF",
+    "status": "SUCCESS",
+    "provider": "ORANGE_MONEY",
+    "provider_ref": "OM123456789",
+    "customer_phone": "+22370123456",
+    "metadata": {
+      "order_id": "order_123"
+    },
+    "created_at": "2025-12-18T16:35:00.000Z",
+    "updated_at": "2025-12-18T16:37:00.000Z"
+  }
+}
+```
+
+## Headers
+
+| Header | Description |
+|--------|-------------|
+| `X-SahelPay-Signature` | Signature HMAC pour vérification |
+| `X-SahelPay-Timestamp` | Timestamp UNIX (secondes) |
+| `X-SahelPay-Event-ID` | ID unique de l'événement |
+
+## Vérification de signature
+
+Le header `X-SahelPay-Signature` a le format : `t=timestamp,v1=signature`
+
+<CodeGroup>
+
+```javascript Node.js
+import crypto from 'crypto';
+
+function verifyWebhook(rawBody, signatureHeader, secret) {
+  const parts = {};
+  signatureHeader.split(',').forEach(p => {
+    const [key, value] = p.split('=');
+    parts[key] = value;
+  });
+
+  const timestamp = parts['t'];
+  const signature = parts['v1'];
+
+  // Protection replay (5 min)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - parseInt(timestamp)) > 300) {
+    return false;
+  }
+
+  // Vérifier signature
+  const payload = `${timestamp}.${rawBody}`;
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+```
+
+```python Python
+import hmac
+import hashlib
+import time
+
+def verify_webhook(raw_body, signature_header, secret):
+    parts = dict(p.split('=') for p in signature_header.split(','))
+    timestamp = parts.get('t')
+    signature = parts.get('v1')
+
+    # Protection replay
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+
+    # Vérifier signature
+    payload = f"{timestamp}.{raw_body}"
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected)
+```
+
+```php PHP
+function verifyWebhook($rawBody, $signatureHeader, $secret) {
+    $parts = [];
+    foreach (explode(',', $signatureHeader) as $part) {
+        [$key, $value] = explode('=', $part, 2);
+        $parts[$key] = $value;
+    }
+
+    $timestamp = $parts['t'] ?? null;
+    $signature = $parts['v1'] ?? null;
+
+    // Protection replay
+    if (abs(time() - (int)$timestamp) > 300) {
+        return false;
+    }
+
+    // Vérifier signature
+    $payload = "{$timestamp}.{$rawBody}";
+    $expected = hash_hmac('sha256', $payload, $secret);
+
+    return hash_equals($expected, $signature);
+}
+```
+
+</CodeGroup>
+
+## Retry automatique
+
+SahelPay retente automatiquement les webhooks en cas d'échec :
+
+| Tentative | Délai |
+|-----------|-------|
+| 1 | Immédiat |
+| 2 | 1 minute |
+| 3 | 2 minutes |
+| 4 | 4 minutes |
+| 5 | 8 minutes |
+
+Après 5 tentatives, le webhook est marqué comme `FAILED`.
+
+## Bonnes pratiques
+
+<AccordionGroup>
+  <Accordion title="Répondre rapidement">
+    Répondez avec un `200 OK` en moins de 5 secondes. Si le traitement est long, faites-le en async.
+  </Accordion>
+  <Accordion title="Gérer l'idempotence">
+    Utilisez `X-SahelPay-Event-ID` pour éviter de traiter deux fois le même événement.
+  </Accordion>
+  <Accordion title="Logger les événements">
+    Conservez un log de tous les webhooks reçus pour le debug.
+  </Accordion>
+</AccordionGroup>

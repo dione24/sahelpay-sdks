@@ -1,0 +1,116 @@
+---
+title: Créer un paiement
+api: POST /v1/payments
+description: "Créer une intention de paiement"
+---
+
+# Créer un paiement
+
+Crée une nouvelle intention de paiement et retourne une URL de redirection vers le checkout.
+
+## Endpoint
+
+```
+POST /v1/payments
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+| `Content-Type` | ✅ | `application/json` |
+| `X-Idempotency-Key` | Recommandé | Clé unique pour éviter les doublons |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `amount` | integer | ✅ | Montant en FCFA (min: 100) |
+| `currency` | string | | Devise (défaut: `XOF`) |
+| `payment_method` | string | | `MOBILE_MONEY` ou `CARD` |
+| `country` | string | | Code pays: `ML`, `SN`, `CI` |
+| `customer` | object | ✅ | Informations client |
+| `customer.phone` | string | ✅ | Numéro de téléphone |
+| `customer.name` | string | | Nom du client |
+| `customer.email` | string | | Email du client |
+| `return_url` | string | ✅ | URL de retour après paiement |
+| `client_reference` | string | | Votre référence (order_id) |
+| `metadata` | object | | Données personnalisées |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: order-123" \
+  -d '{
+    "amount": 5000,
+    "currency": "XOF",
+    "payment_method": "MOBILE_MONEY",
+    "country": "ML",
+    "customer": {
+      "phone": "+22370123456",
+      "name": "Amadou Diallo"
+    },
+    "return_url": "https://votre-site.com/checkout/return",
+    "client_reference": "order_123",
+    "metadata": {
+      "order_id": "order_123"
+    }
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/payments', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+    'Content-Type': 'application/json',
+    'X-Idempotency-Key': 'order-123',
+  },
+  body: JSON.stringify({
+    amount: 5000,
+    currency: 'XOF',
+    payment_method: 'MOBILE_MONEY',
+    country: 'ML',
+    customer: {
+      phone: '+22370123456',
+      name: 'Amadou Diallo',
+    },
+    return_url: 'https://votre-site.com/checkout/return',
+    client_reference: 'order_123',
+  }),
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "txn_abc123def456",
+    "status": "PENDING",
+    "amount": 5000,
+    "currency": "XOF",
+    "redirect_url": "https://pay.sahelpay.ml/checkout/txn_abc123def456",
+    "expires_at": "2025-12-18T17:00:00.000Z",
+    "created_at": "2025-12-18T16:45:00.000Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `INVALID_AMOUNT` | Montant invalide (< 100 ou > 5M) |
+| `MISSING_PHONE` | Numéro de téléphone requis |
+| `MISSING_RETURN_URL` | URL de retour requise |
+| `DUPLICATE_PAYMENT` | Paiement déjà créé (idempotence) |

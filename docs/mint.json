@@ -1,0 +1,118 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "name": "SahelPay",
+    "logo": {
+        "dark": "/logo/dark.svg",
+        "light": "/logo/light.svg"
+    },
+    "favicon": "/favicon.svg",
+    "colors": {
+        "primary": "#00C853",
+        "light": "#4CAF50",
+        "dark": "#00C853",
+        "anchors": {
+            "from": "#00C853",
+            "to": "#4CAF50"
+        }
+    },
+    "topbarLinks": [{
+        "name": "Support",
+        "url": "mailto:support@sahelpay.ml"
+    }],
+    "topbarCtaButton": {
+        "name": "Dashboard",
+        "url": "https://dashboard.sahelpay.ml"
+    },
+    "tabs": [{
+            "name": "API Reference",
+            "url": "api-reference"
+        },
+        {
+            "name": "SDKs",
+            "url": "sdks"
+        }
+    ],
+    "anchors": [{
+            "name": "GitHub",
+            "icon": "github",
+            "url": "https://github.com/dione24/sahelpay-sdks"
+        },
+        {
+            "name": "Community",
+            "icon": "discord",
+            "url": "https://discord.gg/sahelpay"
+        }
+    ],
+    "navigation": [{
+            "group": "Getting Started",
+            "pages": [
+                "introduction",
+                "quickstart",
+                "authentication"
+            ]
+        },
+        {
+            "group": "Guides",
+            "pages": [
+                "guides/integration",
+                "guides/webhooks",
+                "guides/testing"
+            ]
+        },
+        {
+            "group": "API Reference",
+            "pages": [
+                "api-reference/overview",
+                {
+                    "group": "Payments",
+                    "pages": [
+                        "api-reference/payments/create",
+                        "api-reference/payments/get",
+                        "api-reference/payments/list"
+                    ]
+                },
+                {
+                    "group": "Payment Links",
+                    "pages": [
+                        "api-reference/payment-links/create",
+                        "api-reference/payment-links/get"
+                    ]
+                },
+                {
+                    "group": "Webhooks",
+                    "pages": [
+                        "api-reference/webhooks/events",
+                        "api-reference/webhooks/verify"
+                    ]
+                }
+            ]
+        },
+        {
+            "group": "SDKs",
+            "pages": [
+                "sdks/overview",
+                "sdks/javascript",
+                "sdks/php",
+                "sdks/python"
+            ]
+        },
+        {
+            "group": "Resources",
+            "pages": [
+                "resources/test-accounts",
+                "resources/error-codes"
+            ]
+        }
+    ],
+    "footerSocials": {
+        "twitter": "https://twitter.com/sahelpay",
+        "github": "https://github.com/dione24/sahelpay-sdks",
+        "linkedin": "https://linkedin.com/company/sahelpay"
+    },
+    "api": {
+        "baseUrl": "https://api.sahelpay.ml",
+        "auth": {
+            "method": "bearer"
+        }
+    }
+}

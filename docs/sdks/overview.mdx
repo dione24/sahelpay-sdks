@@ -1,0 +1,59 @@
+---
+title: SDKs
+description: "SDKs officiels SahelPay"
+---
+
+# SDKs officiels
+
+SahelPay fournit des SDKs pour les langages les plus populaires.
+
+<CardGroup cols={3}>
+  <Card title="JavaScript" icon="js" href="/sdks/javascript">
+    Node.js, TypeScript, Deno
+  </Card>
+  <Card title="PHP" icon="php" href="/sdks/php">
+    PHP 8+, Laravel
+  </Card>
+  <Card title="Python" icon="python" href="/sdks/python">
+    Python 3.8+, Django, Flask
+  </Card>
+</CardGroup>
+
+## Installation rapide
+
+<CodeGroup>
+
+```bash JavaScript
+npm install @sahelpay/sdk
+# ou
+yarn add @sahelpay/sdk
+```
+
+```bash PHP
+composer require sahelpay/php
+```
+
+```bash Python
+pip install sahelpay
+```
+
+</CodeGroup>
+
+## Fonctionnalités
+
+Tous les SDKs exposent les mêmes fonctionnalités :
+
+| Fonction | Description |
+|----------|-------------|
+| `createPayment()` | Créer un paiement |
+| `getPaymentStatus()` | Vérifier le statut |
+| `verifyWebhook()` | Vérifier la signature webhook |
+| `paymentLinks.create()` | Créer un lien de paiement |
+
+## Code source
+
+Les SDKs sont open source et disponibles sur GitHub :
+
+<Card title="github.com/dione24/sahelpay-sdks" icon="github" href="https://github.com/dione24/sahelpay-sdks">
+  Contribuez ou signalez des bugs
+</Card>

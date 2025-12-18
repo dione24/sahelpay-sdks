@@ -1,0 +1,63 @@
+---
+title: Codes d'erreur
+description: "Liste des codes d'erreur de l'API SahelPay"
+---
+
+# Codes d'erreur
+
+Liste complète des codes d'erreur retournés par l'API.
+
+## Erreurs de validation
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `INVALID_AMOUNT` | 400 | Montant invalide (< 100 ou > 5M) |
+| `MISSING_PHONE` | 400 | Numéro de téléphone requis |
+| `INVALID_PHONE` | 400 | Format de numéro invalide |
+| `MISSING_RETURN_URL` | 400 | URL de retour requise |
+| `INVALID_CURRENCY` | 400 | Devise non supportée |
+
+## Erreurs d'authentification
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `UNAUTHORIZED` | 401 | Clé API manquante ou invalide |
+| `INVALID_API_KEY` | 401 | Clé API invalide |
+| `FORBIDDEN` | 403 | Accès refusé à cette ressource |
+
+## Erreurs de paiement
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `PAYMENT_NOT_FOUND` | 404 | Paiement introuvable |
+| `PAYMENT_EXPIRED` | 400 | Délai de paiement expiré |
+| `PAYMENT_ALREADY_PAID` | 400 | Paiement déjà effectué |
+| `INSUFFICIENT_BALANCE` | 400 | Solde client insuffisant |
+| `PROVIDER_ERROR` | 502 | Erreur du provider (Orange, Wave...) |
+
+## Erreurs de webhook
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `INVALID_SIGNATURE` | 401 | Signature webhook invalide |
+| `TIMESTAMP_TOO_OLD` | 401 | Timestamp trop ancien (replay) |
+
+## Erreurs système
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `RATE_LIMIT_EXCEEDED` | 429 | Trop de requêtes |
+| `INTERNAL_ERROR` | 500 | Erreur interne du serveur |
+| `SERVICE_UNAVAILABLE` | 503 | Service temporairement indisponible |
+
+## Format de réponse d'erreur
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_AMOUNT",
+    "message": "Le montant doit être supérieur à 100 FCFA"
+  }
+}
+```

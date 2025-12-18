@@ -1,0 +1,79 @@
+---
+title: API Overview
+description: "Vue d'ensemble de l'API SahelPay"
+---
+
+# API Reference
+
+L'API SahelPay est une API REST qui utilise JSON pour les requêtes et réponses.
+
+## Base URL
+
+| Environnement | URL |
+|---------------|-----|
+| **Sandbox** | `https://sandbox.sahelpay.ml` |
+| **Production** | `https://api.sahelpay.ml` |
+
+## Authentification
+
+Toutes les requêtes doivent inclure votre clé secrète dans le header `Authorization` :
+
+```bash
+Authorization: Bearer sk_test_xxx
+```
+
+## Format des réponses
+
+### Succès
+
+```json
+{
+  "success": true,
+  "data": {
+    // Données de la ressource
+  }
+}
+```
+
+### Erreur
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_AMOUNT",
+    "message": "Le montant doit être supérieur à 100 FCFA"
+  }
+}
+```
+
+## Codes d'erreur HTTP
+
+| Code | Description |
+|------|-------------|
+| `200` | Succès |
+| `400` | Requête invalide |
+| `401` | Non authentifié |
+| `403` | Accès refusé |
+| `404` | Ressource non trouvée |
+| `429` | Rate limit dépassé |
+| `500` | Erreur serveur |
+
+## Rate Limiting
+
+L'API est limitée à **100 requêtes par minute** par clé API.
+
+Headers de réponse :
+- `X-RateLimit-Limit`: Limite totale
+- `X-RateLimit-Remaining`: Requêtes restantes
+- `X-RateLimit-Reset`: Timestamp de reset
+
+## Idempotence
+
+Pour éviter les doublons, utilisez le header `X-Idempotency-Key` :
+
+```bash
+X-Idempotency-Key: order-123
+```
+
+Les requêtes avec la même clé d'idempotence retournent le même résultat.

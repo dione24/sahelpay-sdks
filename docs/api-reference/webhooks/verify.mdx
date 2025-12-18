@@ -1,0 +1,115 @@
+---
+title: Vérifier la signature
+description: "Comment vérifier la signature d'un webhook"
+---
+
+# Vérifier la signature webhook
+
+Toujours vérifier la signature pour s'assurer que le webhook provient de SahelPay.
+
+## Format de la signature
+
+```
+X-SahelPay-Signature: t=1734540000,v1=abc123def456...
+```
+
+- `t` = timestamp UNIX (secondes)
+- `v1` = signature HMAC-SHA256
+
+## Algorithme
+
+```
+signature = HMAC_SHA256(webhook_secret, "${timestamp}.${raw_body}")
+```
+
+## Implémentation
+
+<CodeGroup>
+
+```javascript Node.js
+import crypto from 'crypto';
+
+function verifySignature(rawBody, signatureHeader, secret) {
+  const parts = {};
+  signatureHeader.split(',').forEach(p => {
+    const [key, value] = p.split('=');
+    parts[key] = value;
+  });
+
+  const timestamp = parts['t'];
+  const signature = parts['v1'];
+
+  // Protection replay (5 min)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - parseInt(timestamp)) > 300) {
+    return false;
+  }
+
+  // Vérifier signature
+  const payload = `${timestamp}.${rawBody}`;
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+```
+
+```python Python
+import hmac
+import hashlib
+import time
+
+def verify_signature(raw_body, signature_header, secret):
+    parts = dict(p.split('=') for p in signature_header.split(','))
+    timestamp = parts.get('t')
+    signature = parts.get('v1')
+
+    # Protection replay
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+
+    # Vérifier signature
+    payload = f"{timestamp}.{raw_body}"
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected)
+```
+
+```php PHP
+function verifySignature($rawBody, $signatureHeader, $secret) {
+    $parts = [];
+    foreach (explode(',', $signatureHeader) as $part) {
+        [$key, $value] = explode('=', $part, 2);
+        $parts[$key] = $value;
+    }
+
+    $timestamp = $parts['t'] ?? null;
+    $signature = $parts['v1'] ?? null;
+
+    // Protection replay
+    if (abs(time() - (int)$timestamp) > 300) {
+        return false;
+    }
+
+    // Vérifier signature
+    $payload = "{$timestamp}.{$rawBody}";
+    $expected = hash_hmac('sha256', $payload, $secret);
+
+    return hash_equals($expected, $signature);
+}
+```
+
+</CodeGroup>
+
+## Protection replay
+
+Le timestamp permet de rejeter les webhooks trop anciens (> 5 minutes), protégeant contre les attaques de replay.

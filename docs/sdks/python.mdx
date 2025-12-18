@@ -1,0 +1,128 @@
+---
+title: Python SDK
+description: "SDK Python pour SahelPay"
+---
+
+# Python SDK
+
+Le SDK Python officiel pour intégrer SahelPay dans vos applications Python, Django ou Flask.
+
+## Installation
+
+```bash
+pip install sahelpay
+```
+
+<Note>
+  En attendant la publication sur PyPI, clonez le repo GitHub :
+  ```bash
+  git clone https://github.com/dione24/sahelpay-sdks.git
+  cd sahelpay-sdks/python
+  pip install -e .
+  ```
+</Note>
+
+## Configuration
+
+```python
+from sahelpay import SahelPay
+
+sahelpay = SahelPay('sk_test_xxx')
+```
+
+## Créer un lien de paiement
+
+```python
+link = sahelpay.payment_links.create(
+    title='Commande #123',
+    price=5000,
+    redirect_url='https://votre-site.com/checkout/return'
+)
+
+# Rediriger le client
+redirect(link.url)
+```
+
+## Vérifier le statut
+
+```python
+payment = sahelpay.payments.retrieve('txn_abc123')
+
+print(payment.status)  # 'PENDING', 'SUCCESS', 'FAILED'
+print(payment.amount)
+```
+
+## Vérifier un webhook
+
+```python
+from sahelpay import SahelPay
+
+sahelpay = SahelPay('sk_test_xxx', webhook_secret='whsec_xxx')
+
+# Flask
+@app.route('/webhooks/sahelpay', methods=['POST'])
+def webhook():
+    raw_body = request.get_data(as_text=True)
+    signature = request.headers.get('X-SahelPay-Signature')
+
+    is_valid = sahelpay.webhooks.verify(raw_body, signature)
+
+    if not is_valid:
+        return jsonify({'error': 'Invalid signature'}), 401
+
+    event = request.json
+
+    if event['event'] == 'payment.success':
+        # Mettre à jour la commande
+        pass
+
+    return jsonify({'received': True})
+```
+
+## Django View
+
+```python
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from sahelpay import SahelPay
+import json
+
+sahelpay = SahelPay(settings.SAHELPAY_SECRET_KEY)
+
+@csrf_exempt
+def webhook(request):
+    raw_body = request.body.decode('utf-8')
+    signature = request.headers.get('X-SahelPay-Signature')
+
+    is_valid = sahelpay.webhooks.verify(raw_body, signature)
+
+    if not is_valid:
+        return JsonResponse({'error': 'Invalid signature'}, status=401)
+
+    event = json.loads(raw_body)
+
+    if event['event'] == 'payment.success':
+        # Mettre à jour la commande
+        pass
+
+    return JsonResponse({'received': True})
+```
+
+## Async Support
+
+```python
+import asyncio
+from sahelpay import AsyncSahelPay
+
+async def main():
+    sahelpay = AsyncSahelPay('sk_test_xxx')
+    
+    link = await sahelpay.payment_links.create(
+        title='Commande #123',
+        price=5000
+    )
+    
+    print(link.url)
+
+asyncio.run(main())
+```

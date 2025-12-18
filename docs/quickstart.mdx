@@ -1,0 +1,161 @@
+---
+title: Quickstart
+description: "Intégrez SahelPay en 5 minutes"
+---
+
+# Démarrage rapide
+
+Ce guide vous montre comment accepter votre premier paiement avec SahelPay.
+
+## Prérequis
+
+- Un compte SahelPay ([créer un compte](https://dashboard.sahelpay.ml/register))
+- Vos clés API (disponibles dans le dashboard)
+
+## 1. Créer un paiement
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 5000,
+    "currency": "XOF",
+    "payment_method": "MOBILE_MONEY",
+    "country": "ML",
+    "customer": {
+      "phone": "+22370123456"
+    },
+    "return_url": "https://votre-site.com/checkout/return"
+  }'
+```
+
+```javascript Node.js
+import { SahelPayMerchant } from '@sahelpay/sdk';
+
+const sahelpay = new SahelPayMerchant({
+  secretKey: 'sk_test_xxx'
+});
+
+const payment = await sahelpay.createPayment({
+  amount: 5000,
+  orderId: 'order_123',
+  customerPhone: '+22370123456',
+  returnUrl: 'https://votre-site.com/checkout/return'
+});
+
+// Rediriger le client
+redirect(payment.redirectUrl);
+```
+
+```php PHP
+use SahelPay\SahelPay;
+
+$sahelpay = new SahelPay('sk_test_xxx');
+
+$payment = $sahelpay->paymentLinks->create([
+    'title' => 'Commande #123',
+    'price' => 5000,
+    'redirect_url' => 'https://votre-site.com/checkout/return'
+]);
+
+// Rediriger le client
+header('Location: ' . $payment->url);
+```
+
+```python Python
+from sahelpay import SahelPay
+
+sahelpay = SahelPay('sk_test_xxx')
+
+payment = sahelpay.payment_links.create(
+    title='Commande #123',
+    price=5000,
+    redirect_url='https://votre-site.com/checkout/return'
+)
+
+# Rediriger le client
+redirect(payment.url)
+```
+
+</CodeGroup>
+
+## 2. Rediriger le client
+
+Après la création, redirigez le client vers `redirect_url` :
+
+```javascript
+window.location.href = payment.redirectUrl;
+```
+
+Le client sera redirigé vers la page de checkout SahelPay où il pourra choisir son mode de paiement.
+
+## 3. Recevoir le webhook
+
+<Warning>
+  **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu le webhook `payment.success`.
+</Warning>
+
+Configurez votre endpoint webhook dans le dashboard, puis implémentez le handler :
+
+```javascript
+// POST /api/webhooks/sahelpay
+export async function POST(request) {
+  const rawBody = await request.text();
+  const signature = request.headers.get('x-sahelpay-signature');
+
+  // Vérifier la signature
+  const isValid = sahelpay.verifyWebhook(rawBody, signature);
+  if (!isValid) {
+    return Response.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+
+  const { event, data } = JSON.parse(rawBody);
+
+  if (event === 'payment.success') {
+    // Marquer la commande comme payée
+    await updateOrder(data.metadata.order_id, { status: 'paid' });
+  }
+
+  return Response.json({ received: true });
+}
+```
+
+## 4. Page de retour
+
+Quand le client revient sur votre site via `return_url`, affichez un message de confirmation :
+
+```javascript
+// /checkout/return?payment_intent_id=xxx
+const paymentId = searchParams.get('payment_intent_id');
+const status = await sahelpay.getPaymentStatus(paymentId);
+
+if (status.status === 'SUCCESS') {
+  // Afficher "Paiement confirmé"
+} else if (status.status === 'PENDING') {
+  // Afficher "En cours de traitement..."
+}
+```
+
+<Note>
+  La page de retour sert uniquement à l'UX. Le statut définitif vient toujours du webhook.
+</Note>
+
+## Prochaines étapes
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Configurer et sécuriser vos webhooks
+  </Card>
+  <Card title="Test Accounts" icon="flask" href="/resources/test-accounts">
+    Numéros de test pour le sandbox
+  </Card>
+  <Card title="SDKs" icon="box" href="/sdks/overview">
+    Installer les SDKs officiels
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Documentation complète de l'API
+  </Card>
+</CardGroup>

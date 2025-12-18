@@ -1,0 +1,68 @@
+---
+title: Tests
+description: "Tester votre intégration SahelPay"
+---
+
+# Tests
+
+Utilisez l'environnement sandbox pour tester votre intégration avant de passer en production.
+
+## Environnement Sandbox
+
+| | Sandbox | Production |
+|---|---------|------------|
+| **URL** | `https://sandbox.sahelpay.ml` | `https://api.sahelpay.ml` |
+| **Clés** | `sk_test_xxx` | `sk_live_xxx` |
+| **Transactions** | Simulées | Réelles |
+
+## Numéros de test
+
+Utilisez ces numéros pour simuler différents scénarios :
+
+| Numéro | Résultat |
+|--------|----------|
+| `+22370000001` | ✅ Paiement réussi |
+| `+22370000002` | ❌ Paiement échoué |
+| `+22370000003` | ⏳ Paiement en attente (timeout) |
+| `+22370000004` | 🚫 Solde insuffisant |
+
+## Montants de test
+
+| Montant | Comportement |
+|---------|--------------|
+| `100 - 999999` | Normal |
+| `1000000+` | Erreur "Montant trop élevé" |
+| `< 100` | Erreur "Montant minimum" |
+
+## Tester les webhooks
+
+### Avec ngrok (local)
+
+```bash
+# Exposer votre serveur local
+ngrok http 3000
+
+# Configurer l'URL dans le dashboard
+# https://xxxx.ngrok.io/api/webhooks/sahelpay
+```
+
+### Déclencher un webhook manuellement
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/webhooks/test \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"event": "payment.success"}'
+```
+
+## Checklist avant production
+
+<CheckboxGroup>
+  <Checkbox>Clés API production configurées</Checkbox>
+  <Checkbox>URL webhook production configurée</Checkbox>
+  <Checkbox>Vérification de signature implémentée</Checkbox>
+  <Checkbox>Idempotence gérée (création + webhook)</Checkbox>
+  <Checkbox>Page de retour fonctionnelle</Checkbox>
+  <Checkbox>Gestion des erreurs</Checkbox>
+  <Checkbox>Logs en place</Checkbox>
+</CheckboxGroup>
