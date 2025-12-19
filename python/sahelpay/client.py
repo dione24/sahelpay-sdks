@@ -36,6 +36,7 @@ class PaymentsAPI:
         customer_email: Optional[str] = None,
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
+        client_reference: Optional[str] = None,
         hosted_checkout: bool = True,
     ) -> Payment:
         """
@@ -91,6 +92,7 @@ class PaymentsAPI:
             "return_url": return_url,
             "success_url": success_url,
             "cancel_url": cancel_url,
+            "client_reference": client_reference,
             "hosted_checkout": hosted_checkout,
         }
 
@@ -108,6 +110,25 @@ class PaymentsAPI:
         if final_metadata:
             payload["metadata"] = final_metadata
         return Payment.from_dict(payload)
+
+    def search(self, client_reference: str) -> Optional[Payment]:
+        """Rechercher un paiement par référence client"""
+        response = self._client._request(
+            "GET", f"/v1/payments/search?client_reference={client_reference}")
+        data = response.get("data")
+        if not data:
+            return None
+        return Payment.from_dict(data)
+
+    def details(self, payment_id: str) -> Payment:
+        """Obtenir les détails financiers complets"""
+        response = self._client._request(
+            "GET", f"/v1/payments/{payment_id}/details")
+        return Payment.from_dict(response.get("data", {}))
+
+    def reconcile(self, payment_id: str) -> Dict[str, Any]:
+        """Réconcilier manuellement un paiement"""
+        return self._client._request("POST", f"/v1/payments/{payment_id}/reconcile")
 
     def providers(self) -> List[Any]:
         """Obtenir les providers disponibles"""
@@ -762,6 +783,50 @@ class PortalAPI:
         return response.get("data", {})
 
 
+class RefundsAPI:
+    """API pour gérer les remboursements"""
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create(
+        self,
+        payment_id: str,
+        amount: float,
+        reason: Optional[str] = None,
+        refund_fees: bool = False,
+    ) -> "Refund":
+        """Créer un remboursement"""
+        data = {
+            "payment_id": payment_id,
+            "amount": amount,
+            "refund_fees": refund_fees,
+        }
+        if reason:
+            data["reason"] = reason
+
+        response = self._client._request("POST", "/v1/refunds", data)
+        from .resources import Refund
+        return Refund.from_dict(response.get("data", {}))
+
+    def list(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """Lister les remboursements"""
+        params = {"limit": limit, "offset": offset}
+        response = self._client._request(
+            "GET", f"/v1/refunds?{urlencode(params)}")
+        
+        from .resources import Refund
+        data = response.get("data", {})
+        return {
+            "refunds": [Refund.from_dict(r) for r in data.get("refunds", [])],
+            "pagination": data.get("pagination", {}),
+        }
+
+
 class Client:
     """
     Client principal SahelPay
@@ -816,6 +881,7 @@ class Client:
         self.payouts = PayoutsAPI(self)
         self.withdrawals = WithdrawalsAPI(self)
         self.webhooks = WebhooksAPI(self)
+        self.refunds = RefundsAPI(self)
         self.plans = PlansAPI(self)
         self.subscriptions = SubscriptionsAPI(self)
         self.customers = CustomersAPI(self)

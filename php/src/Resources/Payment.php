@@ -29,6 +29,7 @@ class Payment
      *   customer_name?: string,
      *   customer_email?: string,
      *   description?: string,
+     *   client_reference?: string,
      *   callback_url?: string,
      *   return_url?: string,
      *   success_url?: string,
@@ -51,6 +52,32 @@ class Payment
         
         // API core: POST /v1/payments
         return $this->client->post('/payments', $data);
+    }
+
+    /**
+     * Rechercher un paiement par référence client (votre ID de commande)
+     */
+    public function search(string $clientReference): Response
+    {
+        return $this->client->get("/payments/search", [
+            'client_reference' => $clientReference
+        ]);
+    }
+
+    /**
+     * Obtenir les détails financiers complets (ledger, frais, etc.)
+     */
+    public function details(string $id): Response
+    {
+        return $this->client->get("/payments/{$id}/details");
+    }
+
+    /**
+     * Réconcilier manuellement un paiement
+     */
+    public function reconcile(string $id): Response
+    {
+        return $this->client->post("/payments/{$id}/reconcile");
     }
 
     /**

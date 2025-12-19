@@ -43,6 +43,7 @@ export interface CreatePaymentParams {
   customer_name?: string;
   customer_email?: string;
   description?: string;
+  client_reference?: string;
   metadata?: Record<string, any>;
   callback_url?: string;
   return_url?: string;
@@ -59,10 +60,11 @@ export interface CreatePaymentParams {
 export interface Payment {
   id: string;
   reference_id: string;
+  client_reference?: string;
   amount: number;
   currency: string;
   provider: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+  status: 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
   customer_phone: string;
   description?: string;
   payment_method?: string;
@@ -72,6 +74,15 @@ export interface Payment {
   expires_at?: string;
   checkout_url?: string;
   ussd_code?: string;
+  metadata?: Record<string, any>;
+  fee_calculation?: {
+    platform_fee: number;
+    provider_fee: number;
+    net_merchant: number;
+    tax_amount: number;
+  };
+  ledger_entries?: any[];
+  provider_events?: any[];
   created_at: string;
   updated_at: string;
 }
@@ -125,9 +136,30 @@ export interface PayoutStats {
 }
 
 export interface WebhookEvent {
-  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled';
-  data: Payment | Payout | SubscriptionWebhookData;
+  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled' | 'refund.success' | 'refund.failed';
+  data: Payment | Payout | SubscriptionWebhookData | Refund;
   timestamp: string;
+}
+
+// ==================== REFUNDS ====================
+
+export interface Refund {
+  id: string;
+  payment_id: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  reason?: string;
+  metadata?: Record<string, any>;
+  client_reference?: string;
+  created_at: string;
+}
+
+export interface CreateRefundParams {
+  payment_id: string;
+  amount: number;
+  reason?: string;
+  refund_fees?: boolean;
 }
 
 // ==================== PLANS ====================
@@ -257,6 +289,7 @@ class PaymentsAPI {
       customer_phone: params.customer_phone,
       customer_name: params.customer_name,
       customer_email: params.customer_email,
+      client_reference: params.client_reference,
       metadata: {
         ...(params.metadata || {}),
         ...(params.description ? { description: params.description } : {}),
@@ -271,6 +304,7 @@ class PaymentsAPI {
     return {
       id: data.id,
       reference_id: data.id,
+      client_reference: data.client_reference,
       amount: data.amount,
       currency: data.currency,
       provider: provider || data.payment_method,
@@ -282,6 +316,7 @@ class PaymentsAPI {
       provider_ref: data.provider_ref,
       redirect_url: data.redirect_url,
       expires_at: data.expires_at,
+      metadata: data.metadata,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -312,19 +347,82 @@ class PaymentsAPI {
     return {
       id: data.id,
       reference_id: data.id,
+      client_reference: data.client_reference,
       amount: data.amount,
       currency: data.currency,
       provider: data.payment_method,
       status: data.status,
-      customer_phone: '',
+      customer_phone: data.customer?.phone || '',
       payment_method: data.payment_method,
       country: data.country,
       provider_ref: data.provider_ref,
       redirect_url: data.redirect_url,
       expires_at: data.expires_at,
+      metadata: data.metadata,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
+  }
+
+  /**
+   * Rechercher un paiement par client_reference
+   */
+  async search(clientReference: string): Promise<Payment | null> {
+    const response = await this.client.request('GET', `/v1/payments/search?client_reference=${encodeURIComponent(clientReference)}`);
+    const data = response.data;
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      reference_id: data.id,
+      client_reference: data.client_reference,
+      amount: data.amount,
+      currency: data.currency,
+      provider: data.provider_id || data.payment_method,
+      status: data.status,
+      customer_phone: data.metadata?.customer?.phone || data.customer_phone || '',
+      description: data.metadata?.description,
+      payment_method: data.payment_method,
+      country: data.country || 'ML',
+      provider_ref: data.provider_ref,
+      metadata: data.metadata,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+  }
+
+  /**
+   * Obtenir les détails complets d'un paiement (avec ledger et fees)
+   */
+  async details(id: string): Promise<Payment> {
+    const response = await this.client.request('GET', `/v1/payments/${id}/details`);
+    const data = response.data;
+
+    return {
+      id: data.id,
+      reference_id: data.id,
+      client_reference: data.client_reference,
+      amount: data.amount,
+      currency: data.currency,
+      provider: data.provider,
+      status: data.status,
+      customer_phone: data.customer?.phone || '',
+      description: data.metadata?.description,
+      metadata: data.metadata,
+      fee_calculation: data.fee_calculation,
+      ledger_entries: data.ledger_entries,
+      provider_events: data.provider_events,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+  }
+
+  /**
+   * Réconcilier manuellement un paiement
+   */
+  async reconcile(id: string): Promise<{ updated: boolean; newStatus?: string }> {
+    const response = await this.client.request('POST', `/v1/payments/${id}/reconcile`);
+    return response;
   }
 
   /**
@@ -835,6 +933,32 @@ class CustomersAPI {
 
 // ==================== PORTAL API ====================
 
+// ==================== REFUNDS API ====================
+
+class RefundsAPI {
+  constructor(private client: SahelPayClient) {}
+
+  /**
+   * Créer un remboursement
+   */
+  async create(params: CreateRefundParams): Promise<Refund> {
+    const response = await this.client.request('POST', '/v1/refunds', params);
+    return response.data;
+  }
+
+  /**
+   * Lister les remboursements
+   */
+  async list(params?: { limit?: number; offset?: number }): Promise<{ refunds: Refund[]; pagination: any }> {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', params.limit.toString());
+    if (params?.offset) query.set('offset', params.offset.toString());
+
+    const response = await this.client.request('GET', `/v1/refunds?${query.toString()}`);
+    return response.data;
+  }
+}
+
 class PortalAPI {
   constructor(private client: SahelPayClient) {}
 
@@ -997,6 +1121,7 @@ export class SahelPay {
   public payouts: PayoutsAPI;
   public withdrawals: WithdrawalsAPI;
   public webhooks: WebhooksAPI;
+  public refunds: RefundsAPI;
   public plans: PlansAPI;
   public subscriptions: SubscriptionsAPI;
   public customers: CustomersAPI;
@@ -1013,6 +1138,7 @@ export class SahelPay {
     this.payouts = new PayoutsAPI(this.client);
     this.withdrawals = new WithdrawalsAPI(this.client);
     this.webhooks = new WebhooksAPI(this.client);
+    this.refunds = new RefundsAPI(this.client);
     this.plans = new PlansAPI(this.client);
     this.subscriptions = new SubscriptionsAPI(this.client);
     this.customers = new CustomersAPI(this.client);

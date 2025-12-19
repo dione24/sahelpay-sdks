@@ -14,6 +14,7 @@ use SahelPay\Resources\Plan;
 use SahelPay\Resources\Subscription;
 use SahelPay\Resources\Customer;
 use SahelPay\Resources\Portal;
+use SahelPay\Resources\Refund;
 
 /**
  * Client principal SahelPay
@@ -27,6 +28,7 @@ use SahelPay\Resources\Portal;
  * @property-read Subscription $subscriptions
  * @property-read Customer $customers
  * @property-read Portal $portal
+ * @property-read Refund $refunds
  */
 class SahelPay
 {
@@ -43,6 +45,7 @@ class SahelPay
     public Subscription $subscriptions;
     public Customer $customers;
     public Portal $portal;
+    public Refund $refunds;
 
     /**
      * Créer une nouvelle instance SahelPay
@@ -89,6 +92,7 @@ class SahelPay
         $this->subscriptions = new Subscription($this->client);
         $this->customers = new Customer($this->client);
         $this->portal = new Portal($this->client);
+        $this->refunds = new Refund($this->client);
     }
 
     /**
