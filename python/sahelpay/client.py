@@ -36,6 +36,7 @@ class PaymentsAPI:
         customer_email: Optional[str] = None,
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
+        hosted_checkout: bool = True,
     ) -> Payment:
         """
         Créer un nouveau paiement
@@ -49,6 +50,8 @@ class PaymentsAPI:
             metadata: Données personnalisées
             callback_url: URL de callback webhook
             return_url: URL de redirection après paiement
+            hosted_checkout: Si True (défaut), affiche la page SahelPay.
+                            Si False, redirige directement vers le provider.
 
         Returns:
             Payment: Objet paiement créé
@@ -88,6 +91,7 @@ class PaymentsAPI:
             "return_url": return_url,
             "success_url": success_url,
             "cancel_url": cancel_url,
+            "hosted_checkout": hosted_checkout,
         }
 
         if final_metadata:

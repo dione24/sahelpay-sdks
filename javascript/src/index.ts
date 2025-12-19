@@ -46,6 +46,14 @@ export interface CreatePaymentParams {
   metadata?: Record<string, any>;
   callback_url?: string;
   return_url?: string;
+  success_url?: string;
+  cancel_url?: string;
+  /**
+   * Si true, redirige vers la page de checkout SahelPay avant le provider.
+   * Si false, initie directement le paiement et redirige vers le provider.
+   * @default true
+   */
+  hosted_checkout?: boolean;
 }
 
 export interface Payment {
@@ -54,7 +62,7 @@ export interface Payment {
   amount: number;
   currency: string;
   provider: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
   customer_phone: string;
   description?: string;
   payment_method?: string;
@@ -254,6 +262,9 @@ class PaymentsAPI {
         ...(params.description ? { description: params.description } : {}),
       },
       return_url: params.return_url,
+      success_url: params.success_url,
+      cancel_url: params.cancel_url,
+      hosted_checkout: params.hosted_checkout ?? true,
     });
 
     const data = response.data;

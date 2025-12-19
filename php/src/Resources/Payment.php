@@ -31,12 +31,23 @@ class Payment
      *   description?: string,
      *   callback_url?: string,
      *   return_url?: string,
+     *   success_url?: string,
+     *   cancel_url?: string,
+     *   hosted_checkout?: bool,
      *   metadata?: array
      * } $data
+     * 
+     * @option hosted_checkout Si true (par défaut), redirige vers la page SahelPay.
+     *                         Si false, redirige directement vers le provider.
      */
     public function initiate(array $data): Response
     {
         $this->validateRequired($data, ['amount', 'provider', 'customer_phone']);
+        
+        // Set default for hosted_checkout if not specified
+        if (!isset($data['hosted_checkout'])) {
+            $data['hosted_checkout'] = true;
+        }
         
         // API core: POST /v1/payments
         return $this->client->post('/payments', $data);
