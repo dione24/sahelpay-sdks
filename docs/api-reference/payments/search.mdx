@@ -1,0 +1,57 @@
+---
+title: Rechercher un paiement
+api: GET /v1/payments/search
+description: "Rechercher un paiement par référence client"
+---
+
+# Rechercher un paiement
+
+Permet de retrouver un paiement en utilisant votre propre référence (`client_reference`). Cet endpoint est particulièrement utile pour la réconciliation automatique.
+
+## Query Parameters
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `client_reference` | string | ✅ | Votre référence interne (ex: ID de commande) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X GET "https://api.sahelpay.ml/v1/payments/search?client_reference=order_123" \
+  -H "Authorization: Bearer sk_live_xxx"
+```
+
+```javascript Node.js
+const payment = await sahelpay.payments.search('order_123');
+```
+
+</CodeGroup>
+
+## Réponse
+
+Retourne le paiement le plus récent correspondant à cette référence.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "txn_8f525b9f",
+    "client_reference": "order_123",
+    "status": "SUCCESS",
+    "amount": 5000,
+    "currency": "XOF",
+    "payment_method": "ORANGE_MONEY",
+    "created_at": "2025-12-19T10:00:00Z",
+    "updated_at": "2025-12-19T10:05:00Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `MISSING_REFERENCE` | Le paramètre `client_reference` est requis |
+| `NOT_FOUND` | Aucun paiement trouvé avec cette référence |

@@ -37,6 +37,7 @@ class PaymentsAPI:
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
         client_reference: Optional[str] = None,
+        marketplace: Optional[Dict[str, Any]] = None,
         hosted_checkout: bool = True,
     ) -> Payment:
         """
@@ -79,6 +80,8 @@ class PaymentsAPI:
             final_metadata.setdefault("description", description)
         if callback_url:
             final_metadata.setdefault("callback_url", callback_url)
+        if marketplace:
+            final_metadata["marketplace"] = marketplace
 
         data: Dict[str, Any] = {
             "amount": amount,

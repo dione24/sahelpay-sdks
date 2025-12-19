@@ -1,0 +1,45 @@
+---
+title: Créer un remboursement
+api: POST /v1/refunds
+description: "Rembourser totalement ou partiellement un paiement réussi"
+---
+
+# Créer un remboursement
+
+Permet de retourner des fonds à un client. Le montant sera débité du solde disponible du marchand.
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `payment_id` | string | ✅ | ID du paiement original |
+| `amount` | integer | ✅ | Montant à rembourser |
+| `reason` | string | | Raison du remboursement |
+| `refund_fees` | boolean | | Si `true`, tente de rembourser également les frais de plateforme |
+
+## Exemple
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/refunds \
+  -H "Authorization: Bearer sk_live_xxx" \
+  -d '{
+    "payment_id": "txn_123",
+    "amount": 1000,
+    "reason": "Client insatisfait"
+  }'
+```
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "ref_abc123",
+    "status": "COMPLETED",
+    "amount": 1000,
+    "currency": "XOF",
+    "created_at": "2025-12-19T11:00:00Z"
+  }
+}
+```

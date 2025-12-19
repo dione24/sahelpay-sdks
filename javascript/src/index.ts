@@ -33,6 +33,18 @@ export interface SahelPayConfig {
   timeout?: number;
 }
 
+export interface MarketplaceMetadata {
+  order_number?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  items_count?: number;
+  shipping_address?: string;
+  delivery_zone?: string;
+  delivery_fee?: number;
+  order_date?: string;
+  merchant_name?: string;
+}
+
 export interface CreatePaymentParams {
   amount: number;
   currency?: string;
@@ -44,6 +56,7 @@ export interface CreatePaymentParams {
   customer_email?: string;
   description?: string;
   client_reference?: string;
+  marketplace?: MarketplaceMetadata;
   metadata?: Record<string, any>;
   callback_url?: string;
   return_url?: string;
@@ -293,6 +306,7 @@ class PaymentsAPI {
       metadata: {
         ...(params.metadata || {}),
         ...(params.description ? { description: params.description } : {}),
+        ...(params.marketplace ? { marketplace: params.marketplace } : {}),
       },
       return_url: params.return_url,
       success_url: params.success_url,

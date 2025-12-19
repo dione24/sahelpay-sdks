@@ -30,6 +30,12 @@ class Payment
      *   customer_email?: string,
      *   description?: string,
      *   client_reference?: string,
+     *   marketplace?: array{
+     *     order_number?: string,
+     *     customer_name?: string,
+     *     items_count?: int,
+     *     shipping_address?: string
+     *   },
      *   callback_url?: string,
      *   return_url?: string,
      *   success_url?: string,
@@ -48,6 +54,15 @@ class Payment
         // Set default for hosted_checkout if not specified
         if (!isset($data['hosted_checkout'])) {
             $data['hosted_checkout'] = true;
+        }
+
+        // Handle marketplace metadata if passed at top level
+        if (isset($data['marketplace'])) {
+            if (!isset($data['metadata'])) {
+                $data['metadata'] = [];
+            }
+            $data['metadata']['marketplace'] = $data['marketplace'];
+            unset($data['marketplace']);
         }
         
         // API core: POST /v1/payments

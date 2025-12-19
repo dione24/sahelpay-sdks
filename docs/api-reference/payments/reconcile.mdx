@@ -1,0 +1,29 @@
+---
+title: Réconcilier un paiement
+api: POST /v1/payments/{id}/reconcile
+description: "Forcer la réconciliation manuelle d'un paiement en attente"
+---
+
+# Réconcilier un paiement
+
+Si un paiement reste dans l'état `PENDING` (par exemple si un webhook a été manqué), cet endpoint permet de forcer SahelPay à vérifier le statut final auprès de l'opérateur (Orange, Wave, etc.) et à mettre à jour la transaction.
+
+## Path Parameters
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `id` | string | ✅ | ID du paiement (UUID) |
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "updated": true,
+  "new_status": "SUCCESS"
+}
+```
+
+<Info>
+  SahelPay possède également un système de réconciliation automatique qui vérifie les paiements `PENDING` toutes les 10 minutes.
+</Info>

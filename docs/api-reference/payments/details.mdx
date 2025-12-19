@@ -1,0 +1,64 @@
+---
+title: Détails du paiement
+api: GET /v1/payments/{id}/details
+description: "Obtenir les détails financiers complets d'un paiement"
+---
+
+# Détails du paiement
+
+Récupère toutes les informations financières liées à un paiement, y compris le calcul des frais et les écritures comptables (Ledger). 
+
+<Note>
+  Cet endpoint est principalement utilisé pour la réconciliation et l'audit financier.
+</Note>
+
+## Path Parameters
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `id` | string | ✅ | ID du paiement (UUID) |
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "txn_8f525b9f",
+    "status": "SUCCESS",
+    "amount": 5000,
+    "fee_calculation": {
+      "gross_amount": 5000,
+      "platform_fee": 50,
+      "provider_fee": 50,
+      "tax_amount": 18,
+      "net_merchant": 4882
+    },
+    "ledger_entries": [
+      {
+        "id": "entry_1",
+        "journal_type": "TRANSACTION",
+        "description": "Orange Money Payment SUCCESS",
+        "lines": [
+          {
+            "account_name": "Orange Money Payable",
+            "direction": "DEBIT",
+            "amount": 5000
+          },
+          {
+            "account_name": "Merchant Available Balance",
+            "direction": "CREDIT",
+            "amount": 4882
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "marketplace": {
+        "order_number": "8F525B9F",
+        "customer_name": "Amadou Diallo"
+      }
+    }
+  }
+}
+```
