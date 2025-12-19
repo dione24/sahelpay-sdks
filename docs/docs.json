@@ -39,63 +39,62 @@
             "url": "sdks/overview"
         }
     ],
-    "navigation": {
-        "introduction": [
-            {
-                "group": "Getting Started",
-                "pages": [
-                    "introduction",
-                    "quickstart",
-                    "authentication"
-                ]
-            },
-            {
-                "group": "Guides",
-                "pages": [
-                    "guides/integration",
-                    "guides/webhooks",
-                    "guides/testing"
-                ]
-            },
-            {
-                "group": "Resources",
-                "pages": [
-                    "resources/test-accounts",
-                    "resources/error-codes"
-                ]
-            }
-        ],
-        "api-reference/overview": [
-            {
-                "group": "API Reference",
-                "pages": [
-                    "api-reference/overview",
-                    "api-reference/payments/create",
-                    "api-reference/payments/get",
-                    "api-reference/payments/list",
-                    "api-reference/payments/search",
-                    "api-reference/payments/details",
-                    "api-reference/payments/reconcile",
-                    "api-reference/refunds/create",
-                    "api-reference/payment-links/create",
-                    "api-reference/payment-links/get",
-                    "api-reference/webhooks/events",
-                    "api-reference/webhooks/verify"
-                ]
-            }
-        ],
-        "sdks/overview": [
-            {
-                "group": "SDKs",
-                "pages": [
-                    "sdks/overview",
-                    "sdks/javascript",
-                    "sdks/php",
-                    "sdks/python"
-                ]
-            }
-        ]
-    },
+    "navigation": [
+        {
+            "group": "Getting Started",
+            "tab": "introduction",
+            "pages": [
+                "introduction",
+                "quickstart",
+                "authentication"
+            ]
+        },
+        {
+            "group": "Guides",
+            "tab": "introduction",
+            "pages": [
+                "guides/integration",
+                "guides/webhooks",
+                "guides/testing"
+            ]
+        },
+        {
+            "group": "Resources",
+            "tab": "introduction",
+            "pages": [
+                "resources/test-accounts",
+                "resources/error-codes"
+            ]
+        },
+        {
+            "group": "API Reference",
+            "tab": "api-reference/overview",
+            "pages": [
+                "api-reference/overview",
+                "api-reference/payments/create",
+                "api-reference/payments/get",
+                "api-reference/payments/list",
+                "api-reference/payments/search",
+                "api-reference/payments/details",
+                "api-reference/payments/reconcile",
+                "api-reference/refunds/create",
+                "api-reference/payment-links/create",
+                "api-reference/payment-links/get",
+                "api-reference/webhooks/events",
+                "api-reference/webhooks/verify"
+            ]
+        },
+        {
+            "group": "SDKs",
+            "tab": "sdks/overview",
+            "pages": [
+                "sdks/overview",
+                "sdks/javascript",
+                "sdks/php",
+                "sdks/python"
+            ]
+        }
+    ],
     "footerSocials": {
         "twitter": "https://twitter.com/sahelpay",
         "github": "https://github.com/dione24/sahelpay-sdks",
