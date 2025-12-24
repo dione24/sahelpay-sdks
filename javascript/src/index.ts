@@ -797,6 +797,27 @@ class WithdrawalsAPI {
   }
 }
 
+// ==================== PUBLIC PLAN (for pricing widgets) ====================
+
+export interface PublicPlan {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  interval: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  interval_label: string;
+  features: string[];
+  checkout_url?: string;
+}
+
+export interface PublicPlansResponse {
+  merchant: {
+    id: string;
+    name: string;
+  };
+  plans: PublicPlan[];
+}
+
 // ==================== PLANS API ====================
 
 class PlansAPI {
@@ -839,6 +860,39 @@ class PlansAPI {
    */
   async delete(id: string): Promise<void> {
     await this.client.request('DELETE', `/v1/plans/${id}`);
+  }
+
+  /**
+   * Récupérer les plans publics d'un merchant (sans authentification)
+   * Idéal pour les pricing pages et widgets
+   * 
+   * @example
+   * ```typescript
+   * // Sans authentification - pour pricing pages
+   * const plans = await SahelPay.getPublicPlans('merchant-id');
+   * ```
+   */
+  static async getPublic(merchantId: string, baseUrl?: string): Promise<PublicPlansResponse> {
+    const url = baseUrl || 'https://api.sahelpay.ml';
+    const response = await fetch(`${url}/v1/public/plans?merchant_id=${merchantId}`);
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Failed to fetch plans');
+    }
+    return data.data;
+  }
+
+  /**
+   * Récupérer un plan public par ID (sans authentification)
+   */
+  static async getPublicPlan(planId: string, baseUrl?: string): Promise<PublicPlan> {
+    const url = baseUrl || 'https://api.sahelpay.ml';
+    const response = await fetch(`${url}/v1/public/plans/${planId}`);
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Plan not found');
+    }
+    return data.data;
   }
 }
 
@@ -1194,6 +1248,31 @@ export class SahelPay {
     this.subscriptions = new SubscriptionsAPI(this.client);
     this.customers = new CustomersAPI(this.client);
     this.portal = new PortalAPI(this.client);
+  }
+
+  /**
+   * Récupérer les plans publics d'un merchant (sans authentification)
+   * Méthode statique - pas besoin d'instancier le client
+   * 
+   * @example
+   * ```typescript
+   * // Pour une pricing page (pas besoin de secretKey)
+   * const { merchant, plans } = await SahelPay.getPublicPlans('merchant-id');
+   * 
+   * plans.forEach(plan => {
+   *   console.log(`${plan.name}: ${plan.amount} ${plan.currency}/${plan.interval_label}`);
+   * });
+   * ```
+   */
+  static async getPublicPlans(merchantId: string, baseUrl?: string): Promise<PublicPlansResponse> {
+    return PlansAPI.getPublic(merchantId, baseUrl);
+  }
+
+  /**
+   * Récupérer un plan public par ID (sans authentification)
+   */
+  static async getPublicPlan(planId: string, baseUrl?: string): Promise<PublicPlan> {
+    return PlansAPI.getPublicPlan(planId, baseUrl);
   }
 }
 
