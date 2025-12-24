@@ -894,6 +894,43 @@ class SubscriptionsAPI {
     const response = await this.client.request('DELETE', `/v1/subscriptions/${id}`);
     return response;
   }
+
+  /**
+   * Créer un abonnement avec lien de paiement immédiat
+   * 
+   * Cette méthode crée un abonnement ET génère un lien de paiement en une seule requête.
+   * Idéal pour les intégrations SaaS où vous voulez envoyer immédiatement un lien de paiement.
+   * 
+   * @example
+   * ```typescript
+   * const result = await sahelpay.subscriptions.createWithPayment({
+   *   plan_id: 'plan_xxx',
+   *   customer_phone: '+22370000000',
+   *   redirect_url: 'https://myapp.com/billing?success=true',
+   *   metadata: { organization_id: 'org_123' },
+   * });
+   * 
+   * console.log(result.subscription.id);
+   * console.log(result.payment_link.url); // URL à envoyer au client
+   * ```
+   */
+  async createWithPayment(params: {
+    plan_id: string;
+    customer_phone: string;
+    redirect_url?: string;
+    metadata?: Record<string, any>;
+  }): Promise<{
+    subscription: Subscription;
+    payment_link: {
+      id: string;
+      slug: string;
+      url: string;
+      amount: number;
+    };
+  }> {
+    const response = await this.client.request('POST', '/v1/subscriptions/with-payment', params);
+    return response.data;
+  }
 }
 
 // ==================== CUSTOMERS API ====================
