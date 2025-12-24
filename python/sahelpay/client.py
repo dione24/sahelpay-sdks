@@ -288,48 +288,138 @@ class PaymentLinksAPI:
 
 
 class WebhooksAPI:
-    """API pour gérer les webhooks"""
+    """
+    API pour gérer les webhooks
+    
+    SahelPay utilise un format de signature Stripe-like:
+    - Header: X-SahelPay-Signature
+    - Format: t=<timestamp>,v1=<signature>
+    - Signature: HMAC_SHA256(secret, "${timestamp}.${raw_body}")
+    """
+
+    DEFAULT_TOLERANCE = 300  # 5 minutes
 
     def __init__(self, client: "Client"):
         self._client = client
 
+    def _parse_signature_header(self, header: str) -> Dict[str, str]:
+        """Parser le header de signature (format: t=...,v1=...)"""
+        parts = {}
+        for part in header.split(','):
+            if '=' in part:
+                key, value = part.split('=', 1)
+                parts[key] = value
+        return parts
+
     def verify_signature(
         self,
         payload: str,
-        signature: str,
-        secret: str
+        signature_header: str,
+        secret: str,
+        tolerance: int = DEFAULT_TOLERANCE
     ) -> bool:
         """
-        Vérifier la signature d'un webhook
+        Vérifier la signature d'un webhook (format Stripe-like)
 
         Args:
-            payload: Corps de la requête (string)
-            signature: Header X-SahelPay-Signature
-            secret: Votre secret webhook
+            payload: Corps brut de la requête (string)
+            signature_header: Header X-SahelPay-Signature complet (format: t=...,v1=...)
+            secret: Votre secret webhook (whsec_...)
+            tolerance: Tolérance en secondes pour le timestamp (défaut: 300)
 
         Returns:
             bool: True si la signature est valide
+
+        Raises:
+            SahelPayError: Si le format est invalide ou la signature incorrecte
         """
+        import time as time_module
+
+        # Parser le header de signature
+        parts = self._parse_signature_header(signature_header)
+        timestamp = parts.get('t')
+        signature = parts.get('v1')
+
+        if not timestamp or not signature:
+            raise SahelPayError(
+                "Format de signature invalide. Attendu: t=<timestamp>,v1=<signature>",
+                "WEBHOOK_SIGNATURE_ERROR"
+            )
+
+        # Protection contre les replay attacks
+        now = int(time_module.time())
+        try:
+            timestamp_int = int(timestamp)
+        except ValueError:
+            raise SahelPayError(
+                "Timestamp invalide dans le header de signature",
+                "WEBHOOK_SIGNATURE_ERROR"
+            )
+
+        if abs(now - timestamp_int) > tolerance:
+            raise SahelPayError(
+                "Timestamp trop ancien, possible replay attack",
+                "WEBHOOK_TIMESTAMP_ERROR"
+            )
+
+        # Calculer la signature attendue
+        signature_payload = f"{timestamp}.{payload}"
         expected = hmac.new(
             secret.encode("utf-8"),
-            payload.encode("utf-8"),
+            signature_payload.encode("utf-8"),
             hashlib.sha256
         ).hexdigest()
 
-        return hmac.compare_digest(signature, expected)
+        # Comparaison timing-safe
+        if not hmac.compare_digest(signature, expected):
+            raise SahelPayError(
+                "Signature webhook invalide",
+                "WEBHOOK_SIGNATURE_ERROR"
+            )
+
+        return True
+
+    def construct_event(
+        self,
+        payload: str,
+        signature_header: str,
+        secret: str,
+        tolerance: int = DEFAULT_TOLERANCE
+    ) -> WebhookEvent:
+        """
+        Construire et vérifier un événement webhook
+
+        Args:
+            payload: Corps brut de la requête
+            signature_header: Header X-SahelPay-Signature
+            secret: Votre secret webhook
+            tolerance: Tolérance en secondes pour le timestamp
+
+        Returns:
+            WebhookEvent: Événement vérifié et parsé
+
+        Raises:
+            SahelPayError: Si la signature est invalide
+        """
+        self.verify_signature(payload, signature_header, secret, tolerance)
+        data = json.loads(payload)
+        return WebhookEvent.from_dict(data)
 
     def parse_event(
         self,
         payload: str,
-        signature: str,
+        signature_header: str,
         secret: str
     ) -> WebhookEvent:
         """
-        Parser et vérifier un événement webhook
+        Parser et vérifier un événement webhook (alias pour construct_event)
+
+        .. deprecated::
+            Utilisez construct_event() à la place
 
         Args:
             payload: Corps de la requête
-            signature: Header X-SahelPay-Signature
+            signature_header: Header X-SahelPay-Signature
             secret: Votre secret webhook
 
         Returns:
@@ -338,12 +428,7 @@ class WebhooksAPI:
         Raises:
             SahelPayError: Si la signature est invalide
         """
-        if not self.verify_signature(payload, signature, secret):
-            raise SahelPayError("Invalid webhook signature",
-                                "INVALID_SIGNATURE")
-
-        data = json.loads(payload)
-        return WebhookEvent.from_dict(data)
+        return self.construct_event(payload, signature_header, secret)
 
 
 class PayoutsAPI:

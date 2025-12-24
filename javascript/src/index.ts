@@ -1090,37 +1090,144 @@ class PortalAPI {
   }
 }
 
+/**
+ * API pour la gestion des webhooks
+ * 
+ * SahelPay utilise un format de signature Stripe-like:
+ * - Header: X-SahelPay-Signature
+ * - Format: t=<timestamp>,v1=<signature>
+ * - Signature: HMAC_SHA256(secret, "${timestamp}.${raw_body}")
+ */
 class WebhooksAPI {
+  private static readonly DEFAULT_TOLERANCE = 300; // 5 minutes
+
   constructor(private client: SahelPayClient) {}
 
   /**
-   * Vérifier la signature d'un webhook
+   * Parser le header de signature (format: t=...,v1=...)
    */
-  verifySignature(payload: string, signature: string, secret: string): boolean {
-    // Implémentation HMAC-SHA256
-    if (typeof window === 'undefined') {
-      // Node.js
-      const crypto = require('crypto');
-      const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
-      return signature === expectedSignature;
-    } else {
-      // Browser - utiliser SubtleCrypto
-      console.warn('Webhook verification should be done server-side');
-      return false;
-    }
+  private parseSignatureHeader(header: string): { timestamp: string | null; signature: string | null } {
+    const parts: Record<string, string> = {};
+    
+    header.split(',').forEach(part => {
+      const [key, value] = part.split('=');
+      if (key && value) {
+        parts[key] = value;
+      }
+    });
+
+    return {
+      timestamp: parts['t'] || null,
+      signature: parts['v1'] || null,
+    };
   }
 
   /**
-   * Parser un événement webhook
+   * Vérifier la signature d'un webhook (format Stripe-like)
+   * 
+   * @param payload Le body brut de la requête (string)
+   * @param signatureHeader Le header X-SahelPay-Signature complet
+   * @param secret Le secret webhook (whsec_...)
+   * @param tolerance Tolérance en secondes pour le timestamp (défaut: 300)
+   * @returns true si la signature est valide
+   * @throws Error si le format est invalide ou la signature incorrecte
    */
-  parseEvent(payload: string, signature: string, secret: string): WebhookEvent {
-    if (!this.verifySignature(payload, signature, secret)) {
-      throw new Error('Invalid webhook signature');
+  verifySignature(
+    payload: string, 
+    signatureHeader: string, 
+    secret: string, 
+    tolerance: number = WebhooksAPI.DEFAULT_TOLERANCE
+  ): boolean {
+    if (typeof window !== 'undefined') {
+      console.warn('Webhook verification should be done server-side');
+      return false;
     }
-    return JSON.parse(payload);
+
+    // Parser le header de signature
+    const { timestamp, signature } = this.parseSignatureHeader(signatureHeader);
+
+    if (!timestamp || !signature) {
+      throw new SahelPayError(
+        'Invalid signature header format. Expected: t=<timestamp>,v1=<signature>',
+        'WEBHOOK_SIGNATURE_ERROR',
+        400
+      );
+    }
+
+    // Protection contre les replay attacks
+    const now = Math.floor(Date.now() / 1000);
+    const timestampNum = parseInt(timestamp, 10);
+    
+    if (Math.abs(now - timestampNum) > tolerance) {
+      throw new SahelPayError(
+        'Timestamp too old, possible replay attack',
+        'WEBHOOK_TIMESTAMP_ERROR',
+        400
+      );
+    }
+
+    // Calculer la signature attendue
+    const crypto = require('crypto');
+    const signaturePayload = `${timestamp}.${payload}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(signaturePayload)
+      .digest('hex');
+
+    // Comparaison timing-safe
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+
+    if (!isValid) {
+      throw new SahelPayError(
+        'Invalid webhook signature',
+        'WEBHOOK_SIGNATURE_ERROR',
+        400
+      );
+    }
+
+    return true;
+  }
+
+  /**
+   * Construire et vérifier un événement webhook
+   * 
+   * @param payload Le body brut de la requête (string ou Buffer)
+   * @param signatureHeader Le header X-SahelPay-Signature
+   * @param secret Le secret webhook (optionnel si passé au constructeur)
+   * @param tolerance Tolérance en secondes pour le timestamp
+   * @returns L'événement webhook vérifié
+   * @throws SahelPayError si la signature est invalide
+   */
+  constructEvent(
+    payload: string | Buffer, 
+    signatureHeader: string, 
+    secret?: string,
+    tolerance: number = WebhooksAPI.DEFAULT_TOLERANCE
+  ): WebhookEvent {
+    const payloadString = typeof payload === 'string' ? payload : payload.toString('utf8');
+    const webhookSecret = secret || '';
+    
+    if (!webhookSecret) {
+      throw new SahelPayError(
+        'Webhook secret is required',
+        'WEBHOOK_SECRET_MISSING',
+        400
+      );
+    }
+
+    this.verifySignature(payloadString, signatureHeader, webhookSecret, tolerance);
+    return JSON.parse(payloadString);
+  }
+
+  /**
+   * Parser un événement webhook (alias pour constructEvent)
+   * @deprecated Utilisez constructEvent() à la place
+   */
+  parseEvent(payload: string, signatureHeader: string, secret: string): WebhookEvent {
+    return this.constructEvent(payload, signatureHeader, secret);
   }
 }
 
