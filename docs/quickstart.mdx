@@ -23,31 +23,32 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
   -d '{
     "amount": 5000,
     "currency": "XOF",
-    "payment_method": "MOBILE_MONEY",
+    "payment_method": "ORANGE_MONEY",
     "country": "ML",
-    "customer": {
-      "phone": "+22370123456"
-    },
+    "customer_phone": "+22370123456",
     "return_url": "https://votre-site.com/checkout/return"
   }'
 ```
 
 ```javascript Node.js
-import { SahelPayMerchant } from '@sahelpay/sdk';
+import SahelPay from '@sahelpay/sdk';
 
-const sahelpay = new SahelPayMerchant({
-  secretKey: 'sk_test_xxx'
+const sahelpay = new SahelPay({
+  secretKey: 'sk_test_xxx',
+  environment: 'sandbox'
 });
 
-const payment = await sahelpay.createPayment({
+const payment = await sahelpay.payments.create({
   amount: 5000,
-  orderId: 'order_123',
-  customerPhone: '+22370123456',
-  returnUrl: 'https://votre-site.com/checkout/return'
+  currency: 'XOF',
+  payment_method: 'ORANGE_MONEY',
+  customer_phone: '+22370123456',
+  description: 'Commande #123',
+  return_url: 'https://votre-site.com/checkout/return'
 });
 
-// Rediriger le client
-redirect(payment.redirectUrl);
+// Rediriger le client vers Orange Money
+window.location.href = payment.redirect_url;
 ```
 
 ```php PHP
@@ -55,29 +56,35 @@ use SahelPay\SahelPay;
 
 $sahelpay = new SahelPay('sk_test_xxx');
 
-$payment = $sahelpay->paymentLinks->create([
-    'title' => 'Commande #123',
-    'price' => 5000,
-    'redirect_url' => 'https://votre-site.com/checkout/return'
+$payment = $sahelpay->payments->create([
+    'amount' => 5000,
+    'currency' => 'XOF',
+    'payment_method' => 'ORANGE_MONEY',
+    'customer_phone' => '+22370123456',
+    'description' => 'Commande #123',
+    'return_url' => 'https://votre-site.com/checkout/return'
 ]);
 
-// Rediriger le client
-header('Location: ' . $payment->url);
+// Rediriger le client vers Orange Money
+header('Location: ' . $payment->redirect_url);
 ```
 
 ```python Python
-from sahelpay import SahelPay
+from sahelpay import Client
 
-sahelpay = SahelPay('sk_test_xxx')
+sahelpay = Client('sk_test_xxx')
 
-payment = sahelpay.payment_links.create(
-    title='Commande #123',
-    price=5000,
-    redirect_url='https://votre-site.com/checkout/return'
+payment = sahelpay.payments.create(
+    amount=5000,
+    currency='XOF',
+    provider='ORANGE_MONEY',
+    customer_phone='+22370123456',
+    description='Commande #123',
+    return_url='https://votre-site.com/checkout/return'
 )
 
-# Rediriger le client
-redirect(payment.url)
+# Rediriger le client vers Orange Money
+redirect(payment.redirect_url)
 ```
 
 </CodeGroup>

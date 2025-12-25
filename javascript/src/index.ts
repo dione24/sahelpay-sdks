@@ -49,7 +49,15 @@ export interface CreatePaymentParams {
   amount: number;
   currency?: string;
   provider?: string;
-  payment_method?: 'MOBILE_MONEY' | 'CARD';
+  /**
+   * Méthode de paiement spécifique (Smart Routing v2)
+   * - ORANGE_MONEY: Orange Money Direct (Mali)
+   * - WAVE: Wave via PayDunya
+   * - MOOV: Moov Money via PayDunya
+   * - CARD: Carte bancaire via PayDunya
+   * - MOBILE_MONEY: Legacy - sera routé automatiquement
+   */
+  payment_method?: 'ORANGE_MONEY' | 'WAVE' | 'MOOV' | 'CARD' | 'MOBILE_MONEY';
   country?: string;
   customer_phone: string;
   customer_name?: string;

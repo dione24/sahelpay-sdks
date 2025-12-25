@@ -25,29 +25,38 @@ yarn add @sahelpay/sdk
 ## Configuration
 
 ```typescript
-import { SahelPayMerchant } from '@sahelpay/sdk/merchant';
+import SahelPay from '@sahelpay/sdk';
 
-const sahelpay = new SahelPayMerchant({
+const sahelpay = new SahelPay({
   secretKey: process.env.SAHELPAY_SECRET_KEY!,
-  webhookSecret: process.env.SAHELPAY_WEBHOOK_SECRET,
+  environment: 'production' // ou 'sandbox'
 });
 ```
 
 ## Créer un paiement
 
 ```typescript
-const payment = await sahelpay.createPayment({
+const payment = await sahelpay.payments.create({
   amount: 5000,
-  orderId: 'order_123',
-  customerPhone: '+22370123456',
-  returnUrl: 'https://votre-site.com/checkout/return',
-  customerName: 'Amadou Diallo', // optionnel
-  description: 'Commande #123',  // optionnel
+  currency: 'XOF',
+  payment_method: 'ORANGE_MONEY', // ORANGE_MONEY, WAVE, MOOV, CARD
+  customer_phone: '+22370123456',
+  return_url: 'https://votre-site.com/checkout/return',
+  description: 'Commande #123',
 });
 
-// Rediriger le client
-redirect(payment.redirectUrl);
+// Rediriger le client vers Orange Money
+window.location.href = payment.redirect_url;
 ```
+
+## Méthodes de paiement disponibles
+
+| Méthode | Description | Pays |
+|---------|-------------|------|
+| `ORANGE_MONEY` | Orange Money Direct | Mali |
+| `WAVE` | Wave (via PayDunya) | Mali, Sénégal, CI |
+| `MOOV` | Moov Money (via PayDunya) | Mali |
+| `CARD` | Carte bancaire (via PayDunya) | Tous |
 
 ## Vérifier le statut
 
