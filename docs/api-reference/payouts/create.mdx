@@ -1,0 +1,109 @@
+---
+title: Créer un payout
+api: POST /v1/payouts
+description: "Envoyer de l'argent vers Mobile Money"
+---
+
+# Créer un payout
+
+Crée un nouveau payout (envoi d'argent) vers un compte Mobile Money.
+
+## Endpoint
+
+```
+POST /v1/payouts
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+| `Content-Type` | ✅ | `application/json` |
+| `X-Idempotency-Key` | Recommandé | Clé unique pour éviter les doublons |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `amount` | integer | ✅ | Montant en FCFA (min: 100, max: 5,000,000) |
+| `provider` | string | ✅ | `ORANGE_MONEY`, `WAVE`, ou `MOOV` |
+| `recipient_phone` | string | ✅ | Numéro de téléphone du destinataire (+223...) |
+| `recipient_name` | string | | Nom du destinataire |
+| `description` | string | | Description du payout |
+| `type` | string | | Type: `MERCHANT_WITHDRAWAL`, `SUPPLIER_PAYMENT`, `SALARY`, `COMMISSION`, `REFUND`, `OTHER` |
+| `metadata` | object | | Données personnalisées |
+| `idempotency_key` | string | | Clé d'idempotence |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/payouts \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: supplier-123" \
+  -d '{
+    "amount": 50000,
+    "provider": "ORANGE_MONEY",
+    "recipient_phone": "+22370123456",
+    "recipient_name": "Mamadou Diallo",
+    "description": "Paiement fournisseur #123",
+    "type": "SUPPLIER_PAYMENT"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/payouts', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+    'Content-Type': 'application/json',
+    'X-Idempotency-Key': 'supplier-123',
+  },
+  body: JSON.stringify({
+    amount: 50000,
+    provider: 'ORANGE_MONEY',
+    recipient_phone: '+22370123456',
+    recipient_name: 'Mamadou Diallo',
+    description: 'Paiement fournisseur #123',
+    type: 'SUPPLIER_PAYMENT',
+  }),
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pay_abc123def456",
+    "reference": "PAY_abc123def456",
+    "amount": 50000,
+    "fee": 250,
+    "net_amount": 49750,
+    "currency": "XOF",
+    "provider": "ORANGE_MONEY",
+    "recipient_phone": "+22370123456",
+    "recipient_name": "Mamadou Diallo",
+    "type": "SUPPLIER_PAYMENT",
+    "status": "PENDING",
+    "description": "Paiement fournisseur #123",
+    "created_at": "2025-12-18T16:45:00.000Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `INVALID_AMOUNT` | Montant invalide (< 100 ou > 5,000,000) |
+| `INSUFFICIENT_FUNDS` | Solde insuffisant |
+| `INVALID_PROVIDER` | Provider non supporté |
+| `DUPLICATE_PAYOUT` | Payout déjà créé (idempotence) |
+

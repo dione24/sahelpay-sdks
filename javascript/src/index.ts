@@ -104,6 +104,18 @@ export interface Payment {
   };
   ledger_entries?: any[];
   provider_events?: any[];
+  /**
+   * Gateway utilisé pour ce paiement (Hybrid Routing V2)
+   * Exemples: 'ORANGE_DIRECT', 'INTOUCH', 'CINETPAY', 'PAYDUNYA'
+   */
+  gateway_used?: string;
+  /**
+   * Raison du routing (explication du choix du gateway)
+   * Exemples: 'Orange WebPay Direct - Fallback faible coût',
+   *           'Intouch PSP - Push USSD pour meilleure UX Mobile Money',
+   *           'CinetPay - Checkout Carte sécurisé (VISA/Mastercard)'
+   */
+  routing_reason?: string;
   created_at: string;
   updated_at: string;
 }
@@ -339,6 +351,8 @@ class PaymentsAPI {
       redirect_url: data.redirect_url,
       expires_at: data.expires_at,
       metadata: data.metadata,
+      gateway_used: data.gateway_used,
+      routing_reason: data.routing_reason,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -381,6 +395,8 @@ class PaymentsAPI {
       redirect_url: data.redirect_url,
       expires_at: data.expires_at,
       metadata: data.metadata,
+      gateway_used: data.gateway_used,
+      routing_reason: data.routing_reason,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -408,6 +424,8 @@ class PaymentsAPI {
       country: data.country || 'ML',
       provider_ref: data.provider_ref,
       metadata: data.metadata,
+      gateway_used: data.gateway_used,
+      routing_reason: data.routing_reason,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -434,6 +452,8 @@ class PaymentsAPI {
       fee_calculation: data.fee_calculation,
       ledger_entries: data.ledger_entries,
       provider_events: data.provider_events,
+      gateway_used: data.gateway_used,
+      routing_reason: data.routing_reason,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -468,6 +488,8 @@ class PaymentsAPI {
         provider_ref: data.provider_ref,
         redirect_url: data.redirect_url,
         expires_at: data.expires_at,
+        gateway_used: data.gateway_used,
+        routing_reason: data.routing_reason,
         created_at: data.created_at,
         updated_at: data.updated_at,
       },
@@ -494,6 +516,8 @@ class PaymentsAPI {
         status: tx.status,
         customer_phone: tx.customer_phone,
         description: tx.description,
+        gateway_used: tx.gateway_used,
+        routing_reason: tx.routing_reason,
         created_at: tx.created_at,
         updated_at: tx.created_at,
       })),
@@ -1393,3 +1417,14 @@ export class SahelPay {
 
 // Garder l'import default: import SahelPay from "@sahelpay/sdk"
 export default SahelPay;
+
+// Export Gateway Stream utilities
+export {
+  GatewayEventSource,
+  useGatewayStream,
+  type GatewayConfigEvent,
+  type GatewayConfigEventType,
+  type GatewayStreamOptions,
+  type UseGatewayStreamOptions,
+  type UseGatewayStreamReturn,
+} from './gateway-stream';

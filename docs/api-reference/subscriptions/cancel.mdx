@@ -1,0 +1,72 @@
+---
+title: Annuler un abonnement
+api: DELETE /v1/subscriptions/{id}
+description: "Annuler un abonnement"
+---
+
+# Annuler un abonnement
+
+Annule un abonnement. Les paiements futurs ne seront plus facturés.
+
+## Endpoint
+
+```
+DELETE /v1/subscriptions/{id}
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+
+## Paramètres
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `id` | string | ✅ | ID de l'abonnement (ex: `sub_abc123`) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE https://api.sahelpay.ml/v1/subscriptions/sub_abc123 \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/subscriptions/sub_abc123', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+  },
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sub_abc123def456",
+    "status": "CANCELLED",
+    "cancelled_at": "2025-12-18T17:00:00.000Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `SUBSCRIPTION_NOT_FOUND` | Abonnement non trouvé |
+| `SUBSCRIPTION_ALREADY_CANCELLED` | Abonnement déjà annulé |
+
+<Note>
+  L'annulation est immédiate. Les paiements futurs ne seront plus facturés, mais les paiements déjà effectués ne sont pas remboursés automatiquement.
+</Note>
+

@@ -1,0 +1,116 @@
+---
+title: Créer un abonnement
+api: POST /v1/subscriptions
+description: "Créer un abonnement pour un client"
+---
+
+# Créer un abonnement
+
+Crée un nouvel abonnement pour un client à un plan existant.
+
+## Endpoint
+
+```
+POST /v1/subscriptions
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+| `Content-Type` | ✅ | `application/json` |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `plan_id` | string | ✅ | ID du plan d'abonnement |
+| `customer_phone` | string | ✅ | Numéro de téléphone du client (+223...) |
+| `start_date` | string | | Date de début (ISO format, défaut: maintenant) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/subscriptions \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "plan_id": "plan_abc123",
+    "customer_phone": "+22370123456",
+    "start_date": "2025-01-01T00:00:00.000Z"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/subscriptions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    plan_id: 'plan_abc123',
+    customer_phone: '+22370123456',
+    start_date: '2025-01-01T00:00:00.000Z',
+  }),
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sub_abc123def456",
+    "plan_id": "plan_abc123",
+    "plan_name": "Premium Mensuel",
+    "customer_phone": "+22370123456",
+    "status": "ACTIVE",
+    "next_billing_date": "2025-01-01T00:00:00.000Z",
+    "retry_count": 0,
+    "created_at": "2025-12-18T16:45:00.000Z"
+  }
+}
+```
+
+## Créer un abonnement avec lien de paiement
+
+Pour créer un abonnement ET générer immédiatement un lien de paiement :
+
+```
+POST /v1/subscriptions/with-payment
+```
+
+**Body additionnel :**
+- `redirect_url` (optionnel) : URL de retour après paiement
+- `metadata` (optionnel) : Données personnalisées
+
+**Réponse :**
+```json
+{
+  "success": true,
+  "data": {
+    "subscription": { ... },
+    "payment_link": {
+      "id": "link_xxx",
+      "slug": "premium-mensuel-xxx",
+      "url": "https://pay.sahelpay.ml/premium-mensuel-xxx",
+      "amount": 10000
+    }
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `PLAN_NOT_FOUND` | Plan non trouvé |
+| `INVALID_PHONE` | Numéro de téléphone invalide |
+

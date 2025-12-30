@@ -1,0 +1,82 @@
+---
+title: Lister les payouts
+api: GET /v1/payouts
+description: "Lister tous les payouts"
+---
+
+# Lister les payouts
+
+Récupère la liste de tous vos payouts avec pagination.
+
+## Endpoint
+
+```
+GET /v1/payouts
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+
+## Query Parameters
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `page` | integer | | Numéro de page (défaut: 1) |
+| `limit` | integer | | Nombre de résultats par page (défaut: 20, max: 100) |
+| `status` | string | | Filtrer par statut (`PENDING`, `COMPLETED`, `FAILED`, etc.) |
+| `type` | string | | Filtrer par type (`SUPPLIER_PAYMENT`, `SALARY`, etc.) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.sahelpay.ml/v1/payouts?page=1&limit=20&status=COMPLETED" \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/payouts?page=1&limit=20&status=COMPLETED', {
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+  },
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "payouts": [
+      {
+        "id": "pay_abc123",
+        "reference": "PAY_abc123",
+        "amount": 50000,
+        "fee": 250,
+        "net_amount": 49750,
+        "currency": "XOF",
+        "provider": "ORANGE_MONEY",
+        "recipient_phone": "+22370123456",
+        "status": "COMPLETED",
+        "type": "SUPPLIER_PAYMENT",
+        "created_at": "2025-12-18T16:45:00.000Z",
+        "completed_at": "2025-12-18T16:50:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 150,
+      "total_pages": 8
+    }
+  }
+}
+```
+

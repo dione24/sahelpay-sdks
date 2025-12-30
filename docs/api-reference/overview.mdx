@@ -77,3 +77,83 @@ X-Idempotency-Key: order-123
 ```
 
 Les requêtes avec la même clé d'idempotence retournent le même résultat.
+
+## Endpoints disponibles
+
+### Paiements
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/payments` | `POST` | Créer un paiement |
+| `/v1/payments/{id}` | `GET` | Récupérer un paiement |
+| `/v1/payments/{id}/status` | `GET` | Vérifier le statut |
+| `/v1/payments/{id}/details` | `GET` | Détails complets (fees, ledger) |
+| `/v1/payments/{id}/reconcile` | `POST` | Réconcilier manuellement |
+| `/v1/payments/search` | `GET` | Rechercher par référence client |
+| `/v1/payments/history` | `GET` | Lister les paiements |
+
+### Liens de paiement
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/payment-links` | `POST` | Créer un lien de paiement |
+| `/v1/payment-links` | `GET` | Lister les liens |
+| `/v1/payment-links/{slug}` | `GET` | Récupérer un lien |
+
+### Payouts (Envoi d'argent)
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/payouts` | `POST` | Créer un payout |
+| `/v1/payouts/{id}` | `GET` | Récupérer un payout |
+| `/v1/payouts` | `GET` | Lister les payouts |
+| `/v1/payouts/{id}` | `DELETE` | Annuler un payout |
+| `/v1/payouts/stats` | `GET` | Statistiques des payouts |
+
+### Plans d'abonnement
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/plans` | `POST` | Créer un plan |
+| `/v1/plans` | `GET` | Lister les plans |
+| `/v1/plans/{id}` | `GET` | Récupérer un plan |
+| `/v1/plans/{id}/deactivate` | `PATCH` | Désactiver un plan |
+| `/v1/plans/{id}` | `DELETE` | Supprimer un plan |
+| `/v1/public/plans` | `GET` | Plans publics (sans auth) |
+
+### Abonnements
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/subscriptions` | `POST` | Créer un abonnement |
+| `/v1/subscriptions` | `GET` | Lister les abonnements |
+| `/v1/subscriptions/{id}` | `GET` | Récupérer un abonnement |
+| `/v1/subscriptions/{id}` | `DELETE` | Annuler un abonnement |
+| `/v1/subscriptions/with-payment` | `POST` | Créer abonnement + lien paiement |
+
+### Customer Portal
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/portal/sessions` | `POST` | Créer une session portail client |
+
+### Remboursements
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/refunds` | `POST` | Créer un remboursement |
+| `/v1/refunds` | `GET` | Lister les remboursements |
+
+### Webhooks
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/webhooks/{provider}` | `POST` | Endpoint webhook (configuré dans dashboard) |
+
+### Utilitaires
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/payments/providers` | `GET` | Liste des providers disponibles |
+| `/v1/payments/recommend` | `GET` | Recommander un provider par téléphone |
+| `/v1/providers/enabled` | `GET` | Providers activés par pays |

@@ -108,21 +108,55 @@ def webhook(request):
     return JsonResponse({'received': True})
 ```
 
-## Async Support
+## Méthodes de paiement
+
+| Méthode | Description | Pays |
+|---------|-------------|------|
+| `ORANGE_MONEY` | Orange Money | Mali, Sénégal, CI |
+| `WAVE` | Wave | Mali, Sénégal, CI |
+| `MOOV` | Moov Money | Mali, Bénin, Togo |
+| `CARD` | Carte bancaire | Tous |
 
 ```python
-import asyncio
-from sahelpay import AsyncSahelPay
+payment = client.payments.create(
+    amount=5000,
+    provider='ORANGE_MONEY',  # ou WAVE, MOOV, CARD
+    customer_phone='+22370123456',
+    description='Commande #123'
+)
 
-async def main():
-    sahelpay = AsyncSahelPay('sk_test_xxx')
-    
-    link = await sahelpay.payment_links.create(
-        title='Commande #123',
-        price=5000
-    )
-    
-    print(link.url)
+# Informations de routing (automatique)
+print(payment.gateway_used)    # Identifiant technique interne
+print(payment.routing_reason)  # Explication du routing choisi
+```
 
-asyncio.run(main())
+<Note>
+  SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement (ex: `ORANGE_MONEY`) et SahelPay choisit le meilleur gateway en interne.
+</Note>
+
+## Capabilities
+
+```python
+from sahelpay import has_capability, get_methods_with_capability
+
+# Vérifier si Orange Money supporte les payouts
+has_capability('ORANGE_MONEY', 'payouts')  # True
+
+# Lister les méthodes avec QR code natif
+get_methods_with_capability('qr_code')  # ['WAVE']
+```
+
+## Paiement par Carte
+
+Pour les paiements par carte, `customer_name` et `customer_email` sont **requis** :
+
+```python
+payment = client.payments.create(
+    amount=10000,
+    provider='CARD',
+    customer_phone='+22370123456',
+    customer_name='Mamadou Diallo',       # Requis
+    customer_email='mamadou@example.com', # Requis
+    return_url='https://votre-site.com/checkout/return'
+)
 ```

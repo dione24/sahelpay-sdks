@@ -1,0 +1,74 @@
+---
+title: Annuler un payout
+api: DELETE /v1/payouts/{id}
+description: "Annuler un payout en attente"
+---
+
+# Annuler un payout
+
+Annule un payout en statut `PENDING`. Les payouts en cours (`PROCESSING`) ou terminés (`COMPLETED`) ne peuvent pas être annulés.
+
+## Endpoint
+
+```
+DELETE /v1/payouts/{id}
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+
+## Paramètres
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `id` | string | ✅ | Référence du payout (ex: `PAY_abc123`) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE https://api.sahelpay.ml/v1/payouts/PAY_abc123 \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/payouts/PAY_abc123', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+  },
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pay_abc123def456",
+    "reference": "PAY_abc123def456",
+    "status": "CANCELLED",
+    "cancelled_at": "2025-12-18T17:00:00.000Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `PAYOUT_NOT_FOUND` | Payout non trouvé |
+| `PAYOUT_ALREADY_PROCESSING` | Le payout est déjà en cours de traitement |
+| `PAYOUT_ALREADY_COMPLETED` | Le payout est déjà terminé |
+
+<Warning>
+  Seuls les payouts en statut `PENDING` peuvent être annulés. Une fois le traitement commencé, l'annulation n'est plus possible.
+</Warning>
+

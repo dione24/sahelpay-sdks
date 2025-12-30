@@ -22,6 +22,16 @@ __email__ = "dev@sahelpay.ml"
 from .client import Client
 from .exceptions import SahelPayError, APIError, AuthenticationError, ValidationError
 from .resources import Payment, PaymentLink
+from .capabilities import (
+    CAPABILITIES,
+    CAPABILITY_JUSTIFICATIONS,
+    has_capability,
+    get_capabilities,
+    get_justification,
+    get_providers_with_capability,
+    ProviderCapabilities,
+)
+from .gateway_stream import GatewayStream
 
 __all__ = [
     "Client",
@@ -31,4 +41,12 @@ __all__ = [
     "ValidationError",
     "Payment",
     "PaymentLink",
+    "CAPABILITIES",
+    "CAPABILITY_JUSTIFICATIONS",
+    "has_capability",
+    "get_capabilities",
+    "get_justification",
+    "get_providers_with_capability",
+    "ProviderCapabilities",
+    "GatewayStream",
 ]

@@ -89,6 +89,57 @@ redirect(payment.redirect_url)
 
 </CodeGroup>
 
+## Paiement par Carte Bancaire
+
+Pour les paiements par carte, les champs `customer_name` et `customer_email` sont **requis** :
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 10000,
+    "currency": "XOF",
+    "payment_method": "CARD",
+    "customer_phone": "+22370123456",
+    "customer_name": "Mamadou Diallo",
+    "customer_email": "mamadou@example.com",
+    "return_url": "https://votre-site.com/checkout/return"
+  }'
+```
+
+```javascript Node.js
+const payment = await sahelpay.payments.create({
+  amount: 10000,
+  currency: 'XOF',
+  payment_method: 'CARD',
+  customer_phone: '+22370123456',
+  customer_name: 'Mamadou Diallo',      // Requis pour CARD
+  customer_email: 'mamadou@example.com', // Requis pour CARD
+  return_url: 'https://votre-site.com/checkout/return'
+});
+```
+
+```python Python
+payment = sahelpay.payments.create(
+    amount=10000,
+    currency='XOF',
+    provider='CARD',
+    customer_phone='+22370123456',
+    customer_name='Mamadou Diallo',       # Requis
+    customer_email='mamadou@example.com', # Requis
+    return_url='https://votre-site.com/checkout/return'
+)
+```
+
+</CodeGroup>
+
+<Warning>
+  Pour les paiements par carte (`CARD`, `VISA`, `MASTERCARD`, `GIM_UEMOA`), `customer_name` et `customer_email` sont **obligatoires**.
+</Warning>
+
 ## 2. Rediriger le client
 
 Après la création, redirigez le client vers `redirect_url` :
@@ -150,11 +201,36 @@ if (status.status === 'SUCCESS') {
   La page de retour sert uniquement à l'UX. Le statut définitif vient toujours du webhook.
 </Note>
 
+## Méthodes de paiement disponibles
+
+| Méthode | Type | Description |
+|---------|------|-------------|
+| `ORANGE_MONEY` | Mobile Money | Orange Money (Mali, Sénégal, CI) |
+| `WAVE` | Mobile Money | Wave (Mali, Sénégal, CI) |
+| `MOOV` | Mobile Money | Moov Money (Mali, Bénin, Togo) |
+| `CARD` | Carte | Carte bancaire générique (VISA/MC/GIM) |
+| `VISA` | Carte | Carte VISA |
+| `MASTERCARD` | Carte | Carte Mastercard |
+| `GIM_UEMOA` | Carte | Carte régionale GIM-UEMOA |
+
+<Note>
+  SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement et SahelPay choisit le meilleur provider en interne selon le coût et la disponibilité.
+</Note>
+
 ## Prochaines étapes
 
 <CardGroup cols={2}>
+  <Card title="Smart Routing" icon="route" href="/guides/smart-routing">
+    Comprendre le routing automatique
+  </Card>
   <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
     Configurer et sécuriser vos webhooks
+  </Card>
+  <Card title="Payouts" icon="send" href="/guides/payouts">
+    Envoyer de l'argent vers Mobile Money
+  </Card>
+  <Card title="Subscriptions" icon="repeat" href="/guides/subscriptions">
+    Paiements récurrents
   </Card>
   <Card title="Test Accounts" icon="flask" href="/resources/test-accounts">
     Numéros de test pour le sandbox
@@ -164,5 +240,8 @@ if (status.status === 'SUCCESS') {
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/overview">
     Documentation complète de l'API
+  </Card>
+  <Card title="Customer Portal" icon="user" href="/guides/customer-portal">
+    Portail client self-service
   </Card>
 </CardGroup>

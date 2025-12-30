@@ -43,12 +43,71 @@ pip install sahelpay
 
 Tous les SDKs exposent les mêmes fonctionnalités :
 
+### Paiements
+
 | Fonction | Description |
 |----------|-------------|
-| `createPayment()` | Créer un paiement |
-| `getPaymentStatus()` | Vérifier le statut |
-| `verifyWebhook()` | Vérifier la signature webhook |
-| `paymentLinks.create()` | Créer un lien de paiement |
+| `payments.create()` | Créer un paiement Mobile Money ou carte |
+| `payments.retrieve()` | Récupérer un paiement par ID |
+| `payments.list()` | Lister les paiements |
+| `payments.search()` | Rechercher par référence client |
+| `payments.details()` | Détails complets (fees, ledger) |
+| `payments.reconcile()` | Réconcilier manuellement |
+
+### Liens de paiement
+
+| Fonction | Description |
+|----------|-------------|
+| `paymentLinks.create()` | Créer un lien de paiement réutilisable |
+| `paymentLinks.list()` | Lister les liens |
+| `paymentLinks.retrieve()` | Récupérer un lien par slug |
+
+### Payouts (Envoi d'argent)
+
+| Fonction | Description |
+|----------|-------------|
+| `payouts.create()` | Envoyer de l'argent vers Mobile Money |
+| `payouts.retrieve()` | Récupérer un payout |
+| `payouts.list()` | Lister les payouts |
+| `payouts.cancel()` | Annuler un payout en attente |
+
+### Abonnements
+
+| Fonction | Description |
+|----------|-------------|
+| `plans.create()` | Créer un plan d'abonnement |
+| `plans.list()` | Lister les plans |
+| `subscriptions.create()` | Créer un abonnement |
+| `subscriptions.list()` | Lister les abonnements |
+| `subscriptions.cancel()` | Annuler un abonnement |
+
+### Customer Portal
+
+| Fonction | Description |
+|----------|-------------|
+| `portal.createSession()` | Créer une session portail client |
+
+### Webhooks
+
+| Fonction | Description |
+|----------|-------------|
+| `webhooks.verifySignature()` | Vérifier la signature webhook |
+| `webhooks.constructEvent()` | Parser un événement webhook |
+
+### Capabilities
+
+| Fonction | Description |
+|----------|-------------|
+| `hasCapability()` | Vérifier si une méthode supporte une fonctionnalité |
+| `getCapabilities()` | Obtenir toutes les capabilities d'une méthode |
+| `getMethodsWithCapability()` | Lister les méthodes avec une capability |
+
+### Gateway Stream (JavaScript uniquement)
+
+| Fonction | Description |
+|----------|-------------|
+| `GatewayEventSource` | Écouter les changements de config en temps réel (SSE) |
+| `useGatewayStream()` | Hook React pour Gateway Stream |
 
 ## Code source
 

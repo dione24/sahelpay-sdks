@@ -53,10 +53,17 @@ window.location.href = payment.redirect_url;
 
 | Méthode | Description | Pays |
 |---------|-------------|------|
-| `ORANGE_MONEY` | Orange Money Direct | Mali |
-| `WAVE` | Wave (via PayDunya) | Mali, Sénégal, CI |
-| `MOOV` | Moov Money (via PayDunya) | Mali |
-| `CARD` | Carte bancaire (via PayDunya) | Tous |
+| `ORANGE_MONEY` | Orange Money | Mali, Sénégal, CI |
+| `WAVE` | Wave | Mali, Sénégal, CI |
+| `MOOV` | Moov Money | Mali, Bénin, Togo |
+| `CARD` | Carte bancaire (VISA/MC/GIM) | Tous |
+| `VISA` | Carte VISA | Tous |
+| `MASTERCARD` | Carte Mastercard | Tous |
+| `GIM_UEMOA` | Carte GIM-UEMOA | UEMOA |
+
+<Note>
+  SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement (ex: `ORANGE_MONEY`) et SahelPay choisit le meilleur gateway en interne selon le coût et la disponibilité.
+</Note>
 
 ## Vérifier le statut
 
@@ -106,14 +113,59 @@ import type {
 ## Gestion des erreurs
 
 ```typescript
-import { SahelPayError } from '@sahelpay/sdk/merchant';
+import { SahelPayError } from '@sahelpay/sdk';
 
 try {
-  const payment = await sahelpay.createPayment({ ... });
+  const payment = await sahelpay.payments.create({ ... });
 } catch (error) {
   if (error instanceof SahelPayError) {
     console.log(error.code);    // 'INVALID_AMOUNT'
     console.log(error.message); // 'Montant minimum: 100 FCFA'
   }
 }
+```
+
+## Informations de Routing
+
+Chaque paiement retourne des informations sur le routing utilisé (pour monitoring) :
+
+```typescript
+const payment = await sahelpay.payments.create({ ... });
+
+console.log(payment.gateway_used);    // Identifiant technique interne
+console.log(payment.routing_reason);  // Explication du routing choisi
+```
+
+<Note>
+  Ces champs sont **informatifs uniquement** pour le monitoring. Le choix du routing est automatique et transparent pour vous.
+</Note>
+
+## Capabilities
+
+Vérifiez les fonctionnalités disponibles pour chaque méthode de paiement :
+
+```typescript
+import { hasCapability, getMethodsWithCapability } from '@sahelpay/sdk';
+
+// Vérifier si Orange Money supporte les payouts
+hasCapability('ORANGE_MONEY', 'payouts'); // true
+
+// Lister les méthodes avec QR code natif
+getMethodsWithCapability('qr_code'); // ['WAVE']
+```
+
+## Paiement par Carte
+
+Pour les paiements par carte, les champs `customer_name` et `customer_email` sont **requis** :
+
+```typescript
+const payment = await sahelpay.payments.create({
+  amount: 10000,
+  currency: 'XOF',
+  payment_method: 'CARD',
+  customer_phone: '+22370123456',
+  customer_name: 'Mamadou Diallo',      // Requis pour CARD
+  customer_email: 'mamadou@example.com', // Requis pour CARD
+  return_url: 'https://votre-site.com/checkout/return',
+});
 ```

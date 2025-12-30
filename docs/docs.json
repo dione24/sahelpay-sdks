@@ -42,6 +42,10 @@
                         "group": "Guides",
                         "pages": [
                             "guides/integration",
+                            "guides/smart-routing",
+                            "guides/payouts",
+                            "guides/subscriptions",
+                            "guides/customer-portal",
                             "guides/webhooks",
                             "guides/testing"
                         ]
@@ -59,18 +63,62 @@
                 "tab": "API Reference",
                 "groups": [
                     {
-                        "group": "API Reference",
+                        "group": "Payments",
                         "pages": [
-                            "api-reference/overview",
                             "api-reference/payments/create",
                             "api-reference/payments/get",
                             "api-reference/payments/list",
                             "api-reference/payments/search",
                             "api-reference/payments/details",
-                            "api-reference/payments/reconcile",
-                            "api-reference/refunds/create",
+                            "api-reference/payments/reconcile"
+                        ]
+                    },
+                    {
+                        "group": "Payment Links",
+                        "pages": [
                             "api-reference/payment-links/create",
-                            "api-reference/payment-links/get",
+                            "api-reference/payment-links/get"
+                        ]
+                    },
+                    {
+                        "group": "Payouts",
+                        "pages": [
+                            "api-reference/payouts/create",
+                            "api-reference/payouts/get",
+                            "api-reference/payouts/list",
+                            "api-reference/payouts/cancel"
+                        ]
+                    },
+                    {
+                        "group": "Plans",
+                        "pages": [
+                            "api-reference/plans/create",
+                            "api-reference/plans/list"
+                        ]
+                    },
+                    {
+                        "group": "Subscriptions",
+                        "pages": [
+                            "api-reference/subscriptions/create",
+                            "api-reference/subscriptions/list",
+                            "api-reference/subscriptions/cancel"
+                        ]
+                    },
+                    {
+                        "group": "Customer Portal",
+                        "pages": [
+                            "api-reference/portal/create-session"
+                        ]
+                    },
+                    {
+                        "group": "Refunds",
+                        "pages": [
+                            "api-reference/refunds/create"
+                        ]
+                    },
+                    {
+                        "group": "Webhooks",
+                        "pages": [
                             "api-reference/webhooks/events",
                             "api-reference/webhooks/verify"
                         ]

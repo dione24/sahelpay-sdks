@@ -1,0 +1,109 @@
+---
+title: Smart Routing
+description: "Comment SahelPay choisit automatiquement le meilleur gateway"
+---
+
+# Smart Routing
+
+SahelPay utilise un système de **Smart Routing** qui choisit automatiquement le meilleur gateway (provider interne) pour chaque paiement. En tant que développeur, vous n'avez qu'à spécifier la **méthode de paiement** souhaitée par votre client.
+
+## Fonctionnement
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  Votre Application                                                 │
+│                                                                   │
+│  sahelpay.payments.create({                                       │
+│    payment_method: 'ORANGE_MONEY',  // ← Vous spécifiez ça        │
+│    amount: 5000,                                                  │
+│    ...                                                            │
+│  })                                                               │
+└───────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────────┐
+│  SahelPay Smart Router                                            │
+│                                                                   │
+│  Critères:                                                        │
+│  ├── Coût (frais provider)                                        │
+│  ├── Disponibilité (uptime)                                       │
+│  ├── Pays                                                         │
+│  └── Configuration admin                                          │
+│                                                                   │
+│  Décision: Gateway optimal sélectionné automatiquement            │
+│  (basé sur coût, disponibilité, UX)                               │
+└───────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────────────┐
+│  Gateway interne sélectionné                                       │
+│  (transparent pour vous)                                          │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+## Méthodes de paiement
+
+Voici les méthodes de paiement que vous pouvez utiliser :
+
+| Méthode | Description | Capabilities |
+|---------|-------------|--------------|
+| `ORANGE_MONEY` | Orange Money | Paiements, Payouts, OPR |
+| `WAVE` | Wave | Paiements, QR Code, Payouts, OPR |
+| `MOOV` | Moov Money | Paiements, Payouts, OPR |
+| `CARD` | Carte bancaire | Paiements, Splits |
+| `VISA` | Carte VISA | Paiements, Splits |
+| `MASTERCARD` | Carte Mastercard | Paiements, Splits |
+| `GIM_UEMOA` | Carte GIM-UEMOA | Paiements |
+
+## Informations de Routing
+
+Chaque paiement retourne des informations sur le gateway utilisé :
+
+<CodeGroup>
+
+```typescript JavaScript
+const payment = await sahelpay.payments.create({
+  amount: 5000,
+  payment_method: 'ORANGE_MONEY',
+  customer_phone: '+22370123456',
+});
+
+console.log(payment.gateway_used);    // Identifiant technique interne
+console.log(payment.routing_reason);  // Explication du routing choisi
+```
+
+```python Python
+payment = client.payments.create(
+    amount=5000,
+    provider='ORANGE_MONEY',
+    customer_phone='+22370123456'
+)
+
+print(payment.gateway_used)    # Identifiant technique interne
+print(payment.routing_reason)  # Explication du routing choisi
+```
+
+</CodeGroup>
+
+<Note>
+  Ces champs sont **informatifs**. Vous ne pouvez pas et n'avez pas besoin de choisir le gateway - SahelPay optimise automatiquement pour le coût et la disponibilité.
+</Note>
+
+## Pourquoi le Smart Routing ?
+
+1. **Coût optimisé** : SahelPay négocie les meilleurs taux et choisit automatiquement l'option la moins chère
+2. **Haute disponibilité** : Fallback automatique si une méthode est temporairement indisponible
+3. **Meilleure UX** : Choix automatique de la meilleure expérience utilisateur (Push USSD, QR Code, etc.)
+4. **Simplicité** : Une seule intégration pour toutes les méthodes de paiement
+
+## Configuration Admin
+
+Les administrateurs SahelPay peuvent configurer le routing via le dashboard :
+
+- Activer/désactiver des providers
+- Mettre un provider en maintenance
+- Définir des règles de routing par pays
+- Monitorer les performances
+
+Ces changements sont appliqués en temps réel sans redéploiement.
+

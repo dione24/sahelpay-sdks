@@ -1,0 +1,92 @@
+---
+title: Créer un plan
+api: POST /v1/plans
+description: "Créer un plan d'abonnement"
+---
+
+# Créer un plan
+
+Crée un nouveau plan d'abonnement (hebdomadaire ou mensuel).
+
+## Endpoint
+
+```
+POST /v1/plans
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+| `Content-Type` | ✅ | `application/json` |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `name` | string | ✅ | Nom du plan (ex: "Premium Mensuel") |
+| `amount` | integer | ✅ | Montant en FCFA |
+| `interval` | string | ✅ | `WEEKLY` ou `MONTHLY` |
+| `description` | string | | Description du plan |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/plans \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Premium Mensuel",
+    "amount": 10000,
+    "interval": "MONTHLY",
+    "description": "Accès premium mensuel"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/plans', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'Premium Mensuel',
+    amount: 10000,
+    interval: 'MONTHLY',
+    description: 'Accès premium mensuel',
+  }),
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "plan_abc123def456",
+    "name": "Premium Mensuel",
+    "amount": 10000,
+    "currency": "XOF",
+    "interval": "MONTHLY",
+    "description": "Accès premium mensuel",
+    "is_active": true,
+    "subscriber_count": 0,
+    "created_at": "2025-12-18T16:45:00.000Z"
+  }
+}
+```
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `INVALID_AMOUNT` | Montant invalide |
+| `INVALID_INTERVAL` | Interval doit être `WEEKLY` ou `MONTHLY` |
+

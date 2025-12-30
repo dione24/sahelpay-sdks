@@ -1,0 +1,199 @@
+---
+title: Payouts
+description: "Envoyer de l'argent vers Mobile Money"
+---
+
+# Payouts (Envoi d'argent)
+
+Les **Payouts** permettent d'envoyer de l'argent depuis votre compte SahelPay vers un compte Mobile Money (Orange Money, Wave, Moov).
+
+## Cas d'usage
+
+- **Paiement fournisseurs** : Régler vos fournisseurs via Mobile Money
+- **Salaires** : Payer vos employés
+- **Commissions** : Verser des commissions à vos partenaires
+- **Remboursements** : Rembourser vos clients
+- **Retraits marchands** : Retirer vos fonds vers votre compte Mobile Money
+
+## Créer un payout
+
+<CodeGroup>
+
+```javascript JavaScript
+const payout = await sahelpay.payouts.create({
+  amount: 50000,
+  provider: 'ORANGE_MONEY', // ou WAVE, MOOV
+  recipient_phone: '+22370123456',
+  recipient_name: 'Mamadou Diallo',
+  description: 'Paiement fournisseur #123',
+  type: 'SUPPLIER_PAYMENT',
+  idempotency_key: 'supplier-123' // Optionnel
+});
+
+console.log(payout.reference); // PAY_xxx
+console.log(payout.status);    // PENDING
+```
+
+```python Python
+payout = client.payouts.create(
+    amount=50000,
+    provider='ORANGE_MONEY',
+    recipient_phone='+22370123456',
+    recipient_name='Mamadou Diallo',
+    description='Paiement fournisseur #123',
+    payout_type='SUPPLIER_PAYMENT',
+    idempotency_key='supplier-123'
+)
+
+print(payout.reference)  # PAY_xxx
+print(payout.status)     # PENDING
+```
+
+```php PHP
+$payout = $sahelpay->payouts->create([
+    'amount' => 50000,
+    'provider' => 'ORANGE_MONEY',
+    'recipient_phone' => '+22370123456',
+    'recipient_name' => 'Mamadou Diallo',
+    'description' => 'Paiement fournisseur #123',
+    'type' => 'SUPPLIER_PAYMENT',
+    'idempotency_key' => 'supplier-123'
+]);
+
+echo $payout->reference; // PAY_xxx
+echo $payout->status;     // PENDING
+```
+
+</CodeGroup>
+
+## Limites
+
+| Limite | Valeur |
+|--------|--------|
+| **Montant minimum** | 100 FCFA |
+| **Montant maximum** | 5,000,000 FCFA |
+| **Providers supportés** | Orange Money, Wave, Moov |
+
+## Types de payouts
+
+| Type | Description |
+|------|-------------|
+| `MERCHANT_WITHDRAWAL` | Retrait marchand vers votre compte |
+| `SUPPLIER_PAYMENT` | Paiement fournisseur |
+| `SALARY` | Salaire employé |
+| `COMMISSION` | Commission partenaire |
+| `REFUND` | Remboursement client |
+| `MARKETPLACE_SPLIT` | Split marketplace |
+| `OTHER` | Autre (défaut) |
+
+## Statuts
+
+| Statut | Description |
+|--------|-------------|
+| `PENDING` | En attente de traitement |
+| `PROCESSING` | En cours de traitement |
+| `COMPLETED` | Paiement effectué avec succès |
+| `FAILED` | Échec du paiement |
+| `CANCELLED` | Annulé |
+
+## Vérifier le statut
+
+```javascript
+const payout = await sahelpay.payouts.retrieve('PAY_xxx');
+
+if (payout.status === 'COMPLETED') {
+  console.log('Payout réussi !');
+} else if (payout.status === 'FAILED') {
+  console.error('Erreur:', payout.error_message);
+}
+```
+
+## Polling
+
+Pour attendre la fin d'un payout :
+
+```javascript
+const payout = await sahelpay.payouts.poll('PAY_xxx', {
+  timeout: 120000, // 2 minutes
+  onStatus: (status, payout) => {
+    console.log(`Status: ${status}`);
+  }
+});
+
+console.log('Payout final:', payout.status);
+```
+
+## Lister les payouts
+
+```javascript
+const { payouts, pagination } = await sahelpay.payouts.list({
+  limit: 20,
+  page: 1,
+  status: 'COMPLETED', // Optionnel
+  type: 'SUPPLIER_PAYMENT' // Optionnel
+});
+```
+
+## Annuler un payout
+
+Un payout en statut `PENDING` peut être annulé :
+
+```javascript
+const payout = await sahelpay.payouts.cancel('PAY_xxx');
+```
+
+## Statistiques
+
+```javascript
+const stats = await sahelpay.payouts.stats();
+
+console.log(stats.total);        // Nombre total
+console.log(stats.completed);    // Réussis
+console.log(stats.failed);       // Échoués
+console.log(stats.success_rate); // Taux de succès
+```
+
+## Webhooks
+
+Les événements webhook pour les payouts :
+
+- `payout.completed` : Payout réussi
+- `payout.failed` : Payout échoué
+
+```javascript
+if (event === 'payout.completed') {
+  await updateSupplierPayment(data.metadata.supplier_id, { paid: true });
+}
+```
+
+## Vérification des fonds
+
+Avant de créer un payout, vérifiez que vous avez suffisamment de fonds :
+
+```javascript
+const balance = await sahelpay.withdrawals.balance();
+
+if (balance.available < amount + fee) {
+  throw new Error('Fonds insuffisants');
+}
+```
+
+<Warning>
+  Les payouts sont débités de votre solde SahelPay. Assurez-vous d'avoir suffisamment de fonds disponibles avant de créer un payout.
+</Warning>
+
+## Idempotence
+
+Utilisez `idempotency_key` pour éviter les doublons :
+
+```javascript
+const payout = await sahelpay.payouts.create({
+  amount: 50000,
+  provider: 'ORANGE_MONEY',
+  recipient_phone: '+22370123456',
+  idempotency_key: 'supplier-123' // Unique par fournisseur
+});
+
+// Si appelé deux fois avec la même clé, retourne le même payout
+```
+

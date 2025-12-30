@@ -28,11 +28,11 @@ POST /v1/payments
 |-----------|------|--------|-------------|
 | `amount` | integer | ✅ | Montant en FCFA (min: 100) |
 | `currency` | string | | Devise (défaut: `XOF`) |
-| `payment_method` | string | ✅ | `ORANGE_MONEY`, `WAVE`, `MOOV`, ou `CARD` |
+| `payment_method` | string | ✅ | `ORANGE_MONEY`, `WAVE`, `MOOV`, `CARD`, `VISA`, `MASTERCARD`, `GIM_UEMOA` |
 | `country` | string | | Code pays: `ML`, `SN`, `CI` |
 | `customer_phone` | string | ✅ | Numéro de téléphone (+223...) |
-| `customer_name` | string | | Nom du client |
-| `customer_email` | string | | Email du client |
+| `customer_name` | string | ✅ pour CARD | Nom du client (requis pour cartes) |
+| `customer_email` | string | ✅ pour CARD | Email du client (requis pour cartes) |
 | `return_url` | string | ✅ | URL de retour après paiement |
 | `client_reference` | string | | Votre référence (order_id) |
 | `metadata` | object | | Données personnalisées |
@@ -94,11 +94,26 @@ const response = await fetch('https://api.sahelpay.ml/v1/payments', {
     "status": "PENDING",
     "amount": 5000,
     "currency": "XOF",
+    "payment_method": "ORANGE_MONEY",
     "redirect_url": "https://pay.sahelpay.ml/checkout/txn_abc123def456",
+    "gateway_used": "internal_gateway_id",
+    "routing_reason": "Routing optimisé pour coût et disponibilité",
     "expires_at": "2025-12-18T17:00:00.000Z",
     "created_at": "2025-12-18T16:45:00.000Z"
   }
 }
+```
+
+### Champs de routing
+
+| Champ | Description |
+|-------|-------------|
+| `gateway_used` | Identifiant technique interne (pour monitoring uniquement) |
+| `routing_reason` | Explication du routing choisi par SahelPay |
+
+<Note>
+  Ces champs sont **informatifs**. SahelPay choisit automatiquement le meilleur gateway selon le coût et la disponibilité. Voir le [guide Smart Routing](/guides/smart-routing) pour plus de détails.
+</Note>
 ```
 
 ## Erreurs

@@ -31,6 +31,8 @@ class Payment:
     fee_calculation: Optional[Dict[str, Any]] = None
     ledger_entries: Optional[List[Dict[str, Any]]] = None
     provider_events: Optional[List[Dict[str, Any]]] = None
+    gateway_used: Optional[str] = None
+    routing_reason: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -59,6 +61,8 @@ class Payment:
             fee_calculation=data.get("fee_calculation"),
             ledger_entries=data.get("ledger_entries"),
             provider_events=data.get("provider_events"),
+            gateway_used=data.get("gateway_used"),
+            routing_reason=data.get("routing_reason"),
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
         )

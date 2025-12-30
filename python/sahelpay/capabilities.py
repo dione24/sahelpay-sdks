@@ -1,248 +1,296 @@
 """
-SahelPay SDK – Capability Matrix (Officielle)
+SahelPay SDK – Capability Matrix
 
-Version: v1.0
-Scope: Payment SDK – Multi-Providers
-Principe: Toutes les fonctionnalités ne sont pas garanties par tous les providers.
+Définit les fonctionnalités disponibles pour chaque MÉTHODE DE PAIEMENT.
 
-⚠️ IMPORTANT: La disponibilité des fonctionnalités dépend du provider sélectionné.
+⚠️ Le routing interne (INTOUCH, CINETPAY, ORANGE_DIRECT, etc.) est TRANSPARENT.
+SahelPay choisit automatiquement le meilleur gateway selon le coût et la disponibilité.
+
+Le client ne voit que les méthodes de paiement, pas les gateways internes.
 """
 
-from typing import Dict, List, Optional
-from dataclasses import dataclass
-from enum import Enum
+from typing import Dict, List, Optional, Literal
+
+PaymentMethod = Literal[
+    "ORANGE_MONEY",   # Orange Money (Mali, Sénégal, CI...)
+    "WAVE",           # Wave (Sénégal, Mali, CI)
+    "MOOV",           # Moov Money (Mali, Bénin, Togo)
+    "CARD",           # Carte bancaire (VISA/Mastercard/GIM-UEMOA)
+    "VISA",           # Carte VISA
+    "MASTERCARD",     # Carte Mastercard
+    "GIM_UEMOA",      # Carte régionale GIM-UEMOA
+]
+
+# Alias pour compatibilité
+Provider = PaymentMethod
+
+Capability = Literal[
+    "payments",
+    "payment_links",
+    "qr_code",
+    "payouts",
+    "withdrawals",
+    "opr",
+    "splits",
+    "customer_portal",
+]
 
 
-class Provider(str, Enum):
-    """Providers supportés par SahelPay"""
-    ORANGE_MONEY = "ORANGE_MONEY"
-    WAVE = "WAVE"
-    MOOV = "MOOV"
-    VISA = "VISA"
-
-
-class Capability(str, Enum):
-    """Capabilities disponibles"""
-    PAYMENTS = "payments"
-    PAYMENT_LINKS = "payment_links"
-    QR_CODE = "qr_code"
-    PAYOUTS = "payouts"
-    WITHDRAWALS = "withdrawals"
-    OPR = "opr"
-    SPLITS = "splits"
-    CUSTOMER_PORTAL = "customer_portal"
-
-
-@dataclass
 class ProviderCapabilities:
     """Capabilities d'un provider"""
-    payments: bool
-    payment_links: bool
-    qr_code: bool
-    payouts: bool
-    withdrawals: bool
-    opr: bool
-    splits: bool
-    customer_portal: bool
+
+    def __init__(
+        self,
+        payments: bool,
+        payment_links: bool,
+        qr_code: bool,
+        payouts: bool,
+        withdrawals: bool,
+        opr: bool,
+        splits: bool,
+        customer_portal: bool,
+    ):
+        self.payments = payments
+        self.payment_links = payment_links
+        self.qr_code = qr_code
+        self.payouts = payouts
+        self.withdrawals = withdrawals
+        self.opr = opr
+        self.splits = splits
+        self.customer_portal = customer_portal
 
 
-# Capability Matrix officielle
-CAPABILITIES: Dict[Provider, ProviderCapabilities] = {
-    Provider.ORANGE_MONEY: ProviderCapabilities(
-        payments=True,           # WebPay redirect + OTP
-        payment_links=True,      # Via wrapper SahelPay
-        qr_code=False,           # Pas de QR natif Orange
-        payouts=False,           # Non supporté par Orange WebPay
-        withdrawals=False,       # Non supporté
-        opr=False,               # Pas de request-to-pay API
-        splits=False,            # Pas de split natif
-        customer_portal=False,   # Hors périmètre Orange
+"""
+Capability Matrix
+
+Définit ce que chaque MÉTHODE DE PAIEMENT supporte du point de vue client.
+Le routing interne (via quel gateway) est transparent et géré par SahelPay.
+"""
+CAPABILITIES: Dict[PaymentMethod, ProviderCapabilities] = {
+    # Orange Money - routing auto vers ORANGE_DIRECT ou INTOUCH
+    "ORANGE_MONEY": ProviderCapabilities(
+        payments=True,           # Paiement mobile
+        payment_links=True,      # Liens de paiement
+        qr_code=False,           # Pas de QR natif
+        payouts=True,            # Envoi d'argent (via gateway optimal)
+        withdrawals=True,        # Retraits
+        opr=True,                # Request-to-pay (via Push USSD si dispo)
+        splits=False,
+        customer_portal=False,
     ),
-
-    Provider.WAVE: ProviderCapabilities(
+    # Wave - QR Code natif + Push
+    "WAVE": ProviderCapabilities(
         payments=True,
         payment_links=True,
         qr_code=True,            # QR natif Wave
         payouts=True,            # Wave Payout API
         withdrawals=True,        # Wave Cash-out
-        opr=True,                # Request-to-pay supporté
+        opr=True,                # Request-to-pay
         splits=False,
         customer_portal=False,
     ),
-
-    Provider.MOOV: ProviderCapabilities(
+    # Moov Money
+    "MOOV": ProviderCapabilities(
         payments=True,
-        payment_links=False,     # Pas de liens natifs
+        payment_links=True,      # Via SahelPay
         qr_code=False,
-        payouts=False,           # En développement
-        withdrawals=False,
-        opr=False,
+        payouts=True,            # Via gateway optimal
+        withdrawals=True,
+        opr=True,                # Via Push USSD
         splits=False,
         customer_portal=False,
     ),
-
-    Provider.VISA: ProviderCapabilities(
+    # Carte bancaire générique
+    "CARD": ProviderCapabilities(
         payments=True,
         payment_links=True,
         qr_code=False,
-        payouts=True,            # Card disbursement
-        withdrawals=True,
+        payouts=False,           # Non supporté pour les cartes
+        withdrawals=True,        # Virement bancaire
         opr=False,
         splits=True,             # Marketplace splits
-        customer_portal=True,    # Saved cards portal
+        customer_portal=True,    # Gestion des cartes
+    ),
+    "VISA": ProviderCapabilities(
+        payments=True,
+        payment_links=True,
+        qr_code=False,
+        payouts=False,
+        withdrawals=True,
+        opr=False,
+        splits=True,
+        customer_portal=True,
+    ),
+    "MASTERCARD": ProviderCapabilities(
+        payments=True,
+        payment_links=True,
+        qr_code=False,
+        payouts=False,
+        withdrawals=True,
+        opr=False,
+        splits=True,
+        customer_portal=True,
+    ),
+    "GIM_UEMOA": ProviderCapabilities(
+        payments=True,
+        payment_links=True,
+        qr_code=False,
+        payouts=False,
+        withdrawals=True,
+        opr=False,
+        splits=False,
+        customer_portal=False,
     ),
 }
 
-
-# Justifications officielles (audit-proof)
-CAPABILITY_JUSTIFICATIONS: Dict[Provider, Dict[Capability, str]] = {
-    Provider.ORANGE_MONEY: {
-        Capability.PAYMENTS: "Orange Web Payment API (session + redirect + notif)",
-        Capability.PAYMENT_LINKS: "Généré par SahelPay, Orange est destination",
-        Capability.QR_CODE: "Orange WebPay ne génère pas de QR",
-        Capability.PAYOUTS: "Aucune API payout exposée par Orange",
-        Capability.WITHDRAWALS: "Pas de cash-out API disponible",
-        Capability.OPR: "Pas de request-to-pay dans Orange WebPay",
-        Capability.SPLITS: "Gestion interne SahelPay uniquement",
-        Capability.CUSTOMER_PORTAL: "Hors périmètre Orange WebPay",
+"""
+Descriptions des capabilities par méthode de paiement
+"""
+CAPABILITY_DESCRIPTIONS: Dict[PaymentMethod, Dict[Capability, str]] = {
+    "ORANGE_MONEY": {
+        "payments": "Paiement via Orange Money",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non disponible",
+        "payouts": "Envoi d'argent vers Orange Money",
+        "withdrawals": "Retrait vers Orange Money",
+        "opr": "Request-to-pay via Push USSD",
+        "splits": "Via SahelPay Split",
+        "customer_portal": "Non disponible",
     },
-    Provider.WAVE: {
-        Capability.PAYMENTS: "Wave Business API - Payment collection",
-        Capability.PAYMENT_LINKS: "Wave Payment Links API",
-        Capability.QR_CODE: "Wave QR Code natif",
-        Capability.PAYOUTS: "Wave Payout API",
-        Capability.WITHDRAWALS: "Wave Cash-out API",
-        Capability.OPR: "Wave Request-to-Pay",
-        Capability.SPLITS: "Non disponible nativement",
-        Capability.CUSTOMER_PORTAL: "Non disponible",
+    "WAVE": {
+        "payments": "Paiement via Wave (QR + Push)",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "QR Code Wave natif",
+        "payouts": "Envoi d'argent via Wave",
+        "withdrawals": "Retrait vers Wave",
+        "opr": "Request-to-pay Wave",
+        "splits": "Via SahelPay Split",
+        "customer_portal": "Non disponible",
     },
-    Provider.MOOV: {
-        Capability.PAYMENTS: "Moov Money USSD/Push API",
-        Capability.PAYMENT_LINKS: "Non supporté par Moov",
-        Capability.QR_CODE: "Non disponible",
-        Capability.PAYOUTS: "En cours de développement",
-        Capability.WITHDRAWALS: "Non disponible",
-        Capability.OPR: "Non disponible",
-        Capability.SPLITS: "Non disponible",
-        Capability.CUSTOMER_PORTAL: "Non disponible",
+    "MOOV": {
+        "payments": "Paiement via Moov Money",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non disponible",
+        "payouts": "Envoi d'argent via Moov",
+        "withdrawals": "Retrait vers Moov",
+        "opr": "Request-to-pay via Push USSD",
+        "splits": "Via SahelPay Split",
+        "customer_portal": "Non disponible",
     },
-    Provider.VISA: {
-        Capability.PAYMENTS: "3DS Secure Checkout",
-        Capability.PAYMENT_LINKS: "Hosted Payment Page",
-        Capability.QR_CODE: "Non applicable aux cartes",
-        Capability.PAYOUTS: "Visa Direct / Card Disbursement",
-        Capability.WITHDRAWALS: "Bank transfer",
-        Capability.OPR: "Non applicable",
-        Capability.SPLITS: "Marketplace / Platform payments",
-        Capability.CUSTOMER_PORTAL: "Saved cards management",
+    "CARD": {
+        "payments": "Paiement par carte (3DS Secure)",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non applicable",
+        "payouts": "Non supporté",
+        "withdrawals": "Virement bancaire",
+        "opr": "Non applicable",
+        "splits": "Marketplace splits",
+        "customer_portal": "Gestion des cartes",
+    },
+    "VISA": {
+        "payments": "Paiement par carte VISA",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non applicable",
+        "payouts": "Non supporté",
+        "withdrawals": "Virement bancaire",
+        "opr": "Non applicable",
+        "splits": "Marketplace splits",
+        "customer_portal": "Gestion des cartes",
+    },
+    "MASTERCARD": {
+        "payments": "Paiement par Mastercard",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non applicable",
+        "payouts": "Non supporté",
+        "withdrawals": "Virement bancaire",
+        "opr": "Non applicable",
+        "splits": "Marketplace splits",
+        "customer_portal": "Gestion des cartes",
+    },
+    "GIM_UEMOA": {
+        "payments": "Paiement par carte GIM-UEMOA",
+        "payment_links": "Liens de paiement SahelPay",
+        "qr_code": "Non applicable",
+        "payouts": "Non supporté",
+        "withdrawals": "Virement bancaire",
+        "opr": "Non applicable",
+        "splits": "Via SahelPay Split",
+        "customer_portal": "Non disponible",
     },
 }
 
+# Alias pour compatibilité
+CAPABILITY_JUSTIFICATIONS = CAPABILITY_DESCRIPTIONS
 
-def has_capability(provider: str, capability: str) -> bool:
+
+def has_capability(method: PaymentMethod, capability: Capability) -> bool:
     """
-    Vérifier si un provider supporte une capability
+    Vérifier si une méthode de paiement supporte une capability
 
     Args:
-        provider: Nom du provider (ORANGE_MONEY, WAVE, etc.)
-        capability: Nom de la capability (payments, payouts, etc.)
+        method: Méthode de paiement
+        capability: Capability à vérifier
 
     Returns:
-        True si le provider supporte la capability
+        True si la méthode supporte la capability
     """
-    try:
-        p = Provider(provider)
-        caps = CAPABILITIES.get(p)
-        if not caps:
-            return False
-        return getattr(caps, capability, False)
-    except (ValueError, AttributeError):
+    caps = CAPABILITIES.get(method)
+    if not caps:
         return False
+    return getattr(caps, capability, False)
 
 
-def get_capabilities(provider: str) -> Optional[ProviderCapabilities]:
+def get_capabilities(method: PaymentMethod) -> Optional[ProviderCapabilities]:
     """
-    Obtenir toutes les capabilities d'un provider
+    Obtenir toutes les capabilities d'une méthode de paiement
 
     Args:
-        provider: Nom du provider
+        method: Méthode de paiement
 
     Returns:
-        ProviderCapabilities ou None
+        ProviderCapabilities ou None si méthode inconnue
     """
-    try:
-        p = Provider(provider)
-        return CAPABILITIES.get(p)
-    except ValueError:
-        return None
+    return CAPABILITIES.get(method)
 
 
-def get_justification(provider: str, capability: str) -> str:
+def get_capability_description(method: PaymentMethod, capability: Capability) -> str:
     """
-    Obtenir la justification d'une capability
+    Obtenir la description d'une capability
 
     Args:
-        provider: Nom du provider
-        capability: Nom de la capability
+        method: Méthode de paiement
+        capability: Capability
 
     Returns:
-        Justification textuelle
+        Description ou "Non documenté"
     """
-    try:
-        p = Provider(provider)
-        c = Capability(capability)
-        return CAPABILITY_JUSTIFICATIONS.get(p, {}).get(c, "Non documenté")
-    except ValueError:
-        return "Non documenté"
+    return CAPABILITY_DESCRIPTIONS.get(method, {}).get(capability, "Non documenté")
 
 
-def get_providers_with_capability(capability: str) -> List[str]:
+# Alias pour compatibilité
+def get_justification(method: PaymentMethod, capability: Capability) -> str:
+    """Alias pour get_capability_description"""
+    return get_capability_description(method, capability)
+
+
+def get_methods_with_capability(capability: Capability) -> List[PaymentMethod]:
     """
-    Lister les providers supportant une capability
+    Lister les méthodes de paiement supportant une capability
 
     Args:
-        capability: Nom de la capability
+        capability: Capability à rechercher
 
     Returns:
-        Liste des noms de providers
+        Liste des méthodes supportant la capability
     """
-    result = []
-    for provider, caps in CAPABILITIES.items():
-        if getattr(caps, capability, False):
-            result.append(provider.value)
-    return result
+    return [
+        method
+        for method, caps in CAPABILITIES.items()
+        if has_capability(method, capability)
+    ]
 
 
-class ProviderCapabilityError(Exception):
-    """
-    Erreur levée quand un provider ne supporte pas une capability
-
-    C'est l'erreur clé qui protège contractuellement et techniquement.
-    """
-
-    def __init__(self, provider: str, capability: str):
-        self.provider = provider
-        self.capability = capability
-        self.justification = get_justification(provider, capability)
-        self.code = f"{capability.upper()}_NOT_SUPPORTED"
-
-        message = (
-            f'Provider "{provider}" does not support "{capability}". '
-            f'Reason: {self.justification}'
-        )
-        super().__init__(message)
-
-
-def require_capability(provider: str, capability: str) -> None:
-    """
-    Vérifier qu'un provider supporte une capability, lever une erreur sinon
-
-    Args:
-        provider: Nom du provider
-        capability: Nom de la capability
-
-    Raises:
-        ProviderCapabilityError: Si le provider ne supporte pas la capability
-    """
-    if not has_capability(provider, capability):
-        raise ProviderCapabilityError(provider, capability)
+# Alias pour compatibilité
+def get_providers_with_capability(capability: Capability) -> List[PaymentMethod]:
+    """Alias pour get_methods_with_capability"""
+    return get_methods_with_capability(capability)

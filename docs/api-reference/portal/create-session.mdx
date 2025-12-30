@@ -1,0 +1,103 @@
+---
+title: Créer une session portal
+api: POST /v1/portal/sessions
+description: "Créer une session Customer Portal"
+---
+
+# Créer une session Customer Portal
+
+Crée une session pour permettre à un client d'accéder à son portail self-service.
+
+## Endpoint
+
+```
+POST /v1/portal/sessions
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+| `Content-Type` | ✅ | `application/json` |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `customer_phone` | string | ✅ | Numéro de téléphone du client (+223...) |
+| `customer_name` | string | | Nom du client |
+| `customer_email` | string | | Email du client |
+| `return_url` | string | | URL de retour après utilisation du portal |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/portal/sessions \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_phone": "+22370123456",
+    "customer_name": "Moussa Diarra",
+    "customer_email": "moussa@example.com",
+    "return_url": "https://votresite.com/account"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/portal/sessions', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    customer_phone: '+22370123456',
+    customer_name: 'Moussa Diarra',
+    customer_email: 'moussa@example.com',
+    return_url: 'https://votresite.com/account',
+  }),
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "portal_session_abc123",
+    "url": "https://pay.sahelpay.ml/portal/portal_xyz789...",
+    "customer_id": "cus_def456",
+    "expires_at": "2025-12-19T16:45:00.000Z"
+  }
+}
+```
+
+## Redirection
+
+Redirigez le client vers l'URL retournée :
+
+```javascript
+window.location.href = session.url;
+```
+
+## Expiration
+
+Les sessions expirent après **24 heures**. Si un client clique sur un lien expiré, créez une nouvelle session.
+
+## Erreurs
+
+| Code | Description |
+|------|-------------|
+| `INVALID_PHONE` | Numéro de téléphone invalide |
+| `MISSING_RETURN_URL` | URL de retour requise |
+
+<Note>
+  Le Customer Portal est hébergé par SahelPay. Vous n'avez qu'à créer une session et rediriger le client vers l'URL retournée.
+</Note>
+

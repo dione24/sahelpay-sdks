@@ -1,0 +1,75 @@
+---
+title: Lister les abonnements
+api: GET /v1/subscriptions
+description: "Lister tous les abonnements"
+---
+
+# Lister les abonnements
+
+Récupère la liste de tous vos abonnements avec filtres optionnels.
+
+## Endpoint
+
+```
+GET /v1/subscriptions
+```
+
+## Headers
+
+| Header | Requis | Description |
+|--------|--------|-------------|
+| `Authorization` | ✅ | `Bearer sk_xxx` |
+
+## Query Parameters
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `plan_id` | string | | Filtrer par plan |
+| `status` | string | | Filtrer par statut (`ACTIVE`, `PAST_DUE`, `CANCELLED`) |
+| `limit` | integer | | Nombre de résultats (défaut: 20) |
+
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.sahelpay.ml/v1/subscriptions?status=ACTIVE&limit=20" \
+  -H "Authorization: Bearer sk_test_xxx"
+```
+
+```javascript Node.js
+const response = await fetch('https://api.sahelpay.ml/v1/subscriptions?status=ACTIVE&limit=20', {
+  headers: {
+    'Authorization': 'Bearer sk_test_xxx',
+  },
+});
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "subscriptions": [
+      {
+        "id": "sub_abc123",
+        "plan_id": "plan_abc123",
+        "plan_name": "Premium Mensuel",
+        "customer_phone": "+22370123456",
+        "status": "ACTIVE",
+        "next_billing_date": "2025-01-01T00:00:00.000Z",
+        "retry_count": 0,
+        "created_at": "2025-12-18T16:45:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 50,
+      "limit": 20
+    }
+  }
+}
+```
+

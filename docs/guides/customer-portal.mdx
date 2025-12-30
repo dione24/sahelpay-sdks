@@ -1,0 +1,187 @@
+---
+title: Customer Portal
+description: "Portail client self-service pour gérer abonnements et transactions"
+---
+
+# Customer Portal
+
+Le **Customer Portal** est l'équivalent SahelPay du Stripe Customer Portal. Il permet à vos clients de gérer leur compte, consulter leur historique de transactions et gérer leurs abonnements, **sans que vous ayez à développer cette interface**.
+
+## Concept
+
+```
+┌─────────────────┐      POST /v1/portal/sessions      ┌─────────────────┐
+│   Votre Site    │ ─────────────────────────────────► │    SahelPay     │
+│   (Backend)     │ ◄───────────────────────────────── │      API        │
+└─────────────────┘      { url: "https://..." }        └─────────────────┘
+        │                                                      │
+        │ Redirect client                                      │
+        ▼                                                      ▼
+┌─────────────────┐                                   ┌─────────────────┐
+│   Votre Client  │ ─────────────────────────────────►│ Customer Portal │
+│                 │      Accède à son espace          │   SahelPay      │
+└─────────────────┘                                   └─────────────────┘
+```
+
+## Fonctionnalités
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Profil** | Voir et modifier nom, email |
+| **Transactions** | Historique complet des paiements |
+| **Reçus PDF** | Télécharger un reçu pour chaque transaction réussie |
+| **Abonnements** | Voir et annuler les abonnements actifs |
+| **Méthodes de paiement** | Gérer les numéros Mobile Money enregistrés |
+| **Statistiques** | Total dépensé, nombre de transactions |
+
+## Créer une session
+
+Depuis votre backend, créez une session pour votre client :
+
+<CodeGroup>
+
+```javascript JavaScript
+const session = await sahelpay.portal.createSession({
+  customer_phone: '+22370123456',
+  customer_name: 'Moussa Diarra',
+  customer_email: 'moussa@example.com',
+  return_url: 'https://votresite.com/account'
+});
+
+// Rediriger le client
+window.location.href = session.url;
+```
+
+```python Python
+session = client.portal.create_session(
+    customer_phone='+22370123456',
+    customer_name='Moussa Diarra',
+    customer_email='moussa@example.com',
+    return_url='https://votresite.com/account'
+)
+
+# Rediriger le client
+redirect(session['url'])
+```
+
+```php PHP
+$session = $sahelpay->portal->createSession([
+    'customer_phone' => '+22370123456',
+    'customer_name' => 'Moussa Diarra',
+    'customer_email' => 'moussa@example.com',
+    'return_url' => 'https://votresite.com/account'
+]);
+
+// Rediriger le client
+header('Location: ' . $session->url);
+```
+
+</CodeGroup>
+
+## Réponse
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "portal_session_abc123",
+    "url": "https://pay.sahelpay.ml/portal/portal_xyz789...",
+    "customer_id": "cus_def456",
+    "expires_at": "2025-01-02T12:00:00.000Z"
+  }
+}
+```
+
+## Exemple complet (Express.js)
+
+```javascript
+app.get("/mon-compte", async (req, res) => {
+  // Récupérer les infos du client depuis votre DB
+  const user = await db.users.findById(req.user.id);
+  
+  // Créer une session portal
+  const session = await sahelpay.portal.createSession({
+    customer_phone: user.phone,
+    customer_name: user.name,
+    customer_email: user.email,
+    return_url: `${APP_URL}/account`
+  });
+  
+  // Rediriger vers le portal
+  res.redirect(session.url);
+});
+```
+
+## Expiration
+
+Les sessions expirent après **24 heures**. Si un client clique sur un lien expiré, proposez-lui d'en générer un nouveau.
+
+## Ce que le client voit
+
+Une fois redirigé vers le portal, le client peut :
+
+1. **Voir son profil** : Nom, email, téléphone
+2. **Consulter ses transactions** : Historique complet avec filtres
+3. **Télécharger des reçus** : PDF pour chaque transaction réussie
+4. **Gérer ses abonnements** : Voir les plans actifs et annuler si besoin
+5. **Gérer ses méthodes de paiement** : Ajouter/supprimer des numéros Mobile Money
+6. **Voir ses statistiques** : Total dépensé, nombre de transactions
+
+## Retour sur votre site
+
+Quand le client clique sur "Retour" dans le portal, il est redirigé vers votre `return_url` :
+
+```javascript
+// https://votresite.com/account?portal_session=xxx
+app.get("/account", (req, res) => {
+  if (req.query.portal_session) {
+    // Le client revient du portal
+    res.render("account", { message: "Modifications sauvegardées" });
+  } else {
+    res.render("account");
+  }
+});
+```
+
+## Cas d'usage
+
+### SaaS - Gestion d'abonnements
+
+```javascript
+// Bouton "Gérer mon abonnement" sur votre dashboard
+app.get("/billing/manage", async (req, res) => {
+  const session = await sahelpay.portal.createSession({
+    customer_phone: req.user.phone,
+    return_url: `${APP_URL}/billing`
+  });
+  
+  res.redirect(session.url);
+});
+```
+
+### E-commerce - Historique de commandes
+
+```javascript
+// Bouton "Mes commandes" 
+app.get("/orders", async (req, res) => {
+  const session = await sahelpay.portal.createSession({
+    customer_phone: req.user.phone,
+    return_url: `${APP_URL}/orders`
+  });
+  
+  res.redirect(session.url);
+});
+```
+
+## Bonnes pratiques
+
+1. **Toujours utiliser HTTPS** pour le `return_url`
+2. **Stocker le `customer_id`** retourné pour référence future
+3. **Gérer l'expiration** : proposez de régénérer une session si expirée
+4. **Pré-remplir les infos** : passez `customer_name` et `customer_email` pour une meilleure UX
+5. **Sécuriser l'accès** : vérifiez que l'utilisateur est authentifié avant de créer une session
+
+<Note>
+  Le Customer Portal est hébergé par SahelPay. Vous n'avez pas besoin de développer cette interface - créez simplement une session et redirigez le client.
+</Note>
+
