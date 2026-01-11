@@ -1326,6 +1326,207 @@ class SahelPayClient {
   }
 }
 
+// ==================== MERCHANTS API ====================
+
+/**
+ * Paramètres pour l'inscription d'un nouveau marchand
+ */
+export interface RegisterMerchantParams {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  business_type?: string;
+}
+
+/**
+ * Réponse de l'inscription d'un marchand
+ */
+export interface RegisterMerchantResponse {
+  merchant: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    business_type?: string;
+  };
+  api_keys: {
+    public_key: string;
+    secret_key: string;
+  };
+}
+
+/**
+ * Réponse de la connexion d'un marchand
+ */
+export interface LoginMerchantResponse {
+  role: 'merchant' | 'admin';
+  merchant: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  api_keys: {
+    public_key: string;
+    secret_key: string;
+  };
+}
+
+/**
+ * API pour l'onboarding des marchands
+ * 
+ * Note: Ces méthodes sont statiques car elles ne nécessitent pas d'authentification.
+ * Elles sont utilisées pour créer un compte ou se connecter.
+ * 
+ * @example
+ * ```typescript
+ * // Inscription d'un nouveau marchand (depuis une app mobile)
+ * const result = await SahelPay.merchants.register({
+ *   name: 'Ma Boutique',
+ *   email: 'contact@maboutique.ml',
+ *   password: 'motdepasse123',
+ *   phone: '+22370123456',
+ *   business_type: 'e-commerce'
+ * });
+ * 
+ * // Connexion d'un marchand existant
+ * const login = await SahelPay.merchants.login({
+ *   email: 'contact@maboutique.ml',
+ *   password: 'motdepasse123'
+ * });
+ * 
+ * // Maintenant vous pouvez initialiser le SDK avec les clés obtenues
+ * const sahelpay = new SahelPay({
+ *   secretKey: result.api_keys.secret_key
+ * });
+ * ```
+ */
+class MerchantsAPI {
+  private static defaultBaseUrl = 'https://api.sahelpay.ml';
+
+  /**
+   * Inscription d'un nouveau marchand
+   * 
+   * @param params - Informations du marchand
+   * @param baseUrl - URL de l'API (optionnel, par défaut production)
+   * @returns Informations du marchand créé avec les clés API
+   */
+  static async register(
+    params: RegisterMerchantParams,
+    baseUrl?: string
+  ): Promise<RegisterMerchantResponse> {
+    const url = `${baseUrl || MerchantsAPI.defaultBaseUrl}/auth/register`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SahelPay-SDK/1.0.0',
+      },
+      body: JSON.stringify(params),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json.success) {
+      throw new SahelPayError(
+        json.error?.message || 'Erreur lors de l\'inscription',
+        json.error?.code || 'REGISTER_FAILED',
+        response.status
+      );
+    }
+
+    return json.data;
+  }
+
+  /**
+   * Connexion d'un marchand existant
+   * 
+   * @param email - Email du marchand
+   * @param password - Mot de passe
+   * @param baseUrl - URL de l'API (optionnel)
+   * @returns Informations du marchand avec les clés API
+   */
+  static async login(
+    email: string,
+    password: string,
+    baseUrl?: string
+  ): Promise<LoginMerchantResponse> {
+    const url = `${baseUrl || MerchantsAPI.defaultBaseUrl}/auth/login`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SahelPay-SDK/1.0.0',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json.success) {
+      throw new SahelPayError(
+        json.error?.message || 'Email ou mot de passe incorrect',
+        json.error?.code || 'LOGIN_FAILED',
+        response.status
+      );
+    }
+
+    return json.data;
+  }
+
+  /**
+   * Demander la réinitialisation du mot de passe
+   */
+  static async forgotPassword(email: string, baseUrl?: string): Promise<void> {
+    const url = `${baseUrl || MerchantsAPI.defaultBaseUrl}/auth/forgot-password`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json.success) {
+      throw new SahelPayError(
+        json.error?.message || 'Erreur',
+        json.error?.code || 'ERROR',
+        response.status
+      );
+    }
+  }
+
+  /**
+   * Réinitialiser le mot de passe avec un token
+   */
+  static async resetPassword(token: string, password: string, baseUrl?: string): Promise<void> {
+    const url = `${baseUrl || MerchantsAPI.defaultBaseUrl}/auth/reset-password`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, password }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json.success) {
+      throw new SahelPayError(
+        json.error?.message || 'Token invalide ou expiré',
+        json.error?.code || 'INVALID_TOKEN',
+        response.status
+      );
+    }
+  }
+}
+
 export class SahelPayError extends Error {
   constructor(
     message: string,
@@ -1412,6 +1613,43 @@ export class SahelPay {
    */
   static async getPublicPlan(planId: string, baseUrl?: string): Promise<PublicPlan> {
     return PlansAPI.getPublicPlan(planId, baseUrl);
+  }
+
+  // ==================== MERCHANTS (ONBOARDING) ====================
+
+  /**
+   * API d'onboarding des marchands (statique - sans authentification)
+   * 
+   * @example
+   * ```typescript
+   * // Inscription d'un nouveau marchand
+   * const result = await SahelPay.merchants.register({
+   *   name: 'Ma Boutique',
+   *   email: 'contact@maboutique.ml',
+   *   password: 'motdepasse123',
+   *   phone: '+22370123456'
+   * });
+   * 
+   * console.log('Clé API:', result.api_keys.secret_key);
+   * 
+   * // Connexion
+   * const login = await SahelPay.merchants.login('email', 'password');
+   * ```
+   */
+  static merchants = MerchantsAPI;
+
+  /**
+   * Inscription d'un nouveau marchand (raccourci)
+   */
+  static async registerMerchant(params: RegisterMerchantParams, baseUrl?: string) {
+    return MerchantsAPI.register(params, baseUrl);
+  }
+
+  /**
+   * Connexion d'un marchand (raccourci)
+   */
+  static async loginMerchant(email: string, password: string, baseUrl?: string) {
+    return MerchantsAPI.login(email, password, baseUrl);
   }
 }
 
