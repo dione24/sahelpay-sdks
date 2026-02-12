@@ -39,6 +39,7 @@ class PaymentsAPI:
         client_reference: Optional[str] = None,
         marketplace: Optional[Dict[str, Any]] = None,
         hosted_checkout: bool = True,
+        idempotency_key: Optional[str] = None,
     ) -> Payment:
         """
         Créer un nouveau paiement
@@ -89,6 +90,11 @@ class PaymentsAPI:
             "provider": provider,
             "payment_method": inferred_payment_method,
             "country": country,
+            "customer": {
+                "phone": customer_phone,
+                "name": customer_name,
+                "email": customer_email,
+            },
             "customer_phone": customer_phone,
             "customer_name": customer_name,
             "customer_email": customer_email,
@@ -102,7 +108,11 @@ class PaymentsAPI:
         if final_metadata:
             data["metadata"] = final_metadata
 
-        response = self._client._request("POST", "/v1/payments", data)
+        request_headers: Optional[Dict[str, str]] = None
+        if idempotency_key:
+            request_headers = {"X-Idempotency-Key": idempotency_key}
+
+        response = self._client._request("POST", "/v1/payments", data, headers=request_headers)
         payload = response.get("data", {})
         payload["customer_phone"] = customer_phone
         payload["provider"] = provider
@@ -979,22 +989,25 @@ class Client:
         self,
         method: str,
         path: str,
-        data: Optional[Dict[str, Any]] = None
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """Effectuer une requête API"""
         url = f"{self._base_url}{path}"
 
-        headers = {
+        request_headers = {
             "Authorization": f"Bearer {self._secret_key}",
             "Content-Type": "application/json",
             "User-Agent": "SahelPay-Python/1.0.0",
         }
+        if headers:
+            request_headers.update(headers)
 
         body = None
         if data and method != "GET":
             body = json.dumps(data).encode("utf-8")
 
-        request = Request(url, data=body, headers=headers, method=method)
+        request = Request(url, data=body, headers=request_headers, method=method)
 
         try:
             with urlopen(request, timeout=self._timeout) as response:

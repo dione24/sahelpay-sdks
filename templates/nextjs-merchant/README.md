@@ -2,6 +2,8 @@
 
 Template prêt à l'emploi pour intégrer SahelPay dans une application Next.js.
 
+> Important: ce template couvre le flow API SahelPay de bout en bout, mais vous devez brancher votre propre persistance métier (orders/payments) côté application avant mise en production.
+
 ## 🚀 Démarrage rapide (5 étapes)
 
 ### 1. Copier les fichiers
@@ -50,6 +52,7 @@ npm run dev
 app/
   api/
     payments/create/route.ts    # Créer un paiement
+    payments/status/route.ts    # Vérifier le statut d'un paiement
     webhooks/sahelpay/route.ts  # Recevoir les webhooks
   checkout/return/page.tsx      # Page retour après paiement
 components/

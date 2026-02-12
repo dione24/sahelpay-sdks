@@ -22,8 +22,7 @@ use SahelPay\SahelPay;
 
 // Option 1: Initialisation directe
 $sahelpay = new SahelPay(
-    'sk_live_your_secret_key',
-    'pk_live_your_public_key'
+    'sk_live_your_secret_key'
 );
 
 // Option 2: Depuis les variables d'environnement
@@ -32,7 +31,7 @@ $sahelpay = SahelPay::fromEnv();
 // Option 3: Avec options avancées
 $sahelpay = new SahelPay(
     'sk_live_your_secret_key',
-    'pk_live_your_public_key',
+    null,
     [
         'webhook_secret' => 'whsec_xxx',
         'sandbox' => false,
@@ -162,7 +161,9 @@ $payload = file_get_contents('php://input');
 $signature = $_SERVER['HTTP_X_SAHELPAY_SIGNATURE'] ?? '';
 
 // Vérifier la signature
-if (!$sahelpay->webhooks->verify($payload, $signature)) {
+try {
+    $sahelpay->webhooks->verify($payload, $signature);
+} catch (\SahelPay\Exceptions\WebhookSignatureException $e) {
     http_response_code(401);
     exit('Invalid signature');
 }
@@ -204,7 +205,6 @@ Ajoutez vos clés dans `.env` :
 
 ```env
 SAHELPAY_SECRET_KEY=sk_live_xxx
-SAHELPAY_PUBLIC_KEY=pk_live_xxx
 SAHELPAY_WEBHOOK_SECRET=whsec_xxx
 SAHELPAY_SANDBOX=false
 ```
@@ -259,7 +259,9 @@ class WebhookController extends Controller
         $signature = $request->header('X-SahelPay-Signature');
         $payload = $request->getContent();
 
-        if (!$sahelpay->webhooks->verify($payload, $signature)) {
+        try {
+            $sahelpay->webhooks->verify($payload, $signature);
+        } catch (\SahelPay\Exceptions\WebhookSignatureException $e) {
             return response('Invalid signature', 401);
         }
 

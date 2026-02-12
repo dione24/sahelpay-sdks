@@ -109,23 +109,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing order_id' }, { status: 400 });
     }
 
-    // TODO: Vérifier l'idempotence dans votre DB
-    // const existing = await db.payments.findUnique({ where: { transaction_id: data.id } });
-    // if (existing?.status === 'success') {
-    //   return NextResponse.json({ received: true, already_processed: true });
-    // }
-
     // Traiter selon l'événement
     switch (event) {
       case 'payment.success':
-        // TODO: Mettre à jour votre DB
-        // await db.payments.update({ where: { transaction_id: data.id }, data: { status: 'success' } });
-        // await db.orders.update({ where: { id: orderId }, data: { status: 'paid' } });
-        console.log(`✅ Order ${orderId} marked as PAID`);
+        console.log(`✅ Payment success received for order ${orderId}`);
         break;
 
       case 'payment.failed':
-        // await db.payments.update({ where: { transaction_id: data.id }, data: { status: 'failed' } });
         console.log(`❌ Payment ${data.id} FAILED`);
         break;
 

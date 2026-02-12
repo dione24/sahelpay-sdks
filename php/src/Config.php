@@ -14,7 +14,7 @@ class Config
     public const SANDBOX_BASE_URL = 'https://sandbox.sahelpay.ml';
 
     private string $secretKey;
-    private string $publicKey;
+    private ?string $publicKey;
     private string $baseUrl;
     private bool $sandbox;
     private ?string $webhookSecret;
@@ -22,7 +22,7 @@ class Config
 
     public function __construct(
         string $secretKey,
-        string $publicKey,
+        ?string $publicKey = null,
         ?string $webhookSecret = null,
         bool $sandbox = false,
         int $timeout = 30
@@ -40,7 +40,7 @@ class Config
         return $this->secretKey;
     }
 
-    public function getPublicKey(): string
+    public function getPublicKey(): ?string
     {
         return $this->publicKey;
     }

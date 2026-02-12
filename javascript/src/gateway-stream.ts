@@ -287,9 +287,9 @@ export function useGatewayStream(options: UseGatewayStreamOptions): UseGatewaySt
   // Cette implémentation nécessite React hooks
   // Pour une implémentation complète, voir le hook dans le frontend
   const [isConnected, setIsConnected] = (window as any).React.useState(false);
-  const [lastEvent, setLastEvent] = (window as any).React.useState<GatewayConfigEvent | null>(null);
+  const [lastEvent, setLastEvent] = (window as any).React.useState(null as GatewayConfigEvent | null);
   const [reconnectAttempts, setReconnectAttempts] = (window as any).React.useState(0);
-  const streamRef = (window as any).React.useRef<GatewayEventSource | null>(null);
+  const streamRef = (window as any).React.useRef(null as GatewayEventSource | null);
 
   const connect = () => {
     if (streamRef.current) {

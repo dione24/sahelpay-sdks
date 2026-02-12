@@ -24,7 +24,7 @@ class SahelPayServiceProvider extends ServiceProvider
             
             return new SahelPay(
                 $config['secret_key'],
-                $config['public_key'],
+                $config['public_key'] ?? null,
                 [
                     'webhook_secret' => $config['webhook_secret'] ?? null,
                     'sandbox' => $config['sandbox'] ?? false,

@@ -10,15 +10,20 @@ Ce script teste les nouvelles fonctionnalités:
 
 from sahelpay import Client
 import sys
+import os
 sys.path.insert(0, '.')
 
 
-SECRET_KEY = 'sk_live_6w4-GBVyES5vO9BDD7ewa2iXO6FRjkW8'
+SECRET_KEY = os.getenv('SAHELPAY_SECRET_KEY')
 
 
 def test_sdk():
     print('🚀 Test du SDK SahelPay Python\n')
     print('=' * 50)
+
+    if not SECRET_KEY:
+        print('❌ SAHELPAY_SECRET_KEY is required')
+        return
 
     client = Client(secret_key=SECRET_KEY, environment='production')
 

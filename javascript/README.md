@@ -67,6 +67,7 @@ const payment = await sahelpay.payments.create({
   metadata: { order_id: "123" },
   callback_url: "https://votre-site.com/webhook",
   return_url: "https://votre-site.com/success",
+  idempotency_key: "order-123",
 });
 
 // Vérifier le statut
@@ -79,7 +80,7 @@ const payment = await sahelpay.payments.retrieve("SP_xxx");
 // Lister les paiements
 const { payments, pagination } = await sahelpay.payments.list({
   limit: 20,
-  page: 1,
+  offset: 0,
   status: "SUCCESS",
 });
 ```

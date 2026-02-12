@@ -37,45 +37,54 @@ class Client
     /**
      * Effectuer une requête GET
      */
-    public function get(string $endpoint, array $params = []): Response
+    public function get(string $endpoint, array $params = [], array $headers = []): Response
     {
-        return $this->request('GET', $endpoint, ['query' => $params]);
+        return $this->request('GET', $endpoint, ['query' => $params], $headers);
     }
 
     /**
      * Effectuer une requête POST
      */
-    public function post(string $endpoint, array $data = []): Response
+    public function post(string $endpoint, array $data = [], array $headers = []): Response
     {
-        return $this->request('POST', $endpoint, ['json' => $data]);
+        return $this->request('POST', $endpoint, ['json' => $data], $headers);
     }
 
     /**
      * Effectuer une requête PUT
      */
-    public function put(string $endpoint, array $data = []): Response
+    public function put(string $endpoint, array $data = [], array $headers = []): Response
     {
-        return $this->request('PUT', $endpoint, ['json' => $data]);
+        return $this->request('PUT', $endpoint, ['json' => $data], $headers);
     }
-    public function patch(string $endpoint, array $data = []): Response
+    public function patch(string $endpoint, array $data = [], array $headers = []): Response
     {
-        return $this->request('PATCH', $endpoint, ['json' => $data]);
+        return $this->request('PATCH', $endpoint, ['json' => $data], $headers);
     }
 
     /**
      * Effectuer une requête DELETE
      */
-    public function delete(string $endpoint, array $params = []): Response
+    public function delete(string $endpoint, array $params = [], array $headers = []): Response
     {
-        return $this->request('DELETE', $endpoint, ['query' => $params]);
+        return $this->request('DELETE', $endpoint, ['query' => $params], $headers);
     }
 
     /**
      * Effectuer une requête HTTP
      */
-    private function request(string $method, string $endpoint, array $options = []): Response
+    private function request(string $method, string $endpoint, array $options = [], array $headers = []): Response
     {
         try {
+            if (!empty($headers)) {
+                $options['headers'] = array_merge([
+                    'Authorization' => 'Bearer ' . $this->config->getSecretKey(),
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'SahelPay-PHP/' . Config::VERSION,
+                ], $headers);
+            }
+
             $response = $this->http->request($method, '/v1' . $endpoint, $options);
             $body = json_decode($response->getBody()->getContents(), true);
             

@@ -47,7 +47,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 | Payment Links (create/list/retrieve/deactivate)     | ✅       | ✅    | ✅  | ✅     |
 | QR Code payment link (`/v1/payment-links/:slug/qr`) | ✅       | ✅    | ✅  | ❌     |
 | Payouts                                             | ✅       | ✅    | ✅  | ✅     |
-| Withdrawals                                         | ✅       | ✅    | ✅  | ❌     |
+| Withdrawals                                         | ✅       | ✅    | ✅  | ✅     |
 | Webhook signature verify/parse                      | ✅       | ✅    | ✅  | ✅     |
 | **Plans** (create/list/deactivate/delete)           | ✅       | ✅    | ✅  | ✅     |
 | **Subscriptions** (create/list/cancel)              | ✅       | ✅    | ✅  | ✅     |
@@ -215,10 +215,7 @@ try {
 
 use SahelPay\SahelPay;
 
-$sahelpay = new SahelPay(
-  getenv('SAHELPAY_SECRET_KEY'),
-  getenv('SAHELPAY_PUBLIC_KEY')
-);
+$sahelpay = new SahelPay(getenv('SAHELPAY_SECRET_KEY'));
 
 $payment = $sahelpay->payments->initiate([
   'amount' => 5000,
@@ -226,6 +223,7 @@ $payment = $sahelpay->payments->initiate([
   'provider' => 'ORANGE_MONEY',
   'customer_phone' => '+22370123456',
   'description' => 'Commande #123',
+  'idempotency_key' => 'order-abc123',
 ]);
 
 echo $payment->reference_id;
@@ -276,6 +274,19 @@ Pour le détail complet, voir:
 - `javascript/examples/test-local.ts`
 - `php/examples/test-local.php`
 - `python/examples/test_local.py`
+
+## Validation de parité contractuelle (smoke)
+
+Avant release, exécuter ce smoke set minimal:
+
+- JavaScript:
+  - `cd javascript && SAHELPAY_SECRET_KEY=sk_test_xxx npm run build && node test-sdk.ts`
+- Python:
+  - `cd python && SAHELPAY_SECRET_KEY=sk_test_xxx python test_sdk.py`
+- PHP:
+  - `cd php && ./vendor/bin/phpunit tests/Unit/WebhookTest.php`
+
+Ces checks couvrent le minimum multi-SDK: création/listing API, webhook signature et cohérence générale des contrats.
 
 ## Publier (plus tard)
 

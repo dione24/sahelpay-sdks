@@ -70,6 +70,7 @@ export interface CreatePaymentParams {
   return_url?: string;
   success_url?: string;
   cancel_url?: string;
+  idempotency_key?: string;
   /**
    * Si true, redirige vers la page de checkout SahelPay avant le provider.
    * Si false, initie directement le paiement et redirige vers le provider.
@@ -313,12 +314,19 @@ class PaymentsAPI {
       }
     }
 
+    const customer = {
+      phone: params.customer_phone,
+      name: params.customer_name,
+      email: params.customer_email,
+    };
+
     const response = await this.client.request('POST', '/v1/payments', {
       amount: params.amount,
       currency: params.currency || 'XOF',
       provider,
       payment_method: inferredPaymentMethod,
       country: params.country,
+      customer,
       customer_phone: params.customer_phone,
       customer_name: params.customer_name,
       customer_email: params.customer_email,
@@ -332,6 +340,10 @@ class PaymentsAPI {
       success_url: params.success_url,
       cancel_url: params.cancel_url,
       hosted_checkout: params.hosted_checkout ?? true,
+    }, {
+      headers: params.idempotency_key
+        ? { 'X-Idempotency-Key': params.idempotency_key }
+        : undefined,
     });
 
     const data = response.data;
@@ -1281,28 +1293,34 @@ class SahelPayClient {
     }
   }
 
-  async request(method: string, path: string, data?: any): Promise<any> {
+  async request(
+    method: string,
+    path: string,
+    data?: any,
+    requestOptions?: { headers?: Record<string, string> }
+  ): Promise<any> {
     const url = `${this.baseUrl}${path}`;
     
-    const options: RequestInit = {
+    const requestInit: RequestInit = {
       method,
       headers: {
         'Authorization': `Bearer ${this.secretKey}`,
         'Content-Type': 'application/json',
         'User-Agent': 'SahelPay-SDK/1.0.0',
+        ...(requestOptions?.headers || {}),
       },
     };
 
     if (data && method !== 'GET') {
-      options.body = JSON.stringify(data);
+      requestInit.body = JSON.stringify(data);
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    options.signal = controller.signal;
+    requestInit.signal = controller.signal;
 
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, requestInit);
       clearTimeout(timeoutId);
 
       const json = await response.json();

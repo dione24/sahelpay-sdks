@@ -28,6 +28,7 @@ class Payment
      *   customer_phone: string,
      *   customer_name?: string,
      *   customer_email?: string,
+     *   idempotency_key?: string,
      *   description?: string,
      *   client_reference?: string,
      *   marketplace?: array{
@@ -64,9 +65,22 @@ class Payment
             $data['metadata']['marketplace'] = $data['marketplace'];
             unset($data['marketplace']);
         }
+
+        // Harmoniser le payload avec le contrat d'intégration (customer object)
+        $data['customer'] = [
+            'phone' => $data['customer_phone'],
+            'name' => $data['customer_name'] ?? null,
+            'email' => $data['customer_email'] ?? null,
+        ];
+
+        $headers = [];
+        if (isset($data['idempotency_key']) && !empty($data['idempotency_key'])) {
+            $headers['X-Idempotency-Key'] = (string) $data['idempotency_key'];
+            unset($data['idempotency_key']);
+        }
         
         // API core: POST /v1/payments
-        return $this->client->post('/payments', $data);
+        return $this->client->post('/payments', $data, $headers);
     }
 
     /**

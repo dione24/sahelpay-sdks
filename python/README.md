@@ -57,7 +57,8 @@ payment = client.payments.create(
     description="Commande #123",
     metadata={"order_id": "123"},
     callback_url="https://votre-site.com/webhook",
-    return_url="https://votre-site.com/success"
+    return_url="https://votre-site.com/success",
+    idempotency_key="order-123",
 )
 
 # Vérifier le statut

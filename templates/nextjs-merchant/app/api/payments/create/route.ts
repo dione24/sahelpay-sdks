@@ -56,10 +56,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Vérifier que la commande existe dans votre DB
-    // const order = await db.orders.findUnique({ where: { id: body.order_id } });
-    // if (!order) return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 });
-
     // Clé d'idempotence basée sur l'order_id
     const idempotencyKey = `app-order-${body.order_id}`;
 
@@ -100,15 +96,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Enregistrer le paiement dans votre DB
-    // await db.payments.create({
-    //   data: {
-    //     order_id: body.order_id,
-    //     transaction_id: data.data.id,
-    //     amount: body.amount,
-    //     status: 'pending',
-    //   }
-    // });
+    console.info('[SahelPay Template] Payment created', {
+      order_id: body.order_id,
+      payment_id: data.data.id,
+      status: data.data.status,
+    });
 
     return NextResponse.json({
       success: true,

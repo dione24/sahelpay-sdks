@@ -51,7 +51,7 @@ class SahelPay
      * Créer une nouvelle instance SahelPay
      *
      * @param string $secretKey Votre clé secrète (sk_live_xxx ou sk_test_xxx)
-     * @param string $publicKey Votre clé publique (pk_live_xxx ou pk_test_xxx)
+     * @param string|null $publicKey Votre clé publique (optionnelle)
      * @param array{
      *   webhook_secret?: string,
      *   sandbox?: bool,
@@ -61,7 +61,7 @@ class SahelPay
      */
     public function __construct(
         string $secretKey,
-        string $publicKey,
+        ?string $publicKey = null,
         array $options = []
     ) {
         // Déterminer si on est en mode sandbox
@@ -117,12 +117,12 @@ class SahelPay
     public static function fromEnv(): self
     {
         $secretKey = getenv('SAHELPAY_SECRET_KEY') ?: $_ENV['SAHELPAY_SECRET_KEY'] ?? '';
-        $publicKey = getenv('SAHELPAY_PUBLIC_KEY') ?: $_ENV['SAHELPAY_PUBLIC_KEY'] ?? '';
+        $publicKey = getenv('SAHELPAY_PUBLIC_KEY') ?: $_ENV['SAHELPAY_PUBLIC_KEY'] ?? null;
         $webhookSecret = getenv('SAHELPAY_WEBHOOK_SECRET') ?: $_ENV['SAHELPAY_WEBHOOK_SECRET'] ?? null;
         
-        if (empty($secretKey) || empty($publicKey)) {
+        if (empty($secretKey)) {
             throw new \RuntimeException(
-                "SAHELPAY_SECRET_KEY et SAHELPAY_PUBLIC_KEY doivent être définis"
+                "SAHELPAY_SECRET_KEY doit être définie"
             );
         }
 

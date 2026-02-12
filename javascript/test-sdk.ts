@@ -9,11 +9,17 @@
 
 import SahelPay from './src/index';
 
-const SECRET_KEY = 'sk_live_6w4-GBVyES5vO9BDD7ewa2iXO6FRjkW8';
+const SECRET_KEY = process.env.SAHELPAY_SECRET_KEY;
 
 async function testSDK() {
   console.log('🚀 Test du SDK SahelPay JavaScript\n');
   console.log('='.repeat(50));
+
+  if (!SECRET_KEY) {
+    console.error('❌ SAHELPAY_SECRET_KEY is required');
+    process.exitCode = 1;
+    return;
+  }
 
   const sahelpay = new SahelPay({
     secretKey: SECRET_KEY,

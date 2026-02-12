@@ -6,6 +6,7 @@ namespace SahelPay\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use SahelPay\Config;
+use SahelPay\Exceptions\WebhookSignatureException;
 use SahelPay\Resources\Webhook;
 use SahelPay\Resources\WebhookEvent;
 
@@ -26,17 +27,20 @@ class WebhookTest extends TestCase
     public function testCanVerifyValidSignature(): void
     {
         $payload = '{"event":"payment.success","data":{"reference_id":"SP-123"}}';
-        $signature = hash_hmac('sha256', $payload, 'whsec_testsecret123');
+        $timestamp = (string) time();
+        $signature = hash_hmac('sha256', $timestamp . '.' . $payload, 'whsec_testsecret123');
+        $header = "t={$timestamp},v1={$signature}";
         
-        $this->assertTrue($this->webhook->verify($payload, $signature));
+        $this->assertTrue($this->webhook->verify($payload, $header));
     }
 
     public function testRejectsInvalidSignature(): void
     {
         $payload = '{"event":"payment.success","data":{"reference_id":"SP-123"}}';
-        $signature = 'invalid_signature';
+        $header = 't=123,v1=invalid_signature';
         
-        $this->assertFalse($this->webhook->verify($payload, $signature));
+        $this->expectException(WebhookSignatureException::class);
+        $this->webhook->verify($payload, $header);
     }
 
     public function testCanParsePayload(): void
