@@ -52,9 +52,9 @@ export interface CreatePaymentParams {
   /**
    * Méthode de paiement spécifique (Smart Routing v2)
    * - ORANGE_MONEY: Orange Money Direct (Mali)
-   * - WAVE: Wave via PayDunya
-   * - MOOV: Moov Money via PayDunya
-   * - CARD: Carte bancaire via PayDunya
+   * - WAVE: Wave via Intouch/PayDunya
+   * - MOOV: Moov Money via Intouch/PayDunya
+   * - CARD: Carte bancaire via N-Genius (Visa/Mastercard)
    * - MOBILE_MONEY: Legacy - sera routé automatiquement
    */
   payment_method?: 'ORANGE_MONEY' | 'WAVE' | 'MOOV' | 'CARD' | 'MOBILE_MONEY';
@@ -114,7 +114,7 @@ export interface Payment {
    * Raison du routing (explication du choix du gateway)
    * Exemples: 'Orange WebPay Direct - Fallback faible coût',
    *           'Intouch PSP - Push USSD pour meilleure UX Mobile Money',
-   *           'CinetPay - Checkout Carte sécurisé (VISA/Mastercard)'
+   *           'N-Genius - Hosted Payment Page (Visa/Mastercard)'
    */
   routing_reason?: string;
   created_at: string;
@@ -299,19 +299,11 @@ class PaymentsAPI {
     const provider = params.provider;
     const inferredPaymentMethod: CreatePaymentParams['payment_method'] =
       params.payment_method ||
-      (provider && ['CARD', 'CINETPAY', 'GIM_UEMOA', 'VISA', 'MASTERCARD'].includes(provider) ? 'CARD' : undefined);
+      (provider && ['CARD', 'CINETPAY', 'GIM_UEMOA', 'NGENIUS', 'VISA', 'MASTERCARD'].includes(provider) ? 'CARD' : undefined);
 
     const isCard = inferredPaymentMethod === 'CARD';
-    if (isCard) {
-      if (!params.customer_name) {
-        throw new SahelPayError('CinetPay CREDIT_CARD requires customerName', 'VALIDATION_ERROR', 400);
-      }
-      if (!params.customer_email) {
-        throw new SahelPayError('CinetPay CREDIT_CARD requires customerEmail', 'VALIDATION_ERROR', 400);
-      }
-      if (!params.customer_phone) {
-        throw new SahelPayError('CinetPay CREDIT_CARD requires customerPhone', 'VALIDATION_ERROR', 400);
-      }
+    if (isCard && !params.customer_phone) {
+      throw new SahelPayError('Card payment requires customer_phone', 'VALIDATION_ERROR', 400);
     }
 
     const customer = {
