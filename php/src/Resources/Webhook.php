@@ -6,6 +6,8 @@ namespace SahelPay\Resources;
 
 use SahelPay\Config;
 use SahelPay\Exceptions\WebhookSignatureException;
+use SahelPay\Http\Client;
+use SahelPay\Http\Response;
 
 /**
  * Resource pour la validation des webhooks
@@ -18,15 +20,29 @@ use SahelPay\Exceptions\WebhookSignatureException;
 class Webhook
 {
     private Config $config;
+    private ?Client $client;
 
     /**
      * Tolérance par défaut pour le timestamp (5 minutes)
      */
     private const DEFAULT_TOLERANCE = 300;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, ?Client $client = null)
     {
         $this->config = $config;
+        $this->client = $client;
+    }
+
+    /**
+     * Déclencher un webhook de connectivité vers l'URL configurée du marchand.
+     */
+    public function test(): Response
+    {
+        if (!$this->client) {
+            throw new \RuntimeException("Client HTTP non configuré pour envoyer un webhook de test");
+        }
+
+        return $this->client->post('/webhooks/test');
     }
 
     /**

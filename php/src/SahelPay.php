@@ -87,7 +87,7 @@ class SahelPay
         $this->paymentLinks = new PaymentLink($this->client);
         $this->payouts = new Payout($this->client);
         $this->transactions = new Transaction($this->client);
-        $this->webhooks = new Webhook($this->config);
+        $this->webhooks = new Webhook($this->config, $this->client);
         $this->plans = new Plan($this->client);
         $this->subscriptions = new Subscription($this->client);
         $this->customers = new Customer($this->client);

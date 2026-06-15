@@ -60,6 +60,7 @@ class SahelPayTest extends TestCase
     {
         $sahelpay = new SahelPay('sk_test_abc', 'pk_test_xyz');
         $this->assertTrue($sahelpay->isSandbox());
+        $this->assertEquals('https://api.sahelpay.ml', $sahelpay->getConfig()->getBaseUrl());
     }
 
     public function testDetectsLiveModeFromLiveKey(): void

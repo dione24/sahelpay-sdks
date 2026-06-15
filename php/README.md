@@ -22,7 +22,7 @@ use SahelPay\SahelPay;
 
 // Option 1: Initialisation directe
 $sahelpay = new SahelPay(
-    'sk_live_your_secret_key'
+    'sk_test_your_secret_key'
 );
 
 // Option 2: Depuis les variables d'environnement
@@ -34,10 +34,35 @@ $sahelpay = new SahelPay(
     null,
     [
         'webhook_secret' => 'whsec_xxx',
-        'sandbox' => false,
+        'sandbox' => true,
         'timeout' => 30,
     ]
 );
+```
+
+## Tests sandbox
+
+Le SDK utilise `https://api.sahelpay.ml` en production comme en sandbox. Le mode test est déterminé par la clé `sk_test_...`.
+
+Pour tester sans appel provider Orange/Wave/Moov, activez le simulateur SahelPay sur le paiement:
+
+```php
+$payment = $sahelpay->payments->initiate([
+    'amount' => 4000, // 4000=SUCCESS, 4001=FAILED, 4002=PENDING, 4003=FAILED
+    'provider' => 'ORANGE_MONEY',
+    'customer_phone' => '+22370123456',
+    'description' => 'Test sandbox',
+    'sandbox' => true,
+]);
+
+$status = $sahelpay->payments->verify($payment->id);
+echo $status->status;
+```
+
+Pour vérifier que votre URL webhook est joignable et signée correctement:
+
+```php
+$sahelpay->webhooks->test(); // envoie webhook.test vers l'URL configurée
 ```
 
 ## 💳 Paiements Mobile Money
@@ -55,6 +80,7 @@ $payment = $sahelpay->payments->initiate([
     'metadata' => [
         'order_id' => 'ORD-12345',
     ],
+    'sandbox' => true,
 ]);
 
 echo $payment->reference_id; // SP-170188-A1B2

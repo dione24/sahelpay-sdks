@@ -35,7 +35,7 @@ POST /v1/payments
 | `customer_email` | string | ✅ pour CARD | Email du client (requis pour cartes) |
 | `return_url` | string | ✅ | URL de retour après paiement |
 | `client_reference` | string | | Votre référence (order_id) |
-| `metadata` | object | | Données personnalisées |
+| `metadata` | object | | Données personnalisées. Ajoutez `sandbox: true` pour utiliser le simulateur SahelPay en test. |
 
 ## Exemple
 
@@ -56,6 +56,7 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
     "return_url": "https://votre-site.com/checkout/return",
     "client_reference": "order_123",
     "metadata": {
+      "sandbox": true,
       "order_id": "order_123"
     }
   }'
@@ -78,6 +79,7 @@ const response = await fetch('https://api.sahelpay.ml/v1/payments', {
     customer_name: 'Amadou Diallo',
     return_url: 'https://votre-site.com/checkout/return',
     client_reference: 'order_123',
+    metadata: { sandbox: true, order_id: 'order_123' },
   }),
 });
 ```

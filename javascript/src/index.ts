@@ -65,6 +65,11 @@ export interface CreatePaymentParams {
   description?: string;
   client_reference?: string;
   marketplace?: MarketplaceMetadata;
+  /**
+   * Active le simulateur SahelPay pour ce paiement de test.
+   * Envoie metadata.sandbox=true et ne déclenche pas d'appel provider réel.
+   */
+  sandbox?: boolean;
   metadata?: Record<string, any>;
   callback_url?: string;
   return_url?: string;
@@ -170,8 +175,8 @@ export interface PayoutStats {
 }
 
 export interface WebhookEvent {
-  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled' | 'refund.success' | 'refund.failed';
-  data: Payment | Payout | SubscriptionWebhookData | Refund;
+  event: 'webhook.test' | 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled' | 'refund.success' | 'refund.failed';
+  data: Payment | Payout | SubscriptionWebhookData | Refund | Record<string, any>;
   timestamp: string;
 }
 
@@ -325,6 +330,7 @@ class PaymentsAPI {
       client_reference: params.client_reference,
       metadata: {
         ...(params.metadata || {}),
+        ...(params.sandbox ? { sandbox: true } : {}),
         ...(params.description ? { description: params.description } : {}),
         ...(params.marketplace ? { marketplace: params.marketplace } : {}),
       },
@@ -1140,6 +1146,16 @@ class WebhooksAPI {
   constructor(private client: SahelPayClient) {}
 
   /**
+   * Déclencher un webhook de connectivité vers l'URL configurée du marchand.
+   *
+   * L'API envoie un événement webhook.test signé avec le secret webhook du marchand.
+   */
+  async test(): Promise<any> {
+    const response = await this.client.request('POST', '/v1/webhooks/test');
+    return response.data;
+  }
+
+  /**
    * Parser le header de signature (format: t=...,v1=...)
    */
   private parseSignatureHeader(header: string): { timestamp: string | null; signature: string | null } {
@@ -1279,7 +1295,7 @@ class SahelPayClient {
     if (config.baseUrl) {
       this.baseUrl = config.baseUrl;
     } else if (config.environment === 'sandbox') {
-      this.baseUrl = 'https://sandbox.sahelpay.ml';
+      this.baseUrl = 'https://api.sahelpay.ml';
     } else {
       this.baseUrl = 'https://api.sahelpay.ml';
     }

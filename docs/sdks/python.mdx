@@ -25,9 +25,9 @@ pip install sahelpay
 ## Configuration
 
 ```python
-from sahelpay import SahelPay
+from sahelpay import Client
 
-sahelpay = SahelPay('sk_test_xxx')
+sahelpay = Client(secret_key='sk_test_xxx', environment='sandbox')
 ```
 
 ## Créer un lien de paiement
@@ -52,12 +52,29 @@ print(payment.status)  # 'PENDING', 'SUCCESS', 'FAILED'
 print(payment.amount)
 ```
 
+## Tester sans provider live
+
+```python
+payment = sahelpay.payments.create(
+    amount=4000,
+    provider='ORANGE_MONEY',
+    customer_phone='+22370123456',
+    return_url='https://votre-site.com/checkout/return',
+    sandbox=True,
+)
+
+result = sahelpay.payments.check_status(payment.id)
+print(result["status"])  # SUCCESS
+
+sahelpay.webhooks.test()  # envoie webhook.test vers votre endpoint configuré
+```
+
 ## Vérifier un webhook
 
 ```python
-from sahelpay import SahelPay
+from sahelpay import Client
 
-sahelpay = SahelPay('sk_test_xxx', webhook_secret='whsec_xxx')
+sahelpay = Client(secret_key='sk_test_xxx', environment='sandbox')
 
 # Flask
 @app.route('/webhooks/sahelpay', methods=['POST'])
@@ -65,14 +82,16 @@ def webhook():
     raw_body = request.get_data(as_text=True)
     signature = request.headers.get('X-SahelPay-Signature')
 
-    is_valid = sahelpay.webhooks.verify(raw_body, signature)
-
-    if not is_valid:
+    try:
+        event = sahelpay.webhooks.construct_event(
+            raw_body,
+            signature,
+            current_app.config['SAHELPAY_WEBHOOK_SECRET'],
+        )
+    except Exception:
         return jsonify({'error': 'Invalid signature'}), 401
 
-    event = request.json
-
-    if event['event'] == 'payment.success':
+    if event.event == 'payment.success':
         # Mettre à jour la commande
         pass
 
@@ -84,24 +103,25 @@ def webhook():
 ```python
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from sahelpay import SahelPay
-import json
+from sahelpay import Client
 
-sahelpay = SahelPay(settings.SAHELPAY_SECRET_KEY)
+sahelpay = Client(secret_key=settings.SAHELPAY_SECRET_KEY)
 
 @csrf_exempt
 def webhook(request):
     raw_body = request.body.decode('utf-8')
     signature = request.headers.get('X-SahelPay-Signature')
 
-    is_valid = sahelpay.webhooks.verify(raw_body, signature)
-
-    if not is_valid:
+    try:
+        event = sahelpay.webhooks.construct_event(
+            raw_body,
+            signature,
+            settings.SAHELPAY_WEBHOOK_SECRET,
+        )
+    except Exception:
         return JsonResponse({'error': 'Invalid signature'}, status=401)
 
-    event = json.loads(raw_body)
-
-    if event['event'] == 'payment.success':
+    if event.event == 'payment.success':
         # Mettre à jour la commande
         pass
 

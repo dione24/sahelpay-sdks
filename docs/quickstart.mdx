@@ -26,7 +26,8 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
     "payment_method": "ORANGE_MONEY",
     "country": "ML",
     "customer_phone": "+22370123456",
-    "return_url": "https://votre-site.com/checkout/return"
+    "return_url": "https://votre-site.com/checkout/return",
+    "metadata": { "sandbox": true }
   }'
 ```
 
@@ -44,7 +45,8 @@ const payment = await sahelpay.payments.create({
   payment_method: 'ORANGE_MONEY',
   customer_phone: '+22370123456',
   description: 'Commande #123',
-  return_url: 'https://votre-site.com/checkout/return'
+  return_url: 'https://votre-site.com/checkout/return',
+  sandbox: true
 });
 
 // Rediriger le client vers Orange Money
@@ -56,13 +58,14 @@ use SahelPay\SahelPay;
 
 $sahelpay = new SahelPay('sk_test_xxx');
 
-$payment = $sahelpay->payments->create([
+$payment = $sahelpay->payments->initiate([
     'amount' => 5000,
     'currency' => 'XOF',
-    'payment_method' => 'ORANGE_MONEY',
+    'provider' => 'ORANGE_MONEY',
     'customer_phone' => '+22370123456',
     'description' => 'Commande #123',
-    'return_url' => 'https://votre-site.com/checkout/return'
+    'return_url' => 'https://votre-site.com/checkout/return',
+    'sandbox' => true
 ]);
 
 // Rediriger le client vers Orange Money
@@ -80,7 +83,8 @@ payment = sahelpay.payments.create(
     provider='ORANGE_MONEY',
     customer_phone='+22370123456',
     description='Commande #123',
-    return_url='https://votre-site.com/checkout/return'
+    return_url='https://votre-site.com/checkout/return',
+    sandbox=True,
 )
 
 # Rediriger le client vers Orange Money
@@ -145,10 +149,14 @@ payment = sahelpay.payments.create(
 Après la création, redirigez le client vers `redirect_url` :
 
 ```javascript
-window.location.href = payment.redirectUrl;
+window.location.href = payment.redirect_url;
 ```
 
 Le client sera redirigé vers la page de checkout SahelPay où il pourra choisir son mode de paiement.
+
+<Note>
+  En test, `sandbox: true` utilise le simulateur SahelPay et évite tout appel provider réel. Pour tester la sandbox Orange/Wave/Moov, retirez ce flag et gardez une clé `sk_test_...`.
+</Note>
 
 ## 3. Recevoir le webhook
 
@@ -164,15 +172,24 @@ export async function POST(request) {
   const rawBody = await request.text();
   const signature = request.headers.get('x-sahelpay-signature');
 
-  // Vérifier la signature
-  const isValid = sahelpay.verifyWebhook(rawBody, signature);
-  if (!isValid) {
+  if (!signature) {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const { event, data } = JSON.parse(rawBody);
+  let event;
+  try {
+    event = sahelpay.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.SAHELPAY_WEBHOOK_SECRET!
+    );
+  } catch {
+    return Response.json({ error: 'Invalid signature' }, { status: 401 });
+  }
 
-  if (event === 'payment.success') {
+  const { data } = event;
+
+  if (event.event === 'payment.success') {
     // Marquer la commande comme payée
     await updateOrder(data.metadata.order_id, { status: 'paid' });
   }
@@ -188,11 +205,11 @@ Quand le client revient sur votre site via `return_url`, affichez un message de 
 ```javascript
 // /checkout/return?payment_intent_id=xxx
 const paymentId = searchParams.get('payment_intent_id');
-const status = await sahelpay.getPaymentStatus(paymentId);
+const result = await sahelpay.payments.checkStatus(paymentId);
 
-if (status.status === 'SUCCESS') {
+if (result.status === 'SUCCESS') {
   // Afficher "Paiement confirmé"
-} else if (status.status === 'PENDING') {
+} else if (result.status === 'PENDING') {
   // Afficher "En cours de traitement..."
 }
 ```

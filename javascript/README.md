@@ -27,8 +27,8 @@ npm run build
 import SahelPay from "@sahelpay/sdk";
 
 const sahelpay = new SahelPay({
-  secretKey: "sk_live_xxx", // Votre clé secrète
-  environment: "production", // ou 'sandbox' pour les tests
+  secretKey: "sk_test_xxx", // Votre clé secrète de test
+  environment: "sandbox", // utilise https://api.sahelpay.ml avec sk_test_...
 });
 
 // Créer un paiement
@@ -42,6 +42,31 @@ const payment = await sahelpay.payments.create({
 
 console.log(payment.reference_id); // SP_xxx
 console.log(payment.ussd_code); // *144*xxx# (pour Orange Money)
+```
+
+## Tests sandbox
+
+Le SDK utilise `https://api.sahelpay.ml` en production comme en sandbox. Le mode test est déterminé par la clé `sk_test_...`.
+
+Pour tester sans appel provider Orange/Wave/Moov, activez le simulateur SahelPay sur le paiement:
+
+```typescript
+const payment = await sahelpay.payments.create({
+  amount: 4000, // 4000=SUCCESS, 4001=FAILED, 4002=PENDING, 4003=FAILED
+  provider: "ORANGE_MONEY",
+  customer_phone: "+22370000000",
+  description: "Test sandbox",
+  sandbox: true,
+});
+
+const { status } = await sahelpay.payments.checkStatus(payment.id);
+console.log(status);
+```
+
+Pour vérifier que votre URL webhook est joignable et signée correctement:
+
+```typescript
+await sahelpay.webhooks.test(); // envoie webhook.test vers l'URL configurée
 ```
 
 ## Providers supportés
@@ -65,6 +90,7 @@ const payment = await sahelpay.payments.create({
   customer_phone: "+22370000000",
   description: "Commande #123",
   metadata: { order_id: "123" },
+  sandbox: true, // optionnel: simulateur SahelPay pour les tests
   callback_url: "https://votre-site.com/webhook",
   return_url: "https://votre-site.com/success",
   idempotency_key: "order-123",

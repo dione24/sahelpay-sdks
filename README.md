@@ -62,13 +62,16 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l’API SahelPay 
 
 ### Environnements & base URL
 
-- **Production**: `https://api.sahelpay.ml`
-- **Sandbox / test**: selon votre infra (souvent `https://sandbox.sahelpay.ml`), ou indiquez un `baseUrl` explicite.
+- **API**: `https://api.sahelpay.ml` pour la production et les tests.
+- **Mode test**: utilisez une clé `sk_test_...`.
+- **Simulation SahelPay**: ajoutez `sandbox: true` dans les SDK, ou `metadata.sandbox: true` en appel API direct.
 
 Dans tous les SDKs, vous pouvez:
 
 - soit choisir un `environment` (`production` / `sandbox`)
 - soit forcer un `baseUrl`.
+
+Le domaine sandbox dédié n'est pas utilisé comme base URL API par défaut. Gardez `https://api.sahelpay.ml` et laissez la clé (`sk_test_...` ou `sk_live_...`) déterminer le mode.
 
 ### Authentification
 
@@ -185,7 +188,7 @@ import SahelPay, { SahelPayError } from "@sahelpay/sdk";
 
 const sahelpay = new SahelPay({
   secretKey: process.env.SAHELPAY_SECRET_KEY!,
-  environment: "production",
+  environment: "sandbox",
   // baseUrl: "https://api.sahelpay.ml",
 });
 
@@ -196,6 +199,7 @@ try {
     provider: "ORANGE_MONEY",
     customer_phone: "+22370000000",
     description: "Commande #123",
+    sandbox: true, // simulateur SahelPay: aucun appel provider réel
   });
 
   const confirmed = await sahelpay.payments.poll(payment.reference_id);
@@ -235,8 +239,8 @@ echo $payment->reference_id;
 import sahelpay
 
 client = sahelpay.Client(
-    secret_key="sk_live_xxx",
-    environment="production",
+    secret_key="sk_test_xxx",
+    environment="sandbox",
 )
 
 payment = client.payments.create(
@@ -245,6 +249,7 @@ payment = client.payments.create(
     provider="ORANGE_MONEY",
     customer_phone="+22370000000",
     description="Commande #123",
+    sandbox=True,  # simulateur SahelPay
 )
 
 print(payment.reference_id)
@@ -329,7 +334,8 @@ Ca arrive presque toujours quand tu ne vérifies pas le **raw body**.
 
 - `sk_test_...` = tests
 - `sk_live_...` = production
-- Sur un environnement staging, force un `baseUrl` explicite.
+- Base URL par défaut dans les deux cas: `https://api.sahelpay.ml`
+- Pour simuler un paiement sans appel provider, envoyez `sandbox: true` avec le SDK ou `metadata.sandbox: true` en API directe.
 
 ### Installer avant publication (NPM/Packagist/PyPI)
 

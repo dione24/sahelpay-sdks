@@ -29,7 +29,7 @@ import SahelPay from '@sahelpay/sdk';
 
 const sahelpay = new SahelPay({
   secretKey: process.env.SAHELPAY_SECRET_KEY!,
-  environment: 'production' // ou 'sandbox'
+  environment: 'sandbox' // sk_test_... utilise https://api.sahelpay.ml
 });
 ```
 
@@ -43,10 +43,28 @@ const payment = await sahelpay.payments.create({
   customer_phone: '+22370123456',
   return_url: 'https://votre-site.com/checkout/return',
   description: 'Commande #123',
+  sandbox: true, // simulateur SahelPay en test
 });
 
 // Rediriger le client vers Orange Money
 window.location.href = payment.redirect_url;
+```
+
+## Tester sans provider live
+
+```typescript
+const payment = await sahelpay.payments.create({
+  amount: 4000,
+  payment_method: 'ORANGE_MONEY',
+  customer_phone: '+22370123456',
+  return_url: 'https://votre-site.com/checkout/return',
+  sandbox: true,
+});
+
+const result = await sahelpay.payments.checkStatus(payment.id);
+console.log(result.status); // SUCCESS
+
+await sahelpay.webhooks.test(); // envoie webhook.test vers votre endpoint configuré
 ```
 
 ## Méthodes de paiement disponibles
@@ -68,11 +86,11 @@ window.location.href = payment.redirect_url;
 ## Vérifier le statut
 
 ```typescript
-const status = await sahelpay.getPaymentStatus('txn_abc123');
+const result = await sahelpay.payments.checkStatus('txn_abc123');
 
-console.log(status.status); // 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
-console.log(status.amount);
-console.log(status.providerRef);
+console.log(result.status); // 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
+console.log(result.payment.amount);
+console.log(result.payment.provider_ref);
 ```
 
 ## Vérifier un webhook
@@ -83,13 +101,22 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get('x-sahelpay-signature');
 
-  const result = sahelpay.verifyWebhook(rawBody, signature);
-
-  if (!result.valid) {
-    return Response.json({ error: result.error }, { status: 401 });
+  if (!signature) {
+    return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const { event, data } = result.payload!;
+  let payload;
+  try {
+    payload = sahelpay.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.SAHELPAY_WEBHOOK_SECRET!
+    );
+  } catch {
+    return Response.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+
+  const { event, data } = payload;
 
   if (event === 'payment.success') {
     // Mettre à jour la commande

@@ -10,7 +10,7 @@ Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP et Laravel
 ## Installation
 
 ```bash
-composer require sahelpay/php
+composer require sahelpay/sahelpay-php
 ```
 
 <Note>
@@ -27,6 +27,8 @@ use SahelPay\SahelPay;
 
 $sahelpay = new SahelPay('sk_test_xxx');
 ```
+
+Le mode sandbox utilise la même base URL API (`https://api.sahelpay.ml`) avec une clé `sk_test_...`.
 
 ### Laravel
 
@@ -52,10 +54,27 @@ header('Location: ' . $link->url);
 exit;
 ```
 
+## Tester sans provider live
+
+```php
+$payment = $sahelpay->payments->initiate([
+    'amount' => 4000,
+    'provider' => 'ORANGE_MONEY',
+    'customer_phone' => '+22370123456',
+    'return_url' => 'https://votre-site.com/checkout/return',
+    'sandbox' => true,
+]);
+
+$status = $sahelpay->payments->verify($payment->id);
+echo $status->status; // SUCCESS
+
+$sahelpay->webhooks->test(); // envoie webhook.test vers votre endpoint configuré
+```
+
 ## Vérifier le statut
 
 ```php
-$payment = $sahelpay->payments->retrieve('txn_abc123');
+$payment = $sahelpay->payments->verify('txn_abc123');
 
 echo $payment->status; // 'PENDING', 'SUCCESS', 'FAILED'
 echo $payment->amount;

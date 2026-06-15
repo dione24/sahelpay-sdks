@@ -72,6 +72,8 @@ export interface CreatePaymentParams {
   description?: string;
   /** Données personnalisées (optionnel) */
   metadata?: Record<string, unknown>;
+  /** Active le simulateur SahelPay pour ce paiement de test */
+  sandbox?: boolean;
 }
 
 export interface PaymentResult {
@@ -107,7 +109,7 @@ export interface PaymentStatus {
 }
 
 export interface WebhookPayload {
-  event: 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payment.expired';
+  event: 'webhook.test' | 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payment.expired';
   version: string;
   timestamp: string;
   data: {
@@ -167,7 +169,7 @@ export class SahelPayMerchant {
     if (config.baseUrl) {
       this.baseUrl = config.baseUrl;
     } else if (config.environment === 'sandbox' || config.secretKey.startsWith('sk_test_')) {
-      this.baseUrl = 'https://sandbox.sahelpay.ml';
+      this.baseUrl = 'https://api.sahelpay.ml';
     } else {
       this.baseUrl = 'https://api.sahelpay.ml';
     }
@@ -227,6 +229,7 @@ export class SahelPayMerchant {
       client_reference: params.orderId,
       metadata: {
         ...params.metadata,
+        ...(params.sandbox ? { sandbox: true } : {}),
         merchant_order_id: params.orderId,
         description: params.description,
       },

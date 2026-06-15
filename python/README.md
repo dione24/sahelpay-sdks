@@ -18,8 +18,8 @@ import sahelpay
 
 # Initialiser le client
 client = sahelpay.Client(
-    secret_key="sk_live_xxx",  # Votre clé secrète
-    environment="production"    # ou "sandbox" pour les tests
+    secret_key="sk_test_xxx",   # Votre clé secrète de test
+    environment="sandbox"       # utilise https://api.sahelpay.ml avec sk_test_...
 )
 
 # Créer un paiement
@@ -33,6 +33,31 @@ payment = client.payments.create(
 
 print(f"Référence: {payment.reference_id}")
 print(f"Code USSD: {payment.ussd_code}")
+```
+
+## Tests sandbox
+
+Le SDK utilise `https://api.sahelpay.ml` en production comme en sandbox. Le mode test est déterminé par la clé `sk_test_...`.
+
+Pour tester sans appel provider Orange/Wave/Moov, activez le simulateur SahelPay sur le paiement:
+
+```python
+payment = client.payments.create(
+    amount=4000,  # 4000=SUCCESS, 4001=FAILED, 4002=PENDING, 4003=FAILED
+    provider="ORANGE_MONEY",
+    customer_phone="+22370000000",
+    description="Test sandbox",
+    sandbox=True,
+)
+
+result = client.payments.check_status(payment.id)
+print(result["status"])
+```
+
+Pour vérifier que votre URL webhook est joignable et signée correctement:
+
+```python
+client.webhooks.test()  # envoie webhook.test vers l'URL configurée
 ```
 
 ## Providers supportés
@@ -56,6 +81,7 @@ payment = client.payments.create(
     customer_phone="+22370000000",
     description="Commande #123",
     metadata={"order_id": "123"},
+    sandbox=True,  # optionnel: simulateur SahelPay pour les tests
     callback_url="https://votre-site.com/webhook",
     return_url="https://votre-site.com/success",
     idempotency_key="order-123",

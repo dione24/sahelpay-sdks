@@ -74,6 +74,7 @@ function testSDK(): void
             'provider' => 'ORANGE_MONEY',
             'customer_phone' => '+22370000000',
             'description' => 'Test SDK PHP',
+            'sandbox' => true,
         ]);
         echo "   ✅ Paiement créé: " . $payment->reference_id . "\n";
         echo "   ✅ Status: " . $payment->status . "\n";
@@ -95,13 +96,19 @@ function testSDK(): void
         ]);
 
         // Générer une signature valide
-        $validSig = hash_hmac('sha256', $testPayload, $testSecret);
+        $timestamp = (string) time();
+        $signature = hash_hmac('sha256', $timestamp . '.' . $testPayload, $testSecret);
+        $validSig = "t={$timestamp},v1={$signature}";
 
         $isValid = $sahelpayWithWebhook->webhooks->verify($testPayload, $validSig);
         echo "   ✅ Signature valide: " . ($isValid ? 'true' : 'false') . "\n";
 
-        $isInvalid = $sahelpayWithWebhook->webhooks->verify($testPayload, 'bad_signature');
-        echo "   ✅ Signature invalide rejetée: " . (!$isInvalid ? 'true' : 'false') . "\n\n";
+        try {
+            $sahelpayWithWebhook->webhooks->verify($testPayload, 't=123,v1=bad_signature');
+            echo "   ❌ Signature invalide acceptée\n\n";
+        } catch (\Exception $e) {
+            echo "   ✅ Signature invalide rejetée\n\n";
+        }
     } catch (\Exception $e) {
         echo "   ❌ Erreur: " . $e->getMessage() . "\n\n";
     }

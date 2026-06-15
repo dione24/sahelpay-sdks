@@ -66,6 +66,7 @@ async function testSDK() {
       provider: 'ORANGE_MONEY',
       customer_phone: '+22370000000',
       description: 'Test SDK JavaScript',
+      sandbox: true,
     });
     console.log(`   ✅ Paiement créé: ${payment.reference_id}`);
     console.log(`   ✅ Status: ${payment.status}`);
@@ -81,13 +82,22 @@ async function testSDK() {
   try {
     // Générer une signature valide
     const crypto = require('crypto');
-    const validSig = crypto.createHmac('sha256', testSecret).update(testPayload).digest('hex');
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto
+      .createHmac('sha256', testSecret)
+      .update(`${timestamp}.${testPayload}`)
+      .digest('hex');
+    const validSig = `t=${timestamp},v1=${signature}`;
     
     const isValid = sahelpay.webhooks.verifySignature(testPayload, validSig, testSecret);
     console.log(`   ✅ Signature valide: ${isValid}`);
     
-    const isInvalid = sahelpay.webhooks.verifySignature(testPayload, 'bad_signature', testSecret);
-    console.log(`   ✅ Signature invalide rejetée: ${!isInvalid}\n`);
+    try {
+      sahelpay.webhooks.verifySignature(testPayload, 't=123,v1=bad_signature', testSecret);
+      console.log('   ❌ Signature invalide acceptée\n');
+    } catch {
+      console.log('   ✅ Signature invalide rejetée\n');
+    }
   } catch (error: any) {
     console.log(`   ❌ Erreur: ${error.message}\n`);
   }

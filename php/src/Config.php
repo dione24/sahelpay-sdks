@@ -11,7 +11,7 @@ class Config
 {
     public const VERSION = '1.0.0';
     public const DEFAULT_BASE_URL = 'https://api.sahelpay.ml';
-    public const SANDBOX_BASE_URL = 'https://sandbox.sahelpay.ml';
+    public const SANDBOX_BASE_URL = self::DEFAULT_BASE_URL;
 
     private string $secretKey;
     private ?string $publicKey;

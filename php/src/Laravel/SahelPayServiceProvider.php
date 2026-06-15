@@ -21,16 +21,20 @@ class SahelPayServiceProvider extends ServiceProvider
 
         $this->app->singleton(SahelPay::class, function ($app) {
             $config = $app['config']['sahelpay'];
+            $options = [
+                'webhook_secret' => $config['webhook_secret'] ?? null,
+                'timeout' => $config['timeout'] ?? 30,
+                'base_url' => $config['base_url'] ?? null,
+            ];
+
+            if (array_key_exists('sandbox', $config) && $config['sandbox'] !== null) {
+                $options['sandbox'] = (bool) $config['sandbox'];
+            }
             
             return new SahelPay(
                 $config['secret_key'],
                 $config['public_key'] ?? null,
-                [
-                    'webhook_secret' => $config['webhook_secret'] ?? null,
-                    'sandbox' => $config['sandbox'] ?? false,
-                    'timeout' => $config['timeout'] ?? 30,
-                    'base_url' => $config['base_url'] ?? null,
-                ]
+                $options
             );
         });
 

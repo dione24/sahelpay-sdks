@@ -73,7 +73,8 @@ def test_sdk():
             amount=1000,
             provider='ORANGE_MONEY',
             customer_phone='+22370000000',
-            description='Test SDK Python'
+            description='Test SDK Python',
+            sandbox=True,
         )
         print(f'   ✅ Paiement créé: {payment.reference_id}')
         print(f'   ✅ Status: {payment.status}')
@@ -87,17 +88,23 @@ def test_sdk():
     test_secret = 'whsec_test123'
     try:
         # Générer une signature valide
+        import time
+        timestamp = str(int(time.time()))
         valid_sig = hmac.new(
             test_secret.encode(),
-            test_payload.encode(),
+            f'{timestamp}.{test_payload}'.encode(),
             hashlib.sha256
         ).hexdigest()
+        valid_header = f't={timestamp},v1={valid_sig}'
 
-        is_valid = client.webhooks.verify_signature(test_payload, valid_sig, test_secret)
+        is_valid = client.webhooks.verify_signature(test_payload, valid_header, test_secret)
         print(f'   ✅ Signature valide: {is_valid}')
 
-        is_invalid = client.webhooks.verify_signature(test_payload, 'bad_signature', test_secret)
-        print(f'   ✅ Signature invalide rejetée: {not is_invalid}\n')
+        try:
+            client.webhooks.verify_signature(test_payload, 't=123,v1=bad_signature', test_secret)
+            print('   ❌ Signature invalide acceptée\n')
+        except Exception:
+            print('   ✅ Signature invalide rejetée\n')
     except Exception as e:
         print(f'   ❌ Erreur: {e}\n')
 

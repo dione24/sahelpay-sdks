@@ -11,9 +11,11 @@ Utilisez l'environnement sandbox pour tester votre intégration avant de passer 
 
 | | Sandbox | Production |
 |---|---------|------------|
-| **URL** | `https://sandbox.sahelpay.ml` | `https://api.sahelpay.ml` |
+| **URL** | `https://api.sahelpay.ml` | `https://api.sahelpay.ml` |
 | **Clés** | `sk_test_xxx` | `sk_live_xxx` |
-| **Transactions** | Simulées | Réelles |
+| **Transactions** | Test provider ou simulateur SahelPay | Réelles |
+
+Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas de base URL différente pour les SDK.
 
 ## Numéros de test
 
@@ -28,11 +30,29 @@ Utilisez ces numéros pour simuler différents scénarios :
 
 ## Montants de test
 
+Avec le simulateur SahelPay (`metadata.sandbox: true` ou option SDK `sandbox: true`) :
+
 | Montant | Comportement |
 |---------|--------------|
-| `100 - 999999` | Normal |
-| `1000000+` | Erreur "Montant trop élevé" |
-| `< 100` | Erreur "Montant minimum" |
+| `4000` | Paiement réussi |
+| `4001` | Paiement échoué |
+| `4002` | Paiement en attente |
+| `4003` | Paiement échoué |
+| Autre montant valide | Paiement réussi |
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 4000,
+    "currency": "XOF",
+    "payment_method": "ORANGE_MONEY",
+    "customer_phone": "+22370123456",
+    "return_url": "https://votre-site.com/checkout/return",
+    "metadata": { "sandbox": true, "order_id": "order_test_1" }
+  }'
+```
 
 ## Tester les webhooks
 
@@ -52,8 +72,10 @@ ngrok http 3000
 curl -X POST https://api.sahelpay.ml/v1/webhooks/test \
   -H "Authorization: Bearer sk_test_xxx" \
   -H "Content-Type: application/json" \
-  -d '{"event": "payment.success"}'
+  -d '{}'
 ```
+
+Cet endpoint envoie un événement `webhook.test` vers l'URL webhook configurée dans le dashboard. Pour tester un vrai webhook métier `payment.success` ou `payment.failed`, créez un paiement avec `metadata.sandbox: true`, puis appelez `GET /v1/payments/{id}/status`.
 
 ## Checklist avant production
 

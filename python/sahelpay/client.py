@@ -38,6 +38,7 @@ class PaymentsAPI:
         cancel_url: Optional[str] = None,
         client_reference: Optional[str] = None,
         marketplace: Optional[Dict[str, Any]] = None,
+        sandbox: bool = False,
         hosted_checkout: bool = True,
         idempotency_key: Optional[str] = None,
     ) -> Payment:
@@ -53,6 +54,7 @@ class PaymentsAPI:
             metadata: Données personnalisées
             callback_url: URL de callback webhook
             return_url: URL de redirection après paiement
+            sandbox: Active le simulateur SahelPay pour ce paiement de test
             hosted_checkout: Si True (défaut), affiche la page SahelPay.
                             Si False, redirige directement vers le provider.
 
@@ -83,6 +85,8 @@ class PaymentsAPI:
             final_metadata.setdefault("callback_url", callback_url)
         if marketplace:
             final_metadata["marketplace"] = marketplace
+        if sandbox:
+            final_metadata["sandbox"] = True
 
         data: Dict[str, Any] = {
             "amount": amount,
@@ -311,6 +315,15 @@ class WebhooksAPI:
 
     def __init__(self, client: "Client"):
         self._client = client
+
+    def test(self) -> Dict[str, Any]:
+        """
+        Déclencher un webhook de connectivité vers l'URL configurée du marchand.
+
+        L'API envoie un événement webhook.test signé avec le secret webhook du marchand.
+        """
+        response = self._client._request("POST", "/v1/webhooks/test")
+        return response.get("data", {})
 
     def _parse_signature_header(self, header: str) -> Dict[str, str]:
         """Parser le header de signature (format: t=...,v1=...)"""
@@ -941,7 +954,7 @@ class Client:
         >>> subscription = client.subscriptions.create(plan_id=plan["id"], customer_phone="+22370000000")
     """
 
-    SANDBOX_URL = "https://sandbox.sahelpay.ml"
+    SANDBOX_URL = "https://api.sahelpay.ml"
     PRODUCTION_URL = "https://api.sahelpay.ml"
 
     def __init__(

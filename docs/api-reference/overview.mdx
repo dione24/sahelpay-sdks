@@ -11,8 +11,10 @@ L'API SahelPay est une API REST qui utilise JSON pour les requêtes et réponses
 
 | Environnement | URL |
 |---------------|-----|
-| **Sandbox** | `https://sandbox.sahelpay.ml` |
+| **Sandbox** | `https://api.sahelpay.ml` |
 | **Production** | `https://api.sahelpay.ml` |
+
+Le sandbox est déterminé par la clé `sk_test_...`. Pour le simulateur SahelPay sans appel provider, ajoutez `metadata.sandbox: true` lors de la création du paiement.
 
 ## Authentification
 
@@ -149,6 +151,7 @@ Les requêtes avec la même clé d'idempotence retournent le même résultat.
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
 | `/v1/webhooks/{provider}` | `POST` | Endpoint webhook (configuré dans dashboard) |
+| `/v1/webhooks/test` | `POST` | Envoyer un webhook `webhook.test` vers l'URL configurée |
 
 ### Utilitaires
 

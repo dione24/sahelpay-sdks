@@ -42,6 +42,7 @@ class Payment
      *   success_url?: string,
      *   cancel_url?: string,
      *   hosted_checkout?: bool,
+     *   sandbox?: bool,
      *   metadata?: array
      * } $data
      * 
@@ -64,6 +65,14 @@ class Payment
             }
             $data['metadata']['marketplace'] = $data['marketplace'];
             unset($data['marketplace']);
+        }
+
+        if (isset($data['sandbox'])) {
+            if (!isset($data['metadata'])) {
+                $data['metadata'] = [];
+            }
+            $data['metadata']['sandbox'] = (bool) $data['sandbox'];
+            unset($data['sandbox']);
         }
 
         // Harmoniser le payload avec le contrat d'intégration (customer object)

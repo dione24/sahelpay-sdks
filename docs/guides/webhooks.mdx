@@ -15,6 +15,7 @@ Les webhooks vous permettent de recevoir des notifications en temps réel sur le
 
 | Événement | Description |
 |-----------|-------------|
+| `webhook.test` | Test de connectivité envoyé par `/v1/webhooks/test` |
 | `payment.success` | Paiement confirmé |
 | `payment.failed` | Paiement échoué |
 | `payment.cancelled` | Paiement annulé par le client |
@@ -155,6 +156,35 @@ SahelPay retente automatiquement les webhooks en cas d'échec :
 | 5 | 8 minutes |
 
 Après 5 tentatives, le webhook est marqué comme `FAILED`.
+
+## Tester les webhooks
+
+Pour tester la connectivité sans créer de paiement, utilisez l'endpoint de test ou le helper SDK:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.sahelpay.ml/v1/webhooks/test \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```typescript Node.js
+await sahelpay.webhooks.test();
+```
+
+```python Python
+client.webhooks.test()
+```
+
+```php PHP
+$sahelpay->webhooks->test();
+```
+
+</CodeGroup>
+
+Cet appel envoie `webhook.test` vers l'URL configurée dans le dashboard. Pour tester un événement métier `payment.success` ou `payment.failed`, créez un paiement avec `metadata.sandbox: true`, puis appelez `GET /v1/payments/{id}/status`.
 
 ## Bonnes pratiques
 

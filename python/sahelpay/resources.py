@@ -215,7 +215,7 @@ class WebhookEvent:
     """Représente un événement webhook"""
 
     event: str
-    data: Any  # Can be Payment or Payout
+    data: Any  # Can be Payment, Payout, Refund, or test payload
     timestamp: str
 
     @classmethod
@@ -224,7 +224,9 @@ class WebhookEvent:
         event_data = data.get("data", {})
         
         # Parse data based on event type
-        if "payout" in event_type:
+        if event_type == "webhook.test":
+            parsed_data = event_data
+        elif "payout" in event_type:
             parsed_data = Payout.from_dict(event_data)
         elif "refund" in event_type:
             parsed_data = Refund.from_dict(event_data)
@@ -236,4 +238,3 @@ class WebhookEvent:
             data=parsed_data,
             timestamp=data.get("timestamp", ""),
         )
-

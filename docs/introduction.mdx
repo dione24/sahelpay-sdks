@@ -73,7 +73,7 @@ sequenceDiagram
 
 | Environnement | URL | Clés |
 |---------------|-----|------|
-| **Sandbox** | `https://sandbox.sahelpay.ml` | `sk_test_xxx` |
+| **Sandbox** | `https://api.sahelpay.ml` | `sk_test_xxx` |
 | **Production** | `https://api.sahelpay.ml` | `sk_live_xxx` |
 
 ## Méthodes de paiement supportées
@@ -84,7 +84,7 @@ sequenceDiagram
 | **Cartes Bancaires** | VISA, Mastercard, GIM-UEMOA | Tous |
 
 <Note>
-  Utilisez toujours l'environnement **Sandbox** pour vos tests. Les transactions sandbox ne sont pas facturées.
+  Utilisez toujours une clé `sk_test_...` pour vos tests. Pour simuler un paiement sans appel provider, envoyez `metadata.sandbox: true` ou l'option SDK `sandbox: true`.
 </Note>
 
 ## Fonctionnalités principales
