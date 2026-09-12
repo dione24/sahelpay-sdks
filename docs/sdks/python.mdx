@@ -52,7 +52,10 @@ print(payment.status)  # 'PENDING', 'SUCCESS', 'FAILED'
 print(payment.amount)
 ```
 
-## Tester sans provider live
+## Tester sans appel opérateur
+
+Le simulateur SahelPay s'active avec `metadata.sahelpay_mock` et pilote le statut
+final par le montant (`4000` réussi, `4001` échoué, `4002` en attente) :
 
 ```python
 payment = sahelpay.payments.create(
@@ -60,7 +63,7 @@ payment = sahelpay.payments.create(
     provider='ORANGE_MONEY',
     customer_phone='+22370123456',
     return_url='https://votre-site.com/checkout/return',
-    sandbox=True,
+    metadata={'sahelpay_mock': True},
 )
 
 result = sahelpay.payments.check_status(payment.id)
@@ -132,15 +135,12 @@ def webhook(request):
 
 | Méthode | Description | Pays |
 |---------|-------------|------|
-| `ORANGE_MONEY` | Orange Money | Mali, Sénégal, CI |
-| `WAVE` | Wave | Mali, Sénégal, CI |
-| `MOOV` | Moov Money | Mali, Bénin, Togo |
-| `CARD` | Carte bancaire | Tous |
+| `ORANGE_MONEY` | Orange Money | Mali |
 
 ```python
 payment = client.payments.create(
     amount=5000,
-    provider='ORANGE_MONEY',  # ou WAVE, MOOV, CARD
+    provider='ORANGE_MONEY',  # seul rail intégré aujourd'hui
     customer_phone='+22370123456',
     description='Commande #123'
 )
@@ -162,21 +162,7 @@ from sahelpay import has_capability, get_methods_with_capability
 # Vérifier si Orange Money supporte les payouts
 has_capability('ORANGE_MONEY', 'payouts')  # True
 
-# Lister les méthodes avec QR code natif
-get_methods_with_capability('qr_code')  # ['WAVE']
+# Lister les méthodes supportant les payouts
+get_methods_with_capability('payouts')  # ['ORANGE_MONEY']
 ```
 
-## Paiement par Carte
-
-Pour les paiements par carte, `customer_name` et `customer_email` sont **requis** :
-
-```python
-payment = client.payments.create(
-    amount=10000,
-    provider='CARD',
-    customer_phone='+22370123456',
-    customer_name='Mamadou Diallo',       # Requis
-    customer_email='mamadou@example.com', # Requis
-    return_url='https://votre-site.com/checkout/return'
-)
-```

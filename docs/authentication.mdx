@@ -38,7 +38,7 @@ curl https://api.sahelpay.ml/v1/payments \
 | **Production** | `sk_live_xxx` | `https://api.sahelpay.ml` |
 
 <Note>
-  Le sandbox est un mode logique porté par les clés `sk_test_...`. Utilisez la même base URL API, puis activez le simulateur de paiement avec `metadata.sandbox: true` si vous voulez éviter tout appel provider.
+  Le sandbox est un mode logique porté par les clés `sk_test_...`. Utilisez la même base URL API. Avec `metadata.sandbox: true`, l'appel part vers l'environnement de test de l'opérateur ; avec `metadata.sahelpay_mock: true`, le simulateur SahelPay répond sans aucun appel opérateur.
 </Note>
 
 ## Régénérer vos clés

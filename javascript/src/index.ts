@@ -66,8 +66,12 @@ export interface CreatePaymentParams {
   client_reference?: string;
   marketplace?: MarketplaceMetadata;
   /**
-   * Active le simulateur SahelPay pour ce paiement de test.
-   * Envoie metadata.sandbox=true et ne déclenche pas d'appel provider réel.
+   * Envoie metadata.sandbox=true : le paiement part vers l'environnement de test
+   * de l'opérateur.
+   *
+   * Pour ne déclencher aucun appel opérateur, passez plutôt
+   * `metadata: { sahelpay_mock: true }` — le simulateur SahelPay pilote alors le
+   * statut final par le montant (4000 réussi, 4001 échoué, 4002 en attente).
    */
   sandbox?: boolean;
   metadata?: Record<string, any>;

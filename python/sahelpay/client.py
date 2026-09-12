@@ -54,7 +54,9 @@ class PaymentsAPI:
             metadata: Données personnalisées
             callback_url: URL de callback webhook
             return_url: URL de redirection après paiement
-            sandbox: Active le simulateur SahelPay pour ce paiement de test
+            sandbox: Envoie metadata.sandbox=true (environnement de test de
+                     l'opérateur). Pour ne déclencher aucun appel opérateur,
+                     passez metadata={'sahelpay_mock': True}.
             hosted_checkout: Si True (défaut), affiche la page SahelPay.
                             Si False, redirige directement vers le provider.
 

@@ -54,7 +54,10 @@ header('Location: ' . $link->url);
 exit;
 ```
 
-## Tester sans provider live
+## Tester sans appel opérateur
+
+Le simulateur SahelPay s'active avec `metadata.sahelpay_mock` et pilote le statut
+final par le montant (`4000` réussi, `4001` échoué, `4002` en attente) :
 
 ```php
 $payment = $sahelpay->payments->initiate([
@@ -62,7 +65,7 @@ $payment = $sahelpay->payments->initiate([
     'provider' => 'ORANGE_MONEY',
     'customer_phone' => '+22370123456',
     'return_url' => 'https://votre-site.com/checkout/return',
-    'sandbox' => true,
+    'metadata' => ['sahelpay_mock' => true],
 ]);
 
 $status = $sahelpay->payments->verify($payment->id);

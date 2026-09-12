@@ -1,63 +1,57 @@
 ---
-title: Smart Routing
-description: "Comment SahelPay choisit automatiquement le meilleur gateway"
+title: Méthodes de paiement
+description: "Quels rails sont disponibles et comment les interroger"
 ---
 
-# Smart Routing
+# Méthodes de paiement
 
-SahelPay utilise un système de **Smart Routing** qui choisit automatiquement le meilleur gateway (provider interne) pour chaque paiement. En tant que développeur, vous n'avez qu'à spécifier la **méthode de paiement** souhaitée par votre client.
+Vous spécifiez la méthode de paiement souhaitée par votre client, et SahelPay
+choisit le gateway interne correspondant.
 
-## Fonctionnement
+<Warning>
+  **Orange Money (Mali) est le seul rail intégré aujourd'hui.** Toute autre valeur
+  de `provider` est rejetée avec une erreur `400`. Wave, Moov et les cartes
+  bancaires sont en feuille de route et ne sont pas encore disponibles.
+</Warning>
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│  Votre Application                                                 │
-│                                                                   │
-│  sahelpay.payments.create({                                       │
-│    payment_method: 'ORANGE_MONEY',  // ← Vous spécifiez ça        │
-│    amount: 5000,                                                  │
-│    ...                                                            │
-│  })                                                               │
-└───────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│  SahelPay Smart Router                                            │
-│                                                                   │
-│  Critères:                                                        │
-│  ├── Coût (frais provider)                                        │
-│  ├── Disponibilité (uptime)                                       │
-│  ├── Pays                                                         │
-│  └── Configuration admin                                          │
-│                                                                   │
-│  Décision: Gateway optimal sélectionné automatiquement            │
-│  (basé sur coût, disponibilité, UX)                               │
-└───────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│  Gateway interne sélectionné                                       │
-│  (transparent pour vous)                                          │
-└───────────────────────────────────────────────────────────────────┘
+## Méthodes disponibles
+
+| Méthode | Statut | Pays | Capacités |
+|---------|--------|------|-----------|
+| `ORANGE_MONEY` | ✅ Disponible | Mali | Paiements, Payouts |
+
+Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers `ORANGE_MONEY`.
+
+## Interrogez la liste, ne la codez pas en dur
+
+Les rails activés évoluent. Plutôt que de figer une liste dans votre code,
+demandez-la à l'API :
+
+```bash
+curl https://api.sahelpay.ml/v1/providers/enabled
 ```
 
-## Méthodes de paiement
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "provider": "ORANGE_MONEY",
+      "display_name": "Orange Money",
+      "category": "MOBILE_MONEY",
+      "min_amount": null,
+      "max_amount": null
+    }
+  ]
+}
+```
 
-Voici les méthodes de paiement que vous pouvez utiliser :
+C'est cette liste qui alimente le checkout hébergé. En la consommant, votre
+intégration prendra en charge un nouveau rail sans que vous ayez à redéployer.
 
-| Méthode | Description | Capabilities |
-|---------|-------------|--------------|
-| `ORANGE_MONEY` | Orange Money | Paiements, Payouts, OPR |
-| `WAVE` | Wave | Paiements, QR Code, Payouts, OPR |
-| `MOOV` | Moov Money | Paiements, Payouts, OPR |
-| `CARD` | Carte bancaire | Paiements, Splits |
-| `VISA` | Carte VISA | Paiements, Splits |
-| `MASTERCARD` | Carte Mastercard | Paiements, Splits |
-| `GIM_UEMOA` | Carte GIM-UEMOA | Paiements |
+## Informations de routing
 
-## Informations de Routing
-
-Chaque paiement retourne des informations sur le gateway utilisé :
+Chaque paiement retourne le gateway retenu :
 
 <CodeGroup>
 
@@ -86,24 +80,15 @@ print(payment.routing_reason)  # Explication du routing choisi
 </CodeGroup>
 
 <Note>
-  Ces champs sont **informatifs**. Vous ne pouvez pas et n'avez pas besoin de choisir le gateway - SahelPay optimise automatiquement pour le coût et la disponibilité.
+  Ces champs sont **informatifs** et destinés au support. Vous ne choisissez pas
+  le gateway : SahelPay le résout à partir de la méthode demandée.
 </Note>
 
-## Pourquoi le Smart Routing ?
+## Disponibilité d'un rail
 
-1. **Coût optimisé** : SahelPay négocie les meilleurs taux et choisit automatiquement l'option la moins chère
-2. **Haute disponibilité** : Fallback automatique si une méthode est temporairement indisponible
-3. **Meilleure UX** : Choix automatique de la meilleure expérience utilisateur (Push USSD, QR Code, etc.)
-4. **Simplicité** : Une seule intégration pour toutes les méthodes de paiement
+Un rail peut être désactivé ou mis en maintenance côté administration. Dans ce
+cas, une demande de paiement sur ce rail échoue avec un `400` explicite plutôt
+que d'être routée ailleurs en silence.
 
-## Configuration Admin
-
-Les administrateurs SahelPay peuvent configurer le routing via le dashboard :
-
-- Activer/désactiver des providers
-- Mettre un provider en maintenance
-- Définir des règles de routing par pays
-- Monitorer les performances
-
-Ces changements sont appliqués en temps réel sans redéploiement.
-
+Ces changements s'appliquent sans redéploiement, d'où l'intérêt de lire
+`/v1/providers/enabled` au moment d'afficher les options à votre client.

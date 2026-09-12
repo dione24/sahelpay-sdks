@@ -43,7 +43,7 @@ const response = await fetch('https://api.sahelpay.ml/v1/payments', {
   body: JSON.stringify({
     amount: 5000,
     currency: 'XOF',
-    payment_method: 'ORANGE_MONEY', // ou WAVE, MOOV, CARD, VISA, MASTERCARD, GIM_UEMOA
+    payment_method: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
     country: 'ML',
     customer_phone: '+22370123456',
     return_url: `${APP_URL}/checkout/return?order_id=${orderId}`,
@@ -57,7 +57,7 @@ const { data } = await response.json();
 ```
 
 <Note>
-  Pour les paiements par carte (`CARD`, `VISA`, `MASTERCARD`, `GIM_UEMOA`), ajoutez `customer_name` et `customer_email` dans le body.
+  Interrogez `GET /v1/providers/enabled` pour connaître les rails activés plutôt que de les coder en dur.
 </Note>
 
 ### 2. Rediriger le client
@@ -128,7 +128,7 @@ if (existing?.status === 'success') {
 
 <CardGroup cols={2}>
   <Card title="❌ Appeler les providers directement" icon="xmark">
-    Orange, Wave, Moov... Tout passe par SahelPay
+    Orange Money aujourd'hui, d'autres rails ensuite : une seule intégration
   </Card>
   <Card title="❌ Calculer des frais" icon="xmark">
     SahelPay gère les frais automatiquement

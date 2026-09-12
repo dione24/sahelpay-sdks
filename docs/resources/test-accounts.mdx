@@ -7,33 +7,22 @@ description: "Numéros et données de test pour le sandbox"
 
 Utilisez ces données pour tester votre intégration en sandbox.
 
-## Numéros de test
+## Déclencheurs du simulateur
 
-| Numéro | Provider | Résultat |
-|--------|----------|----------|
-| `+22370000001` | Orange Money | ✅ Paiement réussi |
-| `+22370000002` | Orange Money | ❌ Paiement échoué |
-| `+22370000003` | Orange Money | ⏳ Timeout (30s) |
-| `+22370000004` | Orange Money | 🚫 Solde insuffisant |
-| `+22377000001` | Wave | ✅ Paiement réussi |
-| `+22377000002` | Wave | ❌ Paiement échoué |
+Avec `metadata.sahelpay_mock: true`, le statut final est piloté par le **montant** :
 
-## Montants de test
+| Montant | Résultat |
+|---------|----------|
+| `4000` | ✅ Paiement réussi |
+| `4001` | ❌ Échec — solde insuffisant |
+| `4002` | ⏳ Paiement en attente |
+| `4003` | ❌ Échec — erreur opérateur |
+| Autre montant valide | ✅ Paiement réussi |
 
-| Montant | Comportement |
-|---------|--------------|
-| `100 - 999999` | Normal |
-| `1000000+` | Erreur "Montant trop élevé" |
-| `< 100` | Erreur "Montant minimum" |
-| `99999` | Délai de traitement long (10s) |
-
-## Cartes de test
-
-| Numéro | Expiration | CVV | Résultat |
-|--------|------------|-----|----------|
-| `4111 1111 1111 1111` | 12/25 | 123 | ✅ Succès |
-| `4000 0000 0000 0002` | 12/25 | 123 | ❌ Refusée |
-| `4000 0000 0000 9995` | 12/25 | 123 | 🚫 Fonds insuffisants |
+<Note>
+  Il n'y a pas de numéros de téléphone de test : le simulateur ne regarde que le
+  montant. Utilisez un numéro malien valide au format `+223XXXXXXXX`.
+</Note>
 
 ## Clés API de test
 
@@ -44,5 +33,5 @@ Webhook Secret: whsec_test_xxxxxxxx
 ```
 
 <Note>
-  Les clés de test utilisent la base URL `https://api.sahelpay.ml`. Pour le simulateur SahelPay sans appel provider, envoyez `metadata.sandbox: true` ou l'option SDK `sandbox: true`.
+  Les clés de test utilisent la base URL `https://api.sahelpay.ml`. Pour le simulateur SahelPay sans appel opérateur, envoyez `metadata.sahelpay_mock: true`. Avec `metadata.sandbox: true`, l'appel part vers l'environnement de test de l'opérateur.
 </Note>

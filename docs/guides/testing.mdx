@@ -13,24 +13,20 @@ Utilisez l'environnement sandbox pour tester votre intégration avant de passer 
 |---|---------|------------|
 | **URL** | `https://api.sahelpay.ml` | `https://api.sahelpay.ml` |
 | **Clés** | `sk_test_xxx` | `sk_live_xxx` |
-| **Transactions** | Test provider ou simulateur SahelPay | Réelles |
+| **Transactions** | Sandbox opérateur ou simulateur SahelPay | Réelles |
 
 Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas de base URL différente pour les SDK.
 
-## Numéros de test
-
-Utilisez ces numéros pour simuler différents scénarios :
-
-| Numéro | Résultat |
-|--------|----------|
-| `+22370000001` | ✅ Paiement réussi |
-| `+22370000002` | ❌ Paiement échoué |
-| `+22370000003` | ⏳ Paiement en attente (timeout) |
-| `+22370000004` | 🚫 Solde insuffisant |
-
 ## Montants de test
 
-Avec le simulateur SahelPay (`metadata.sandbox: true` ou option SDK `sandbox: true`) :
+Deux modes de test coexistent, et ils ne font pas la même chose :
+
+| Metadata | Effet |
+|----------|-------|
+| `sandbox: true` | Appelle l'**environnement de test de l'opérateur**. Valide l'intégration de bout en bout. |
+| `sahelpay_mock: true` | Utilise le **simulateur SahelPay**. Aucun appel opérateur. |
+
+Avec le simulateur SahelPay (`sahelpay_mock: true`), le statut final est piloté par le montant :
 
 | Montant | Comportement |
 |---------|--------------|
@@ -50,7 +46,7 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
     "payment_method": "ORANGE_MONEY",
     "customer_phone": "+22370123456",
     "return_url": "https://votre-site.com/checkout/return",
-    "metadata": { "sandbox": true, "order_id": "order_test_1" }
+    "metadata": { "sahelpay_mock": true, "order_id": "order_test_1" }
   }'
 ```
 

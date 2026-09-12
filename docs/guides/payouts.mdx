@@ -5,7 +5,7 @@ description: "Envoyer de l'argent vers Mobile Money"
 
 # Payouts (Envoi d'argent)
 
-Les **Payouts** permettent d'envoyer de l'argent depuis votre compte SahelPay vers un compte Mobile Money (Orange Money, Wave, Moov).
+Les **Payouts** permettent d'envoyer de l'argent depuis votre compte SahelPay vers un compte Mobile Money (Orange Money).
 
 ## Cas d'usage
 
@@ -22,7 +22,7 @@ Les **Payouts** permettent d'envoyer de l'argent depuis votre compte SahelPay ve
 ```javascript JavaScript
 const payout = await sahelpay.payouts.create({
   amount: 50000,
-  provider: 'ORANGE_MONEY', // ou WAVE, MOOV
+  provider: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
   recipient_phone: '+22370123456',
   recipient_name: 'Mamadou Diallo',
   description: 'Paiement fournisseur #123',
@@ -72,7 +72,7 @@ echo $payout->status;     // PENDING
 |--------|--------|
 | **Montant minimum** | 100 FCFA |
 | **Montant maximum** | 5,000,000 FCFA |
-| **Providers supportés** | Orange Money, Wave, Moov |
+| **Providers supportés** | Orange Money |
 
 ## Types de payouts
 

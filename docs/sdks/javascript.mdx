@@ -39,18 +39,21 @@ const sahelpay = new SahelPay({
 const payment = await sahelpay.payments.create({
   amount: 5000,
   currency: 'XOF',
-  payment_method: 'ORANGE_MONEY', // ORANGE_MONEY, WAVE, MOOV, CARD
+  payment_method: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
   customer_phone: '+22370123456',
   return_url: 'https://votre-site.com/checkout/return',
   description: 'Commande #123',
-  sandbox: true, // simulateur SahelPay en test
+  sandbox: true, // environnement de test de l'opérateur
 });
 
 // Rediriger le client vers Orange Money
 window.location.href = payment.redirect_url;
 ```
 
-## Tester sans provider live
+## Tester sans appel opérateur
+
+Le simulateur SahelPay s'active avec `metadata.sahelpay_mock` et pilote le statut
+final par le montant (`4000` réussi, `4001` échoué, `4002` en attente) :
 
 ```typescript
 const payment = await sahelpay.payments.create({
@@ -58,7 +61,7 @@ const payment = await sahelpay.payments.create({
   payment_method: 'ORANGE_MONEY',
   customer_phone: '+22370123456',
   return_url: 'https://votre-site.com/checkout/return',
-  sandbox: true,
+  metadata: { sahelpay_mock: true },
 });
 
 const result = await sahelpay.payments.checkStatus(payment.id);
@@ -71,13 +74,7 @@ await sahelpay.webhooks.test(); // envoie webhook.test vers votre endpoint confi
 
 | Méthode | Description | Pays |
 |---------|-------------|------|
-| `ORANGE_MONEY` | Orange Money | Mali, Sénégal, CI |
-| `WAVE` | Wave | Mali, Sénégal, CI |
-| `MOOV` | Moov Money | Mali, Bénin, Togo |
-| `CARD` | Carte bancaire (VISA/MC/GIM) | Tous |
-| `VISA` | Carte VISA | Tous |
-| `MASTERCARD` | Carte Mastercard | Tous |
-| `GIM_UEMOA` | Carte GIM-UEMOA | UEMOA |
+| `ORANGE_MONEY` | Orange Money | Mali |
 
 <Note>
   SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement (ex: `ORANGE_MONEY`) et SahelPay choisit le meilleur gateway en interne selon le coût et la disponibilité.
@@ -178,21 +175,6 @@ import { hasCapability, getMethodsWithCapability } from '@sahelpay/sdk';
 hasCapability('ORANGE_MONEY', 'payouts'); // true
 
 // Lister les méthodes avec QR code natif
-getMethodsWithCapability('qr_code'); // ['WAVE']
+getMethodsWithCapability('payouts'); // ['ORANGE_MONEY']
 ```
 
-## Paiement par Carte
-
-Pour les paiements par carte, les champs `customer_name` et `customer_email` sont **requis** :
-
-```typescript
-const payment = await sahelpay.payments.create({
-  amount: 10000,
-  currency: 'XOF',
-  payment_method: 'CARD',
-  customer_phone: '+22370123456',
-  customer_name: 'Mamadou Diallo',      // Requis pour CARD
-  customer_email: 'mamadou@example.com', // Requis pour CARD
-  return_url: 'https://votre-site.com/checkout/return',
-});
-```

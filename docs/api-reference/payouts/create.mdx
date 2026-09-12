@@ -27,7 +27,7 @@ POST /v1/payouts
 | Paramètre | Type | Requis | Description |
 |-----------|------|--------|-------------|
 | `amount` | integer | ✅ | Montant en FCFA (min: 100, max: 5,000,000) |
-| `provider` | string | ✅ | `ORANGE_MONEY`, `WAVE`, ou `MOOV` |
+| `provider` | string | ✅ | `ORANGE_MONEY`. Toute autre valeur renvoie `400`. |
 | `recipient_phone` | string | ✅ | Numéro de téléphone du destinataire (+223...) |
 | `recipient_name` | string | | Nom du destinataire |
 | `description` | string | | Description du payout |
