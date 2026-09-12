@@ -39,6 +39,7 @@ class PaymentsAPI:
         client_reference: Optional[str] = None,
         marketplace: Optional[Dict[str, Any]] = None,
         sandbox: bool = False,
+        mock: bool = False,
         hosted_checkout: bool = True,
         idempotency_key: Optional[str] = None,
     ) -> Payment:
@@ -47,36 +48,27 @@ class PaymentsAPI:
 
         Args:
             amount: Montant en FCFA
-            provider: ORANGE_MONEY, WAVE, ou MOOV
+            provider: ORANGE_MONEY (seul rail intégré)
             customer_phone: Numéro de téléphone du client
             currency: Devise (défaut: XOF)
             description: Description du paiement
             metadata: Données personnalisées
             callback_url: URL de callback webhook
             return_url: URL de redirection après paiement
-            sandbox: Envoie metadata.sandbox=true (environnement de test de
-                     l'opérateur). Pour ne déclencher aucun appel opérateur,
-                     passez metadata={'sahelpay_mock': True}.
+            sandbox: Envoie metadata.sandbox=true — le paiement part vers
+                     l'environnement de test de l'opérateur.
+            mock: Envoie metadata.sahelpay_mock=true — simulateur SahelPay,
+                  aucun appel opérateur. Le statut final est piloté par le
+                  montant (4000 réussi, 4001 échoué, 4002 en attente).
             hosted_checkout: Si True (défaut), affiche la page SahelPay.
                             Si False, redirige directement vers le provider.
 
         Returns:
             Payment: Objet paiement créé
         """
+        # Orange Money est le seul rail intégré; l'API rejette toute autre
+        # valeur avec un 400, inutile de deviner une méthode carte ici.
         inferred_payment_method = payment_method
-        if not inferred_payment_method and provider in ["CARD", "CINETPAY", "GIM_UEMOA", "VISA", "MASTERCARD"]:
-            inferred_payment_method = "CARD"
-
-        if inferred_payment_method == "CARD":
-            if not customer_name:
-                raise ValidationError(
-                    "CinetPay CREDIT_CARD requires customerName", "VALIDATION_ERROR", 400)
-            if not customer_email:
-                raise ValidationError(
-                    "CinetPay CREDIT_CARD requires customerEmail", "VALIDATION_ERROR", 400)
-            if not customer_phone:
-                raise ValidationError(
-                    "CinetPay CREDIT_CARD requires customerPhone", "VALIDATION_ERROR", 400)
 
         final_metadata: Dict[str, Any] = {}
         if metadata:
@@ -89,6 +81,8 @@ class PaymentsAPI:
             final_metadata["marketplace"] = marketplace
         if sandbox:
             final_metadata["sandbox"] = True
+        if mock:
+            final_metadata["sahelpay_mock"] = True
 
         data: Dict[str, Any] = {
             "amount": amount,
@@ -478,7 +472,7 @@ class PayoutsAPI:
 
         Args:
             amount: Montant en FCFA (min: 100, max: 5,000,000)
-            provider: ORANGE_MONEY, WAVE, ou MOOV
+            provider: ORANGE_MONEY (seul rail intégré)
             recipient_phone: Numéro de téléphone du destinataire
             recipient_name: Nom du destinataire (optionnel)
             description: Description du payout (optionnel)

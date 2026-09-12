@@ -21,10 +21,10 @@ Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas 
 
 Deux modes de test coexistent, et ils ne font pas la même chose :
 
-| Metadata | Effet |
-|----------|-------|
-| `sandbox: true` | Appelle l'**environnement de test de l'opérateur**. Valide l'intégration de bout en bout. |
-| `sahelpay_mock: true` | Utilise le **simulateur SahelPay**. Aucun appel opérateur. |
+| Metadata | Option SDK | Effet |
+|----------|------------|-------|
+| `sandbox: true` | `sandbox` | Appelle l'**environnement de test de l'opérateur**. Valide l'intégration de bout en bout. |
+| `sahelpay_mock: true` | `mock` | Utilise le **simulateur SahelPay**. Aucun appel opérateur. |
 
 Avec le simulateur SahelPay (`sahelpay_mock: true`), le statut final est piloté par le montant :
 

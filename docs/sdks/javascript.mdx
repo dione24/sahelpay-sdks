@@ -52,8 +52,12 @@ window.location.href = payment.redirect_url;
 
 ## Tester sans appel opérateur
 
-Le simulateur SahelPay s'active avec `metadata.sahelpay_mock` et pilote le statut
-final par le montant (`4000` réussi, `4001` échoué, `4002` en attente) :
+L'option `mock` active le simulateur SahelPay : aucun appel opérateur, et le
+statut final est piloté par le montant (`4000` réussi, `4001` échoué, `4002` en
+attente, `4003` erreur opérateur).
+
+À ne pas confondre avec `sandbox`, qui appelle bien l'environnement de test de
+l'opérateur.
 
 ```typescript
 const payment = await sahelpay.payments.create({
@@ -61,7 +65,7 @@ const payment = await sahelpay.payments.create({
   payment_method: 'ORANGE_MONEY',
   customer_phone: '+22370123456',
   return_url: 'https://votre-site.com/checkout/return',
-  metadata: { sahelpay_mock: true },
+  mock: true,
 });
 
 const result = await sahelpay.payments.checkStatus(payment.id);

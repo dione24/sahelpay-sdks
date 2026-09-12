@@ -43,6 +43,7 @@ class Payment
      *   cancel_url?: string,
      *   hosted_checkout?: bool,
      *   sandbox?: bool,
+     *   mock?: bool,
      *   metadata?: array
      * } $data
      * 
@@ -67,12 +68,23 @@ class Payment
             unset($data['marketplace']);
         }
 
+        // `sandbox` appelle l'environnement de test de l'opérateur.
         if (isset($data['sandbox'])) {
             if (!isset($data['metadata'])) {
                 $data['metadata'] = [];
             }
             $data['metadata']['sandbox'] = (bool) $data['sandbox'];
             unset($data['sandbox']);
+        }
+
+        // `mock` court-circuite l'opérateur: simulateur SahelPay, statut piloté
+        // par le montant (4000 réussi, 4001 échoué, 4002 en attente).
+        if (isset($data['mock'])) {
+            if (!isset($data['metadata'])) {
+                $data['metadata'] = [];
+            }
+            $data['metadata']['sahelpay_mock'] = (bool) $data['mock'];
+            unset($data['mock']);
         }
 
         // Harmoniser le payload avec le contrat d'intégration (customer object)

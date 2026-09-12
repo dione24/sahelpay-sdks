@@ -50,14 +50,13 @@ export interface CreatePaymentParams {
   currency?: string;
   provider?: string;
   /**
-   * Méthode de paiement spécifique (Smart Routing v2)
-   * - ORANGE_MONEY: Orange Money Direct (Mali)
-   * - WAVE: Wave via Intouch/PayDunya
-   * - MOOV: Moov Money via Intouch/PayDunya
-   * - CARD: Carte bancaire via N-Genius (Visa/Mastercard)
-   * - MOBILE_MONEY: Legacy - sera routé automatiquement
+   * Méthode de paiement.
+   * - ORANGE_MONEY: Orange Money (Mali) — seul rail intégré
+   * - MOBILE_MONEY: alias résolu vers ORANGE_MONEY
+   *
+   * Toute autre valeur est rejetée par l'API avec une erreur 400.
    */
-  payment_method?: 'ORANGE_MONEY' | 'WAVE' | 'MOOV' | 'CARD' | 'MOBILE_MONEY';
+  payment_method?: 'ORANGE_MONEY' | 'MOBILE_MONEY';
   country?: string;
   customer_phone: string;
   customer_name?: string;
@@ -66,14 +65,20 @@ export interface CreatePaymentParams {
   client_reference?: string;
   marketplace?: MarketplaceMetadata;
   /**
-   * Envoie metadata.sandbox=true : le paiement part vers l'environnement de test
-   * de l'opérateur.
+   * Envoie `metadata.sandbox=true` : le paiement part vers l'environnement de
+   * test de l'opérateur. L'intégration est validée de bout en bout.
    *
-   * Pour ne déclencher aucun appel opérateur, passez plutôt
-   * `metadata: { sahelpay_mock: true }` — le simulateur SahelPay pilote alors le
-   * statut final par le montant (4000 réussi, 4001 échoué, 4002 en attente).
+   * Ne coupe pas l'appel opérateur — pour cela, utilisez `mock`.
    */
   sandbox?: boolean;
+  /**
+   * Envoie `metadata.sahelpay_mock=true` : simulateur SahelPay, **aucun appel
+   * opérateur**. Le statut final est piloté par le montant (4000 réussi,
+   * 4001 échoué, 4002 en attente, 4003 erreur opérateur).
+   *
+   * Nécessite une clé `sk_test_...` : l'API rejette ce flag en production.
+   */
+  mock?: boolean;
   metadata?: Record<string, any>;
   callback_url?: string;
   return_url?: string;
@@ -115,8 +120,8 @@ export interface Payment {
   ledger_entries?: any[];
   provider_events?: any[];
   /**
-   * Gateway utilisé pour ce paiement (Hybrid Routing V2)
-   * Exemples: 'ORANGE_DIRECT', 'INTOUCH', 'CINETPAY', 'PAYDUNYA'
+   * Gateway utilisé pour ce paiement. Informatif, destiné au monitoring.
+   * Exemple: 'ORANGE_DIRECT'
    */
   gateway_used?: string;
   /**
@@ -142,7 +147,8 @@ export interface PaymentLink {
 
 export interface CreatePayoutParams {
   amount: number;
-  provider: 'ORANGE_MONEY' | 'WAVE' | 'MOOV';
+  /** Orange Money est le seul rail intégré; l'API rejette le reste avec un 400. */
+  provider: 'ORANGE_MONEY';
   recipient_phone: string;
   recipient_name?: string;
   description?: string;
@@ -306,14 +312,10 @@ class PaymentsAPI {
    */
   async create(params: CreatePaymentParams): Promise<Payment> {
     const provider = params.provider;
+    // Orange Money est le seul rail intégré; l'API rejette toute autre valeur
+    // avec un 400, inutile de deviner une méthode carte ici.
     const inferredPaymentMethod: CreatePaymentParams['payment_method'] =
-      params.payment_method ||
-      (provider && ['CARD', 'CINETPAY', 'GIM_UEMOA', 'NGENIUS', 'VISA', 'MASTERCARD'].includes(provider) ? 'CARD' : undefined);
-
-    const isCard = inferredPaymentMethod === 'CARD';
-    if (isCard && !params.customer_phone) {
-      throw new SahelPayError('Card payment requires customer_phone', 'VALIDATION_ERROR', 400);
-    }
+      params.payment_method;
 
     const customer = {
       phone: params.customer_phone,
@@ -335,6 +337,7 @@ class PaymentsAPI {
       metadata: {
         ...(params.metadata || {}),
         ...(params.sandbox ? { sandbox: true } : {}),
+        ...(params.mock ? { sahelpay_mock: true } : {}),
         ...(params.description ? { description: params.description } : {}),
         ...(params.marketplace ? { marketplace: params.marketplace } : {}),
       },
