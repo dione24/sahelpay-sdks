@@ -6,52 +6,72 @@ description: "Rechercher un paiement par référence client"
 
 # Rechercher un paiement
 
-Permet de retrouver un paiement en utilisant votre propre référence (`client_reference`). Cet endpoint est particulièrement utile pour la réconciliation automatique.
+Retrouve un paiement à partir de votre propre référence (`client_reference`). Utile pour la page de retour et la réconciliation.
 
 ## Query Parameters
 
 | Paramètre | Type | Requis | Description |
 |-----------|------|--------|-------------|
-| `client_reference` | string | ✅ | Votre référence interne (ex: ID de commande) |
+| `client_reference` | string | ✅ | Votre référence interne (ex : ID de commande) |
 
 ## Exemple
 
 <CodeGroup>
 
 ```bash cURL
-curl -X GET "https://api.sahelpay.ml/v1/payments/search?client_reference=order_123" \
+curl "https://api.sahelpay.ml/v1/payments/search?client_reference=order-123" \
   -H "Authorization: Bearer sk_live_xxx"
 ```
 
 ```javascript Node.js
-const payment = await sahelpay.payments.search('order_123');
+const payment = await sahelpay.payments.search('order-123'); // null si introuvable
+```
+
+```python Python
+payment = client.payments.search('order-123')
+```
+
+```php PHP
+$payment = $sahelpay->payments->search('order-123');
 ```
 
 </CodeGroup>
 
 ## Réponse
 
-Retourne le paiement le plus récent correspondant à cette référence.
+Retourne le paiement le plus récent portant cette référence.
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "txn_8f525b9f",
-    "client_reference": "order_123",
+    "id": "8d6f1c2e-...",
     "status": "SUCCESS",
     "amount": 5000,
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
     "currency": "XOF",
-    "payment_method": "ORANGE_MONEY",
-    "created_at": "2025-12-19T10:00:00Z",
-    "updated_at": "2025-12-19T10:05:00Z"
+    "client_reference": "order-123",
+    "provider_ref": "MP261003.1000.A12345",
+    "metadata": {
+      "customer": { "phone": "+22370123456" },
+      "description": "Commande #123"
+    },
+    "ledger_entries": [],
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:05:00.000Z",
+    "expires_at": "2026-10-03T10:30:00.000Z"
   }
 }
 ```
 
-## Erreurs
+## Cas sans résultat
 
-| Code | Description |
-|------|-------------|
-| `MISSING_REFERENCE` | Le paramètre `client_reference` est requis |
-| `NOT_FOUND` | Aucun paiement trouvé avec cette référence |
+L'API répond `200` avec `success: false` :
+
+```json
+{ "success": false, "message": "PaymentIntent not found" }
+```
+
+(ou `"client_reference is required"` si le paramètre manque).

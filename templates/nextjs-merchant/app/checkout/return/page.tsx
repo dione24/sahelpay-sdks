@@ -8,6 +8,7 @@ type Status =
   | "loading"
   | "SUCCESS"
   | "PENDING"
+  | "INITIATED"
   | "FAILED"
   | "EXPIRED"
   | "error";
@@ -15,26 +16,32 @@ type Status =
 function PaymentReturnContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("loading");
-  const paymentId =
-    searchParams.get("payment_intent_id") || searchParams.get("id");
+  const orderId = searchParams.get("order_id");
 
   useEffect(() => {
-    if (!paymentId) {
+    if (!orderId) {
       setStatus("error");
       return;
     }
     checkStatus();
-  }, [paymentId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
 
   const checkStatus = async () => {
+    if (!orderId) {
+      setStatus("error");
+      return;
+    }
     try {
-      const res = await fetch(`/api/payments/status?id=${paymentId}`);
+      const res = await fetch(
+        `/api/payments/status?client_reference=${encodeURIComponent(orderId)}`
+      );
       const data = await res.json();
 
-      if (data.success) {
-        setStatus(data.data.status);
-        // Si PENDING, re-vérifier dans 3s
-        if (data.data.status === "PENDING") {
+      if (data.success && data.data) {
+        const next = data.data.status as Status;
+        setStatus(next);
+        if (next === "PENDING" || next === "INITIATED") {
           setTimeout(checkStatus, 3000);
         }
       } else {
@@ -44,6 +51,8 @@ function PaymentReturnContent() {
       setStatus("error");
     }
   };
+
+  const pending = status === "PENDING" || status === "INITIATED";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -75,7 +84,7 @@ function PaymentReturnContent() {
           </>
         )}
 
-        {status === "PENDING" && (
+        {pending && (
           <>
             <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
               <span className="text-3xl">⏳</span>
@@ -89,14 +98,18 @@ function PaymentReturnContent() {
           </>
         )}
 
-        {status === "FAILED" && (
+        {(status === "FAILED" || status === "EXPIRED") && (
           <>
             <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
               <span className="text-3xl">✗</span>
             </div>
-            <h1 className="text-xl font-bold text-red-700">Paiement échoué</h1>
+            <h1 className="text-xl font-bold text-red-700">
+              {status === "EXPIRED" ? "Paiement expiré" : "Paiement échoué"}
+            </h1>
             <p className="text-gray-600 mt-2">
-              Le paiement n&apos;a pas pu être effectué.
+              {status === "EXPIRED"
+                ? "Le délai de paiement est dépassé."
+                : "Le paiement n'a pas pu être effectué."}
             </p>
             <Link
               href="/checkout"

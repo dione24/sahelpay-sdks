@@ -1,0 +1,72 @@
+---
+title: Programme Partenaires SPAY
+description: "SahelPay vendeur de référence : catalogue validé, redevance mensuelle"
+---
+
+# Programme Partenaires SPAY
+
+Dans le Programme Partenaires SPAY, **SAHEL PAY TECHNOLOGIES vend en son nom** (vendeur de référence) les produits de votre Solution, à un prix validé par SahelPay. Vous êtes rémunéré par une **redevance mensuelle**.
+
+## Ce qui change pour un partenaire validé
+
+| Sujet | Marchand classique | Partenaire SPAY validé |
+|-------|--------------------|------------------------|
+| Accès au live | Abonnement payé requis | Ouvert sans abonnement ni commission |
+| Montant d'un paiement live | Libre | Uniquement des produits du catalogue validé |
+| Libellé Orange Money | `SPAY-<nom du marchand>` | `SPAY-<nom de la Solution>` |
+| Checkout | Votre nom | Mention « Vendu par SAHEL PAY TECHNOLOGIES » et CGV publiques |
+| Solde et retraits | Solde retirable | Pas de solde : redevance versée chaque mois sur votre numéro Orange Money |
+
+L'adhésion se fait depuis le dashboard (**Paramètres → Partenaires SPAY**) : dépôt du contrat signé, du selfie et des attestations, puis validation par SahelPay.
+
+## Catalogue de produits
+
+Proposez vos produits (nom, prix public) depuis le dashboard ou l'API ; SahelPay valide chaque prix avant toute vente en production. Modifier le nom ou le prix relance la validation.
+
+```bash
+curl https://api.sahelpay.ml/v1/merchants/partner-products \
+  -H "Authorization: Bearer sk_live_xxx"
+```
+
+Statuts d'un produit : `SUBMITTED`, `APPROVED`, `REJECTED`, `ARCHIVED`. Seuls les produits `APPROVED` peuvent être vendus en production.
+
+## Encaisser en production
+
+Un paiement live d'un partenaire porte sur des lignes du catalogue (`items`, 1 à 50 lignes). `amount` doit être **exactement** le total calculé à partir des prix validés.
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/payments \
+  -H "Authorization: Bearer sk_live_xxx" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: order-991" \
+  -d '{
+    "amount": 25000,
+    "payment_method": "ORANGE_MONEY",
+    "customer_phone": "+22370123456",
+    "client_reference": "order-991",
+    "return_url": "https://votre-site.com/merci?order=order-991",
+    "hosted_checkout": true,
+    "items": [
+      { "product_id": "PRODUCT_ID", "quantity": 1 }
+    ]
+  }'
+```
+
+Pour un lien de paiement live, passez `product_id` : le lien est à montant fixe, au prix validé.
+
+| Code | Cause |
+|------|-------|
+| `PARTNER_PRODUCT_REQUIRED` | Paiement ou lien live sans produit du catalogue |
+| `PARTNER_ITEMS_INVALID` | `items` mal formé (ligne en double, quantité hors 1 à 1000…) |
+| `PARTNER_PRODUCT_NOT_FOUND` | Produit inconnu |
+| `PARTNER_PRODUCT_NOT_APPROVED` | Produit pas (ou plus) validé par SahelPay |
+| `PARTNER_AMOUNT_MISMATCH` | `amount` différent du total du catalogue |
+| `PARTNER_WITHDRAWAL_CLOSED` | Retrait demandé alors que la redevance est versée par SahelPay |
+
+<Note>
+  En sandbox, `items` est facultatif : vous pouvez tester avec un montant libre.
+</Note>
+
+## Redevance
+
+Les relevés mensuels de redevance (PDF) sont disponibles dans le dashboard ; un relevé peut être contesté dans les 30 jours suivant son émission. Le versement se fait sur le numéro Orange Money à votre nom déclaré dans l'annexe du contrat.

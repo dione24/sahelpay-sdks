@@ -1,12 +1,12 @@
 ---
 title: Créer un paiement
 api: POST /v1/payments
-description: "Créer une intention de paiement"
+description: "Créer une intention de paiement Orange Money"
 ---
 
 # Créer un paiement
 
-Crée une nouvelle intention de paiement et retourne une URL de redirection vers le checkout.
+Crée une intention de paiement Orange Money et retourne l'URL vers laquelle rediriger le client.
 
 ## Endpoint
 
@@ -20,22 +20,30 @@ POST /v1/payments
 |--------|--------|-------------|
 | `Authorization` | ✅ | `Bearer sk_xxx` |
 | `Content-Type` | ✅ | `application/json` |
-| `X-Idempotency-Key` | Recommandé | Clé unique pour éviter les doublons |
+| `X-Idempotency-Key` | ✅ | Clé unique par paiement (128 caractères max). Absente : `400 IDEMPOTENCY_KEY_REQUIRED` |
 
 ## Body
 
 | Paramètre | Type | Requis | Description |
 |-----------|------|--------|-------------|
-| `amount` | integer | ✅ | Montant en FCFA (min: 100) |
-| `currency` | string | | Devise (défaut: `XOF`) |
-| `payment_method` | string | ✅ | `ORANGE_MONEY` (alias acceptés : `ORANGE`, `MOBILE_MONEY`). Toute autre valeur renvoie `400`. |
-| `country` | string | | Code pays ISO-2. Seul `ML` est desservi aujourd'hui. |
-| `customer_phone` | string | ✅ | Numéro de téléphone (+223...) |
+| `amount` | integer | ✅ | Montant en FCFA, entier entre 100 et 5 000 000 |
+| `currency` | string | | Code ISO-4217 (défaut : `XOF`) |
+| `payment_method` | string | | `MOBILE_MONEY` (défaut). Alias acceptés : `ORANGE_MONEY`, `ORANGE`. Toute autre valeur : `400` |
+| `provider` | string | | Ancien champ : `ORANGE_MONEY`, `ORANGE` ou `MOBILE_MONEY`. Toute autre valeur : `400` |
+| `country` | string | | Code ISO-2 (défaut : `ML`) |
+| `customer_phone` | string | | Numéro au format international (`+223...`) |
 | `customer_name` | string | | Nom du client |
 | `customer_email` | string | | Email du client |
-| `return_url` | string | ✅ | URL de retour après paiement |
-| `client_reference` | string | | Votre référence (order_id) |
-| `metadata` | object | | Données personnalisées. Ajoutez `sahelpay_mock: true` pour utiliser le simulateur SahelPay en test. |
+| `customer` | object | | Alternative : `{ phone, name, email }` |
+| `description` | string | | Description du paiement (renvoyée dans les webhooks) |
+| `client_reference` | string | | Votre référence de commande (120 caractères max), renvoyée dans les webhooks |
+| `return_url` | string | | URL HTTPS de votre site, hors domaines SahelPay. Le client y est renvoyé automatiquement après un paiement confirmé |
+| `success_url` / `cancel_url` | string | | URLs complémentaires conservées sur le paiement |
+| `hosted_checkout` | boolean | | `true` : `redirect_url` = checkout hébergé SahelPay. `false` (défaut API) : initiation immédiate, `redirect_url` = page Orange Money. Les SDKs envoient `true` par défaut |
+| `metadata` | object | | Données libres. `sahelpay_mock: true` (simulateur) ou `sandbox: true` (sandbox Orange) en test uniquement ; `marketplace` (objet, champs filtrés) |
+| `items` | array | | Partenaires SPAY : `[{ "product_id": "...", "quantity": 1 }]` (1 à 50 lignes). Obligatoire en production pour un partenaire validé ; `amount` doit égaler le total du catalogue |
+
+Les champs inconnus sont refusés (`400`).
 
 ## Exemple
 
@@ -53,76 +61,106 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
     "country": "ML",
     "customer_phone": "+22370123456",
     "customer_name": "Amadou Diallo",
-    "return_url": "https://votre-site.com/checkout/return",
-    "client_reference": "order_123",
-    "metadata": {
-      "sandbox": true,
-      "order_id": "order_123"
-    }
+    "description": "Commande #123",
+    "client_reference": "order-123",
+    "return_url": "https://votre-site.com/checkout/return?order=order-123",
+    "hosted_checkout": true
   }'
 ```
 
 ```javascript Node.js
-const response = await fetch('https://api.sahelpay.ml/v1/payments', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer sk_test_xxx',
-    'Content-Type': 'application/json',
-    'X-Idempotency-Key': 'order-123',
-  },
-  body: JSON.stringify({
-    amount: 5000,
-    currency: 'XOF',
-    payment_method: 'ORANGE_MONEY',
-    country: 'ML',
-    customer_phone: '+22370123456',
-    customer_name: 'Amadou Diallo',
-    return_url: 'https://votre-site.com/checkout/return',
-    client_reference: 'order_123',
-    metadata: { sandbox: true, order_id: 'order_123' },
-  }),
+const payment = await sahelpay.payments.create({
+  amount: 5000,
+  payment_method: 'ORANGE_MONEY',
+  customer_phone: '+22370123456',
+  customer_name: 'Amadou Diallo',
+  description: 'Commande #123',
+  client_reference: 'order-123',
+  return_url: 'https://votre-site.com/checkout/return?order=order-123',
+  idempotency_key: 'order-123',
 });
+```
+
+```python Python
+payment = client.payments.create(
+    amount=5000,
+    provider='ORANGE_MONEY',
+    customer_phone='+22370123456',
+    customer_name='Amadou Diallo',
+    description='Commande #123',
+    client_reference='order-123',
+    return_url='https://votre-site.com/checkout/return?order=order-123',
+    idempotency_key='order-123',
+)
+```
+
+```php PHP
+$payment = $sahelpay->payments->initiate([
+    'amount' => 5000,
+    'provider' => 'ORANGE_MONEY',
+    'customer_phone' => '+22370123456',
+    'customer_name' => 'Amadou Diallo',
+    'description' => 'Commande #123',
+    'client_reference' => 'order-123',
+    'return_url' => 'https://votre-site.com/checkout/return?order=order-123',
+    'idempotency_key' => 'order-123',
+]);
 ```
 
 </CodeGroup>
 
 ## Réponse
 
+`201 Created`
+
 ```json
 {
   "success": true,
   "data": {
-    "id": "txn_abc123def456",
-    "status": "PENDING",
+    "id": "8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "status": "INITIATED",
+    "payment_method": "MOBILE_MONEY",
+    "country": "ML",
     "amount": 5000,
+    "amount_order": 5000,
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
+    "fee_bearer": "MERCHANT",
     "currency": "XOF",
-    "payment_method": "ORANGE_MONEY",
-    "redirect_url": "https://pay.sahelpay.ml/checkout/txn_abc123def456",
-    "gateway_used": "internal_gateway_id",
-    "routing_reason": "Orange WebPay Direct — rail Orange Money Mali",
-    "expires_at": "2025-12-18T17:00:00.000Z",
-    "created_at": "2025-12-18T16:45:00.000Z"
+    "redirect_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "checkout_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "expires_at": null,
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:00:00.000Z"
   }
 }
 ```
 
-### Champs de routing
+- Avec `hosted_checkout: true`, le statut est `INITIATED` jusqu'à ce que le client ouvre le checkout.
+- Avec `hosted_checkout: false`, la réponse contient aussi `provider_ref` et `redirect_url` pointe vers Orange Money ; le statut passe à `PENDING`.
+- Les montants et frais suivent le forfait du marchand ; la répartition interne des frais n'est pas exposée.
 
-| Champ | Description |
-|-------|-------------|
-| `gateway_used` | Identifiant technique interne (pour monitoring uniquement) |
-| `routing_reason` | Explication du routing choisi par SahelPay |
+## Statuts
 
-<Note>
-  Ces champs sont **informatifs** et destinés au monitoring. Voir
-  [Méthodes de paiement](/guides/smart-routing) pour plus de détails.
-</Note>
+| Statut | Description |
+|--------|-------------|
+| `INITIATED` | Créé, pas encore initié auprès d'Orange |
+| `PENDING` | En attente de validation du client |
+| `SUCCESS` | Paiement confirmé |
+| `FAILED` | Paiement échoué |
+| `EXPIRED` | Expiré (délai écoulé ou `POST /v1/payments/{id}/expire`) |
 
 ## Erreurs
 
-| Code | Description |
-|------|-------------|
-| `INVALID_AMOUNT` | Montant invalide (< 100 ou > 5M) |
-| `MISSING_PHONE` | Numéro de téléphone requis |
-| `MISSING_RETURN_URL` | URL de retour requise |
-| `DUPLICATE_PAYMENT` | Paiement déjà créé (idempotence) |
+| HTTP | Code | Cause |
+|------|------|-------|
+| `400` | `IDEMPOTENCY_KEY_REQUIRED` | Header `X-Idempotency-Key` absent |
+| `400` | `BAD_REQUEST` | Champ invalide, provider autre qu'Orange Money, métadonnées de test en production, Orange Money indisponible |
+| `400` | `PARTNER_*` | Règles du [Programme Partenaires SPAY](/guides/partners) |
+| `401` | `PRODUCTION_KEY_DISABLED` | Clé live sans accès production |
+| `403` | `PAID_SUBSCRIPTION_REQUIRED` | Pas d'abonnement payé en cours |
+| `403` | `MERCHANT_PAYMENT_DISABLED` | Le compte ne peut pas recevoir ce paiement |
+| `403` | `PLAN_MONTHLY_VOLUME_EXCEEDED` / `KYC_PAYMENT_LIMIT_EXCEEDED` | Plafond atteint |
+| `409` | — | Même clé d'idempotence, demande différente |
+| `429` | `RATE_LIMIT_EXCEEDED` | Plus de 10 créations par minute |

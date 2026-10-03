@@ -5,40 +5,66 @@ description: "SDK PHP pour SahelPay"
 
 # PHP SDK
 
-Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP et Laravel.
+Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP 8+ et Laravel.
 
 ## Installation
 
+Le paquet `sahelpay/sahelpay-php` n'est pas encore publié sur Packagist. Installez-le depuis le dépôt via un *path repository* Composer :
+
 ```bash
-composer require sahelpay/sahelpay-php
+git clone https://github.com/dione24/sahelpay-sdks.git
 ```
 
-<Note>
-  En attendant la publication sur Packagist, clonez le repo GitHub :
-  ```bash
-  git clone https://github.com/dione24/sahelpay-sdks.git
-  ```
-</Note>
+```json
+{
+  "repositories": [{ "type": "path", "url": "../sahelpay-sdks/php" }]
+}
+```
+
+```bash
+composer require sahelpay/sahelpay-php:"*"
+```
 
 ## Configuration
 
 ```php
 use SahelPay\SahelPay;
 
-$sahelpay = new SahelPay('sk_test_xxx');
+$sahelpay = new SahelPay(
+    getenv('SAHELPAY_SECRET_KEY'),         // sk_test_... ou sk_live_...
+    null,                                   // clé publique (optionnelle)
+    ['webhook_secret' => getenv('SAHELPAY_WEBHOOK_SECRET')]
+);
 ```
 
-Le mode sandbox utilise la même base URL API (`https://api.sahelpay.ml`) avec une clé `sk_test_...`.
+La base URL est `https://api.sahelpay.ml` en sandbox comme en production ; le mode dépend de la clé.
 
 ### Laravel
 
+Le service provider lit `config/sahelpay.php` (`SAHELPAY_SECRET_KEY`, `SAHELPAY_WEBHOOK_SECRET`) et enregistre `SahelPay\SahelPay` en singleton : injectez-le dans vos contrôleurs.
+
+## Créer un paiement
+
 ```php
-// config/services.php
-'sahelpay' => [
-    'secret_key' => env('SAHELPAY_SECRET_KEY'),
-    'webhook_secret' => env('SAHELPAY_WEBHOOK_SECRET'),
-],
+$payment = $sahelpay->payments->initiate([
+    'amount' => 5000,
+    'provider' => 'ORANGE_MONEY',
+    'customer_phone' => '+22370123456',
+    'description' => 'Commande #123',
+    'client_reference' => 'order-123',
+    'return_url' => 'https://votre-site.com/checkout/return?order=order-123',
+    'idempotency_key' => 'order-123', // obligatoire côté API : toujours la fournir
+]);
+
+header('Location: ' . $payment->redirect_url);
+exit;
 ```
+
+<Note>
+  `X-Idempotency-Key` est obligatoire côté API. Sans `idempotency_key`, le SDK génère une clé aléatoire à
+  chaque appel : la requête passe, mais un retry créerait un second paiement. Fournissez une clé stable liée à
+  votre commande.
+</Note>
 
 ## Créer un lien de paiement
 
@@ -46,30 +72,24 @@ Le mode sandbox utilise la même base URL API (`https://api.sahelpay.ml`) avec u
 $link = $sahelpay->paymentLinks->create([
     'title' => 'Commande #123',
     'price' => 5000,
-    'redirect_url' => 'https://votre-site.com/checkout/return',
+    'redirect_url' => 'https://votre-site.com/merci',
 ]);
 
-// Rediriger le client
-header('Location: ' . $link->url);
-exit;
+$url = $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.ml/<slug>
 ```
 
 ## Tester sans appel opérateur
 
-L'option `mock` active le simulateur SahelPay : aucun appel opérateur, et le
-statut final est piloté par le montant (`4000` réussi, `4001` échoué, `4002` en
-attente, `4003` erreur opérateur).
-
-À ne pas confondre avec `sandbox`, qui appelle bien l'environnement de test de
-l'opérateur.
+L'option `mock` active le simulateur SahelPay (statut piloté par le montant : `4000` réussi, `4001` échoué, `4002` en attente, `4003` erreur opérateur). `sandbox` appelle l'environnement de test d'Orange. Les deux sont refusées avec une clé live.
 
 ```php
 $payment = $sahelpay->payments->initiate([
     'amount' => 4000,
     'provider' => 'ORANGE_MONEY',
     'customer_phone' => '+22370123456',
-    'return_url' => 'https://votre-site.com/checkout/return',
+    'hosted_checkout' => false,
     'mock' => true,
+    'idempotency_key' => 'test-4000-1',
 ]);
 
 $status = $sahelpay->payments->verify($payment->id);
@@ -81,67 +101,66 @@ $sahelpay->webhooks->test(); // envoie webhook.test vers votre endpoint configur
 ## Vérifier le statut
 
 ```php
-$payment = $sahelpay->payments->verify('txn_abc123');
+$payment = $sahelpay->payments->verify('8d6f1c2e-...');   // GET /v1/payments/{id}/status
+echo $payment->status; // INITIATED, PENDING, SUCCESS, FAILED, EXPIRED
 
-echo $payment->status; // 'PENDING', 'SUCCESS', 'FAILED'
-echo $payment->amount;
+$byOrder = $sahelpay->payments->search('order-123');      // par client_reference
 ```
 
 ## Vérifier un webhook
 
+`webhooks->constructEvent()` vérifie la signature avec le `webhook_secret` configuré et lève `WebhookSignatureException` si elle est invalide.
+
 ```php
-// Dans votre controller webhook
+use SahelPay\Exceptions\WebhookSignatureException;
+
 $rawBody = file_get_contents('php://input');
 $signature = $_SERVER['HTTP_X_SAHELPAY_SIGNATURE'] ?? '';
 
-$isValid = $sahelpay->webhooks->verify($rawBody, $signature);
-
-if (!$isValid) {
+try {
+    $event = $sahelpay->webhooks->constructEvent($rawBody, $signature);
+} catch (WebhookSignatureException $e) {
     http_response_code(401);
-    echo json_encode(['error' => 'Invalid signature']);
     exit;
 }
 
-$event = json_decode($rawBody, true);
-
-if ($event['event'] === 'payment.success') {
-    // Mettre à jour la commande
+if ($event->getType() === 'payment.success') {
+    $data = $event->getData(); // client_reference, id, amount...
 }
 
 http_response_code(200);
 echo json_encode(['received' => true]);
 ```
 
-## Laravel Controller
+### Laravel
 
 ```php
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use SahelPay\SahelPay;
-
-class WebhookController extends Controller
+public function handle(Request $request, SahelPay $sahelpay)
 {
-    public function handle(Request $request)
-    {
-        $sahelpay = new SahelPay(config('services.sahelpay.secret_key'));
-        
-        $isValid = $sahelpay->webhooks->verify(
-            $request->getContent(),
-            $request->header('X-SahelPay-Signature')
+    try {
+        $event = $sahelpay->webhooks->constructEvent(
+            $request->getContent(),               // corps brut, jamais $request->all()
+            $request->header('X-SahelPay-Signature', '')
         );
-
-        if (!$isValid) {
-            return response()->json(['error' => 'Invalid signature'], 401);
-        }
-
-        $event = $request->all();
-
-        if ($event['event'] === 'payment.success') {
-            // Mettre à jour la commande
-        }
-
-        return response()->json(['received' => true]);
+    } catch (WebhookSignatureException $e) {
+        return response()->json(['error' => 'Invalid signature'], 401);
     }
+
+    if ($event->getType() === 'payment.success') {
+        // Mettre à jour la commande
+    }
+
+    return response()->json(['received' => true]);
 }
 ```
+
+## Fonctions à éviter pour l'instant
+
+| Ressource | Raison |
+|-----------|--------|
+| `payouts` | Payouts automatiques indisponibles ; utilisez `withdrawals` |
+| `refunds` | Remboursements en ligne désactivés (`503`) |
+| `transactions->get()` | Appelle l'endpoint public de statut ; préférez `payments->verify()` |
+
+Les retraits sont exposés via `$sahelpay->withdrawals` (`create`, `quote`, `balance`, `list`, `cancel`).
+Les plans, abonnements et clients passent par `/v1/billing/*`.

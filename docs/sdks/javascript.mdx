@@ -5,22 +5,20 @@ description: "SDK JavaScript/TypeScript pour SahelPay"
 
 # JavaScript SDK
 
-Le SDK JavaScript officiel pour intégrer SahelPay dans vos applications Node.js, TypeScript ou Deno.
+Le SDK JavaScript officiel pour intégrer SahelPay côté serveur (Node.js, TypeScript).
 
 ## Installation
 
+Le paquet `@sahelpay/sdk` n'est pas encore publié sur npm. Installez-le depuis le dépôt :
+
 ```bash
-npm install @sahelpay/sdk
-# ou
-yarn add @sahelpay/sdk
+git clone https://github.com/dione24/sahelpay-sdks.git
+cd sahelpay-sdks/javascript && npm install && npm run build
+# puis dans votre projet
+npm install /chemin/vers/sahelpay-sdks/javascript
 ```
 
-<Note>
-  En attendant la publication sur npm, clonez le repo GitHub :
-  ```bash
-  git clone https://github.com/dione24/sahelpay-sdks.git
-  ```
-</Note>
+Le SDK utilise `fetch` global : Node.js 18 ou plus récent.
 
 ## Configuration
 
@@ -28,8 +26,8 @@ yarn add @sahelpay/sdk
 import SahelPay from '@sahelpay/sdk';
 
 const sahelpay = new SahelPay({
-  secretKey: process.env.SAHELPAY_SECRET_KEY!,
-  environment: 'sandbox' // sk_test_... utilise https://api.sahelpay.ml
+  secretKey: process.env.SAHELPAY_SECRET_KEY!, // sk_test_... ou sk_live_...
+  // baseUrl: 'https://api.sahelpay.ml', // défaut, identique en sandbox et en production
 });
 ```
 
@@ -39,32 +37,36 @@ const sahelpay = new SahelPay({
 const payment = await sahelpay.payments.create({
   amount: 5000,
   currency: 'XOF',
-  payment_method: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
+  payment_method: 'ORANGE_MONEY', // seul moyen de paiement
   customer_phone: '+22370123456',
-  return_url: 'https://votre-site.com/checkout/return',
   description: 'Commande #123',
-  sandbox: true, // environnement de test de l'opérateur
+  client_reference: 'order-123',
+  return_url: 'https://votre-site.com/checkout/return?order=order-123',
+  idempotency_key: 'order-123', // recommandé ; généré automatiquement sinon
 });
 
-// Rediriger le client vers Orange Money
-window.location.href = payment.redirect_url;
+// Renvoyer l'URL au frontend pour rediriger le client
+return { url: payment.redirect_url };
 ```
+
+- `X-Idempotency-Key` est obligatoire côté API. Fournissez une clé stable (liée à votre commande) pour que les retries ne créent jamais de doublon ; à défaut, le SDK en génère une aléatoire à chaque appel.
+- `hosted_checkout` vaut `true` par défaut : `redirect_url` (et `checkout_url`) pointe vers le checkout SahelPay.
+- Après un paiement confirmé, le client est renvoyé automatiquement vers `return_url`.
+- Partenaires SPAY : passez `items: [{ product_id, quantity }]` (voir [Programme Partenaires SPAY](/guides/partners)).
 
 ## Tester sans appel opérateur
 
 L'option `mock` active le simulateur SahelPay : aucun appel opérateur, et le
 statut final est piloté par le montant (`4000` réussi, `4001` échoué, `4002` en
-attente, `4003` erreur opérateur).
-
-À ne pas confondre avec `sandbox`, qui appelle bien l'environnement de test de
-l'opérateur.
+attente, `4003` erreur opérateur). À ne pas confondre avec `sandbox`, qui appelle
+l'environnement de test d'Orange. Les deux sont refusées avec une clé live.
 
 ```typescript
 const payment = await sahelpay.payments.create({
   amount: 4000,
   payment_method: 'ORANGE_MONEY',
   customer_phone: '+22370123456',
-  return_url: 'https://votre-site.com/checkout/return',
+  hosted_checkout: false, // la simulation démarre à l'initiation
   mock: true,
 });
 
@@ -74,30 +76,18 @@ console.log(result.status); // SUCCESS
 await sahelpay.webhooks.test(); // envoie webhook.test vers votre endpoint configuré
 ```
 
-## Méthodes de paiement disponibles
-
-| Méthode | Description | Pays |
-|---------|-------------|------|
-| `ORANGE_MONEY` | Orange Money | Mali |
-
-<Note>
-  SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement (ex: `ORANGE_MONEY`) et SahelPay choisit le meilleur gateway en interne selon le coût et la disponibilité.
-</Note>
-
 ## Vérifier le statut
 
 ```typescript
-const result = await sahelpay.payments.checkStatus('txn_abc123');
+const result = await sahelpay.payments.checkStatus(payment.id);
+console.log(result.status); // 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
 
-console.log(result.status); // 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
-console.log(result.payment.amount);
-console.log(result.payment.provider_ref);
+const byOrder = await sahelpay.payments.search('order-123'); // null si introuvable
 ```
 
 ## Vérifier un webhook
 
 ```typescript
-// Dans votre handler webhook
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get('x-sahelpay-signature');
@@ -106,9 +96,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  let payload;
+  let event;
   try {
-    payload = sahelpay.webhooks.constructEvent(
+    event = sahelpay.webhooks.constructEvent(
       rawBody,
       signature,
       process.env.SAHELPAY_WEBHOOK_SECRET!
@@ -117,25 +107,12 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const { event, data } = payload;
-
-  if (event === 'payment.success') {
-    // Mettre à jour la commande
+  if (event.event === 'payment.success') {
+    // Mettre à jour la commande event.data.client_reference
   }
 
   return Response.json({ received: true });
 }
-```
-
-## Types TypeScript
-
-```typescript
-import type {
-  PaymentResult,
-  PaymentStatus,
-  WebhookPayload,
-  WebhookVerificationResult,
-} from '@sahelpay/sdk/merchant';
 ```
 
 ## Gestion des erreurs
@@ -144,41 +121,22 @@ import type {
 import { SahelPayError } from '@sahelpay/sdk';
 
 try {
-  const payment = await sahelpay.payments.create({ ... });
+  await sahelpay.payments.create({ /* ... */ });
 } catch (error) {
   if (error instanceof SahelPayError) {
-    console.log(error.code);    // 'INVALID_AMOUNT'
-    console.log(error.message); // 'Montant minimum: 100 FCFA'
+    console.log(error.code);    // ex. 'PLAN_MONTHLY_VOLUME_EXCEEDED'
+    console.log(error.message);
   }
 }
 ```
 
-## Informations de Routing
+Voir [Codes d'erreur](/resources/error-codes).
 
-Chaque paiement retourne des informations sur le routing utilisé (pour monitoring) :
+## Fonctions à éviter pour l'instant
 
-```typescript
-const payment = await sahelpay.payments.create({ ... });
-
-console.log(payment.gateway_used);    // Identifiant technique interne
-console.log(payment.routing_reason);  // Explication du routing choisi
-```
-
-<Note>
-  Ces champs sont **informatifs uniquement** pour le monitoring. Le choix du routing est automatique et transparent pour vous.
-</Note>
-
-## Capabilities
-
-Vérifiez les fonctionnalités disponibles pour chaque méthode de paiement :
-
-```typescript
-import { hasCapability, getMethodsWithCapability } from '@sahelpay/sdk';
-
-// Vérifier si Orange Money supporte les payouts
-hasCapability('ORANGE_MONEY', 'payouts'); // true
-
-// Lister les méthodes avec QR code natif
-getMethodsWithCapability('payouts'); // ['ORANGE_MONEY']
-```
-
+| Helper | Raison |
+|--------|--------|
+| `payouts.*` | Payouts automatiques indisponibles ([détails](/guides/payouts)) |
+| `refunds.*` | Remboursements en ligne désactivés (`503`) |
+| `hasCapability()` & co. | Table statique : seul Orange Money, sans payouts automatiques |
+| `GatewayEventSource` / `useGatewayStream()` | Retiré de l'export public (flux admin SahelPay) |

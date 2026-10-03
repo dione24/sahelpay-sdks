@@ -39,6 +39,8 @@ class SahelPayServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(SahelPay::class, 'sahelpay');
+        // Les ressources (payments, withdrawals, plans, …) sont exposées
+        // par l'instance SahelPay et la façade SahelPay::withdrawals().
     }
 
     /**

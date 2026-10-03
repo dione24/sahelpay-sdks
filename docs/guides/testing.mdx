@@ -5,54 +5,69 @@ description: "Tester votre intégration SahelPay"
 
 # Tests
 
-Utilisez l'environnement sandbox pour tester votre intégration avant de passer en production.
+La sandbox est **gratuite** et ne demande aucun abonnement. Testez toute votre intégration avant de passer en production.
 
-## Environnement Sandbox
+## Environnement sandbox
 
 | | Sandbox | Production |
 |---|---------|------------|
 | **URL** | `https://api.sahelpay.ml` | `https://api.sahelpay.ml` |
 | **Clés** | `sk_test_xxx` | `sk_live_xxx` |
-| **Transactions** | Sandbox opérateur ou simulateur SahelPay | Réelles |
+| **Abonnement SahelPay** | Non requis | Payé et en cours |
+| **Transactions** | Sandbox Orange ou simulateur SahelPay | Réelles, plafonnées par le forfait |
 
-Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas de base URL différente pour les SDK.
+Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas de base URL différente pour les SDK. Un compte sans abonnement payé fonctionne entièrement en sandbox.
 
-## Montants de test
-
-Deux modes de test coexistent, et ils ne font pas la même chose :
+## Deux modes de test
 
 | Metadata | Option SDK | Effet |
 |----------|------------|-------|
-| `sandbox: true` | `sandbox` | Appelle l'**environnement de test de l'opérateur**. Valide l'intégration de bout en bout. |
+| `sandbox: true` | `sandbox` | Appelle l'**environnement de test d'Orange**. Valide l'intégration de bout en bout. |
 | `sahelpay_mock: true` | `mock` | Utilise le **simulateur SahelPay**. Aucun appel opérateur. |
 
-Avec le simulateur SahelPay (`sahelpay_mock: true`), le statut final est piloté par le montant :
+Ces métadonnées sont réservées aux clés de test : en production, elles sont refusées avec une erreur `400`.
+
+## Simulateur SahelPay
+
+Avec `sahelpay_mock: true`, le statut final est piloté par le montant :
 
 | Montant | Comportement |
 |---------|--------------|
 | `4000` | Paiement réussi |
-| `4001` | Paiement échoué |
+| `4001` | Paiement échoué (solde insuffisant) |
 | `4002` | Paiement en attente |
-| `4003` | Paiement échoué |
+| `4003` | Paiement échoué (erreur opérateur) |
 | Autre montant valide | Paiement réussi |
+
+La simulation démarre à l'initiation du paiement. Utilisez donc `hosted_checkout: false` (initiation immédiate), puis appelez `GET /v1/payments/{id}/status` : SahelPay applique le statut simulé et émet le webhook correspondant.
 
 ```bash
 curl -X POST https://api.sahelpay.ml/v1/payments \
   -H "Authorization: Bearer sk_test_xxx" \
   -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: test-4000-1" \
   -d '{
     "amount": 4000,
     "currency": "XOF",
     "payment_method": "ORANGE_MONEY",
     "customer_phone": "+22370123456",
-    "return_url": "https://votre-site.com/checkout/return",
-    "metadata": { "sahelpay_mock": true, "order_id": "order_test_1" }
+    "client_reference": "order_test_1",
+    "hosted_checkout": false,
+    "metadata": { "sahelpay_mock": true }
   }'
+
+curl https://api.sahelpay.ml/v1/payments/<id>/status \
+  -H "Authorization: Bearer sk_test_xxx"
 ```
+
+<Note>
+  Avec `hosted_checkout: true` (défaut des SDKs), le paiement reste `INITIATED` jusqu'à ce que le client
+  ouvre le checkout : la simulation ne s'applique qu'à partir de ce moment.
+</Note>
 
 ## Tester les webhooks
 
-### Avec ngrok (local)
+### Avec un tunnel (local)
 
 ```bash
 # Exposer votre serveur local
@@ -66,21 +81,22 @@ ngrok http 3000
 
 ```bash
 curl -X POST https://api.sahelpay.ml/v1/webhooks/test \
-  -H "Authorization: Bearer sk_test_xxx" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+  -H "Authorization: Bearer sk_test_xxx"
 ```
 
-Cet endpoint envoie un événement `webhook.test` vers l'URL webhook configurée dans le dashboard. Pour tester un vrai webhook métier `payment.success` ou `payment.failed`, créez un paiement avec `metadata.sandbox: true`, puis appelez `GET /v1/payments/{id}/status`.
+Cet endpoint envoie un événement `webhook.test` vers l'URL webhook configurée dans le dashboard. Pour un vrai `payment.success` ou `payment.failed`, utilisez le simulateur ci-dessus.
+
+En sandbox, `GET /v1/webhooks/events` liste les derniers événements émis pour votre compte (utilisé par la CLI de test).
 
 ## Checklist avant production
 
 <CheckboxGroup>
-  <Checkbox>Clés API production configurées</Checkbox>
-  <Checkbox>URL webhook production configurée</Checkbox>
+  <Checkbox>KYC approuvé, production activée et abonnement payé (voir [Passer en production](/guides/going-live))</Checkbox>
+  <Checkbox>Clés API production configurées côté serveur</Checkbox>
+  <Checkbox>URL webhook production configurée (HTTPS)</Checkbox>
   <Checkbox>Vérification de signature implémentée</Checkbox>
-  <Checkbox>Idempotence gérée (création + webhook)</Checkbox>
-  <Checkbox>Page de retour fonctionnelle</Checkbox>
-  <Checkbox>Gestion des erreurs</Checkbox>
-  <Checkbox>Logs en place</Checkbox>
+  <Checkbox>`X-Idempotency-Key` envoyé et webhooks dédupliqués</Checkbox>
+  <Checkbox>`return_url` en HTTPS avec votre référence de commande</Checkbox>
+  <Checkbox>Erreurs de plafond et de disponibilité gérées</Checkbox>
+  <Checkbox>Aucune métadonnée `sandbox` / `sahelpay_mock` envoyée en production</Checkbox>
 </CheckboxGroup>

@@ -5,7 +5,7 @@ description: "Portail client self-service pour gérer abonnements et transaction
 
 # Customer Portal
 
-Le **Customer Portal** est l'équivalent SahelPay du Stripe Customer Portal. Il permet à vos clients de gérer leur compte, consulter leur historique de transactions et gérer leurs abonnements, **sans que vous ayez à développer cette interface**.
+Le **Customer Portal** est un espace client hébergé par SahelPay. Il permet à vos clients de gérer leur compte, consulter leur historique de transactions et gérer leurs abonnements, **sans que vous ayez à développer cette interface**.
 
 ## Concept
 
@@ -85,7 +85,7 @@ header('Location: ' . $session->url);
   "success": true,
   "data": {
     "id": "portal_session_abc123",
-    "url": "https://pay.sahelpay.ml/portal/portal_xyz789...",
+    "url": "https://app.sahelpay.ml/portal/<token>",
     "customer_id": "cus_def456",
     "expires_at": "2025-01-02T12:00:00.000Z"
   }
@@ -129,19 +129,7 @@ Une fois redirigé vers le portal, le client peut :
 
 ## Retour sur votre site
 
-Quand le client clique sur "Retour" dans le portal, il est redirigé vers votre `return_url` :
-
-```javascript
-// https://votresite.com/account?portal_session=xxx
-app.get("/account", (req, res) => {
-  if (req.query.portal_session) {
-    // Le client revient du portal
-    res.render("account", { message: "Modifications sauvegardées" });
-  } else {
-    res.render("account");
-  }
-});
-```
+Si vous avez fourni un `return_url`, le portal affiche un lien de retour vers cette URL, telle quelle : SahelPay n'y ajoute aucun paramètre. Incluez-y ce dont votre page a besoin (par exemple `https://votresite.com/account?from=portal`).
 
 ## Cas d'usage
 

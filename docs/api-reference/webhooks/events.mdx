@@ -5,51 +5,54 @@ description: "Liste des événements webhook SahelPay"
 
 # Événements webhook
 
-SahelPay envoie des webhooks pour vous notifier des événements importants.
-
-## Événements disponibles
+## Événements émis
 
 | Événement | Description |
 |-----------|-------------|
-| `webhook.test` | Test de connectivité webhook |
-| `payment.success` | Paiement confirmé avec succès |
+| `payment.success` | Paiement confirmé |
 | `payment.failed` | Paiement échoué |
-| `payment.cancelled` | Paiement annulé par le client |
-| `payment.expired` | Délai de paiement expiré |
-| `payout.completed` | Payout envoyé avec succès |
-| `payout.failed` | Payout échoué |
+| `payment.pending` | Paiement en attente de confirmation opérateur |
+| `payment.expired` | Paiement expiré (délai écoulé, `POST /v1/payments/{id}/expire` ou réconciliation) |
+| `payment.updated` | Autre changement de statut |
+| `secure_order.paid` | Paiement sécurisé reçu, fonds bloqués |
+| `secure_order.released` | Livraison confirmée, fonds libérés |
+| `secure_order.refunded` | Acheteur remboursé |
+| `secure_order.disputed` | Litige ouvert par l'acheteur |
+| `secure_order.cancelled` | Commande sécurisée non payée annulée |
+| `invoice.created` | Facture d'échéance d'abonnement créée (avec `payment_url`) |
+| `subscription.payment_due` | Échéance d'abonnement (compatibilité, avec `payment_url`) |
+| `invoice.paid` | Facture réglée |
+| `subscription.renewed` | Abonnement prolongé après paiement |
+| `webhook.test` | Test de connectivité |
 
-## Format du payload
+<Warning>
+  `payment.cancelled`, `payout.completed`, `payout.failed` et `refund.*` ne sont pas émis : les payouts
+  automatiques et les remboursements en ligne ne sont pas disponibles.
+</Warning>
+
+## Enveloppe
 
 ```json
 {
+  "id": "evt_1759480000000_9f2c4e1a7b3d5c60",
   "event": "payment.success",
   "version": "v1",
-  "timestamp": "2025-12-18T16:37:00.000Z",
-  "data": {
-    "id": "txn_abc123",
-    "amount": 5000,
-    "currency": "XOF",
-    "status": "SUCCESS",
-    "provider": "ORANGE_MONEY",
-    "provider_ref": "OM123456789",
-    "customer_phone": "+22370123456",
-    "metadata": {
-      "order_id": "order_123"
-    },
-    "created_at": "2025-12-18T16:35:00.000Z",
-    "updated_at": "2025-12-18T16:37:00.000Z"
-  }
+  "timestamp": "2026-10-03T10:05:00.000Z",
+  "data": { }
 }
 ```
+
+Le contenu de `data` pour les paiements est détaillé dans le [guide webhooks](/guides/webhooks#format-du-payload-paiement).
 
 ## Headers
 
 | Header | Description |
 |--------|-------------|
-| `X-SahelPay-Signature` | `t=timestamp,v1=signature` |
+| `X-SahelPay-Signature` | `t=<timestamp>,v1=<signature>` |
 | `X-SahelPay-Timestamp` | Timestamp UNIX (secondes) |
 | `X-SahelPay-Event-ID` | ID unique de l'événement |
+| `X-SahelPay-Signature-Algorithm` | `HMAC-SHA256` |
+| `X-Request-ID` | Identifiant de corrélation |
 | `Content-Type` | `application/json` |
 
 ## Retry automatique

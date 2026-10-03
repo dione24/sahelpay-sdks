@@ -109,7 +109,7 @@ export interface PaymentStatus {
 }
 
 export interface WebhookPayload {
-  event: 'webhook.test' | 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payment.expired';
+  event: 'webhook.test' | 'payment.success' | 'payment.failed' | 'payment.pending' | 'payment.expired' | 'payment.updated' | (string & {});
   version: string;
   timestamp: string;
   data: {

@@ -71,7 +71,7 @@ const response = await fetch('https://api.sahelpay.ml/v1/portal/sessions', {
   "success": true,
   "data": {
     "id": "portal_session_abc123",
-    "url": "https://pay.sahelpay.ml/portal/portal_xyz789...",
+    "url": "https://app.sahelpay.ml/portal/<token>",
     "customer_id": "cus_def456",
     "expires_at": "2025-12-19T16:45:00.000Z"
   }
@@ -92,10 +92,9 @@ Les sessions expirent après **24 heures**. Si un client clique sur un lien expi
 
 ## Erreurs
 
-| Code | Description |
-|------|-------------|
-| `INVALID_PHONE` | Numéro de téléphone invalide |
-| `MISSING_RETURN_URL` | URL de retour requise |
+| HTTP | Cause |
+|------|-------|
+| `400` | `customer_phone` absent ou invalide (8 à 15 chiffres), `customer_email` ou `return_url` invalide (`return_url` est facultatif) |
 
 <Note>
   Le Customer Portal est hébergé par SahelPay. Vous n'avez qu'à créer une session et rediriger le client vers l'URL retournée.

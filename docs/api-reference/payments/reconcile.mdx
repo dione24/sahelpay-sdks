@@ -1,12 +1,14 @@
 ---
 title: Réconcilier un paiement
 api: POST /v1/payments/{id}/reconcile
-description: "Forcer la réconciliation manuelle d'un paiement en attente"
+description: "Revérifier auprès d'Orange Money un paiement en attente"
 ---
 
 # Réconcilier un paiement
 
-Si un paiement reste dans l'état `PENDING` (par exemple si un webhook a été manqué), cet endpoint permet de forcer SahelPay à vérifier le statut final auprès de l'opérateur et à mettre à jour la transaction.
+Si un paiement reste `PENDING` (par exemple après un webhook manqué), cet endpoint demande à SahelPay de revérifier son statut auprès d'Orange Money et de le mettre à jour. Un changement de statut déclenche le webhook correspondant.
+
+Limite : 10 appels par minute.
 
 ## Path Parameters
 
@@ -14,16 +16,31 @@ Si un paiement reste dans l'état `PENDING` (par exemple si un webhook a été m
 |-----------|------|--------|-------------|
 | `id` | string | ✅ | ID du paiement (UUID) |
 
+## Exemple
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/payments/8d6f1c2e-.../reconcile \
+  -H "Authorization: Bearer sk_live_xxx"
+```
+
+SDKs : `payments.reconcile(id)` (JS, Python), `$sahelpay->payments->reconcile($id)` (PHP).
+
 ## Réponse
 
 ```json
 {
   "success": true,
-  "updated": true,
-  "new_status": "SUCCESS"
+  "data": {
+    "id": "8d6f1c2e-...",
+    "updated": true,
+    "new_status": "SUCCESS",
+    "message": "PaymentIntent status updated to SUCCESS"
+  }
 }
 ```
 
+Si rien n'a changé : `updated: false` et `"message": "PaymentIntent still PENDING or already finalized"`. Si la vérification est impossible pour le moment : `200` avec `success: false` et un message invitant à réessayer.
+
 <Info>
-  SahelPay possède également un système de réconciliation automatique qui vérifie les paiements `PENDING` toutes les 10 minutes.
+  SahelPay réconcilie aussi automatiquement les paiements `PENDING` en arrière-plan.
 </Info>

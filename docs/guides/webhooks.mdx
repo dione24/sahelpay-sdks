@@ -5,7 +5,7 @@ description: "Recevoir et traiter les notifications de paiement"
 
 # Webhooks
 
-Les webhooks vous permettent de recevoir des notifications en temps réel sur les événements de paiement.
+Les webhooks vous notifient en temps réel des changements de statut. Configurez l'URL (HTTPS, publique) et récupérez le secret `whsec_...` dans le dashboard. Sans secret configuré, SahelPay n'envoie aucun webhook.
 
 <Warning>
   **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu et vérifié un webhook `payment.success`.
@@ -13,49 +13,80 @@ Les webhooks vous permettent de recevoir des notifications en temps réel sur le
 
 ## Événements
 
+### Paiements
+
 | Événement | Description |
 |-----------|-------------|
-| `webhook.test` | Test de connectivité envoyé par `/v1/webhooks/test` |
 | `payment.success` | Paiement confirmé |
 | `payment.failed` | Paiement échoué |
-| `payment.cancelled` | Paiement annulé par le client |
-| `payment.expired` | Délai de paiement expiré |
+| `payment.pending` | Paiement en attente de confirmation opérateur |
+| `payment.expired` | Paiement expiré, quelle qu'en soit la cause : délai écoulé, expiration manuelle (`POST /v1/payments/{id}/expire`) ou réconciliation |
+| `payment.updated` | Autre changement de statut |
+| `webhook.test` | Test de connectivité envoyé par `POST /v1/webhooks/test` |
 
-## Format du payload
+<Note>
+  Aucun événement `payment.cancelled`, `payout.*` ou `refund.*` n'est émis aujourd'hui.
+</Note>
+
+### Autres
+
+| Événement | Description |
+|-----------|-------------|
+| `secure_order.paid`, `secure_order.released`, `secure_order.refunded`, `secure_order.disputed`, `secure_order.cancelled` | [Paiement sécurisé à la livraison](/guides/secure-orders) |
+| `invoice.created`, `subscription.payment_due`, `invoice.paid`, `subscription.renewed` | [Abonnements clients](/guides/subscriptions) |
+
+<Note>
+  Le paiement de votre propre abonnement SahelPay ne déclenche jamais de webhook vers votre intégration.
+</Note>
+
+## Format du payload (paiement)
 
 ```json
 {
+  "id": "evt_1759480000000_9f2c4e1a7b3d5c60",
   "event": "payment.success",
   "version": "v1",
-  "timestamp": "2025-12-18T16:37:00.000Z",
+  "timestamp": "2026-10-03T10:05:00.000Z",
   "data": {
-    "id": "txn_abc123",
+    "id": "8d6f1c2e-...",
+    "reference_id": "order-123",
+    "client_reference": "order-123",
     "amount": 5000,
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
     "currency": "XOF",
     "status": "SUCCESS",
-    "provider": "ORANGE_MONEY",
-    "provider_ref": "OM123456789",
+    "provider": "orange_webpay_ml",
     "customer_phone": "+22370123456",
     "metadata": {
-      "order_id": "order_123"
+      "description": "Commande #123"
     },
-    "created_at": "2025-12-18T16:35:00.000Z",
-    "updated_at": "2025-12-18T16:37:00.000Z"
+    "dashboard_url": "https://app.sahelpay.ml/dashboard/transactions/8d6f1c2e-...",
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:05:00.000Z"
   }
 }
 ```
+
+- `data.id` est l'identifiant du paiement SahelPay ; `data.reference_id` vaut votre `client_reference`, ou l'`id` à défaut.
+- `data.metadata` ne contient que `description` et `marketplace` : vos métadonnées personnalisées ne sont pas renvoyées. Utilisez `client_reference` pour retrouver votre commande.
+- `data` contient aussi les montants et le total des frais (`amount_order`, `fee_total`, `fee_bearer`, `fee_calculation.total_fee`, `fee_calculation.merchant_receives`…). La répartition interne des frais (part opérateur / part SahelPay) n'est jamais exposée.
 
 ## Headers
 
 | Header | Description |
 |--------|-------------|
-| `X-SahelPay-Signature` | Signature HMAC pour vérification |
+| `X-SahelPay-Signature` | `t=<timestamp>,v1=<signature>` |
 | `X-SahelPay-Timestamp` | Timestamp UNIX (secondes) |
-| `X-SahelPay-Event-ID` | ID unique de l'événement |
+| `X-SahelPay-Event-ID` | ID unique de l'événement (= `id` du payload) |
+| `X-SahelPay-Signature-Algorithm` | `HMAC-SHA256` |
+| `X-Request-ID` | Identifiant de corrélation |
+| `User-Agent` | `SahelPay-Webhook/1.0` |
 
 ## Vérification de signature
 
-Le header `X-SahelPay-Signature` a le format : `t=timestamp,v1=signature`
+`v1 = hex(HMAC_SHA256(webhook_secret, "<t>.<corps brut>"))`. Vérifiez toujours sur le **corps brut** reçu, avant tout parsing JSON.
 
 <CodeGroup>
 
@@ -71,24 +102,21 @@ function verifyWebhook(rawBody, signatureHeader, secret) {
 
   const timestamp = parts['t'];
   const signature = parts['v1'];
+  if (!timestamp || !signature) return false;
 
   // Protection replay (5 min)
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - parseInt(timestamp)) > 300) {
+  if (Math.abs(now - parseInt(timestamp, 10)) > 300) {
     return false;
   }
 
-  // Vérifier signature
-  const payload = `${timestamp}.${rawBody}`;
   const expected = crypto
     .createHmac('sha256', secret)
-    .update(payload)
+    .update(`${timestamp}.${rawBody}`)
     .digest('hex');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  );
+  return signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 ```
 
@@ -98,22 +126,18 @@ import hashlib
 import time
 
 def verify_webhook(raw_body, signature_header, secret):
-    parts = dict(p.split('=') for p in signature_header.split(','))
+    parts = dict(p.split('=', 1) for p in signature_header.split(','))
     timestamp = parts.get('t')
     signature = parts.get('v1')
+    if not timestamp or not signature:
+        return False
 
     # Protection replay
     if abs(time.time() - int(timestamp)) > 300:
         return False
 
-    # Vérifier signature
     payload = f"{timestamp}.{raw_body}"
-    expected = hmac.new(
-        secret.encode(),
-        payload.encode(),
-        hashlib.sha256
-    ).hexdigest()
-
+    expected = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
     return hmac.compare_digest(signature, expected)
 ```
 
@@ -127,25 +151,27 @@ function verifyWebhook($rawBody, $signatureHeader, $secret) {
 
     $timestamp = $parts['t'] ?? null;
     $signature = $parts['v1'] ?? null;
+    if (!$timestamp || !$signature) {
+        return false;
+    }
 
     // Protection replay
     if (abs(time() - (int)$timestamp) > 300) {
         return false;
     }
 
-    // Vérifier signature
-    $payload = "{$timestamp}.{$rawBody}";
-    $expected = hash_hmac('sha256', $payload, $secret);
-
+    $expected = hash_hmac('sha256', "{$timestamp}.{$rawBody}", $secret);
     return hash_equals($expected, $signature);
 }
 ```
 
 </CodeGroup>
 
+Les SDKs le font pour vous : `sahelpay.webhooks.constructEvent()` (JS), `client.webhooks.construct_event()` (Python), `$sahelpay->webhooks->constructEvent()` (PHP).
+
 ## Retry automatique
 
-SahelPay retente automatiquement les webhooks en cas d'échec :
+En cas d'échec (réponse non 2xx ou timeout), SahelPay retente avec un backoff exponentiel :
 
 | Tentative | Délai |
 |-----------|-------|
@@ -155,19 +181,15 @@ SahelPay retente automatiquement les webhooks en cas d'échec :
 | 4 | 4 minutes |
 | 5 | 8 minutes |
 
-Après 5 tentatives, le webhook est marqué comme `FAILED`.
+Après 5 tentatives, le webhook est marqué comme `FAILED`. Vous pouvez consulter les livraisons et relancer depuis le dashboard ou via `GET /v1/webhooks/logs` et `POST /v1/webhooks/logs/{id}/retry`.
 
 ## Tester les webhooks
-
-Pour tester la connectivité sans créer de paiement, utilisez l'endpoint de test ou le helper SDK:
 
 <CodeGroup>
 
 ```bash cURL
 curl -X POST https://api.sahelpay.ml/v1/webhooks/test \
-  -H "Authorization: Bearer sk_test_xxx" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+  -H "Authorization: Bearer sk_test_xxx"
 ```
 
 ```typescript Node.js
@@ -184,18 +206,18 @@ $sahelpay->webhooks->test();
 
 </CodeGroup>
 
-Cet appel envoie `webhook.test` vers l'URL configurée dans le dashboard. Pour tester un événement métier `payment.success` ou `payment.failed`, créez un paiement avec `metadata.sandbox: true`, puis appelez `GET /v1/payments/{id}/status`.
+Cet appel (5 par minute au maximum) envoie `webhook.test` vers l'URL configurée. Pour recevoir un vrai `payment.success` ou `payment.failed` sans appel opérateur, créez un paiement simulé (`metadata.sahelpay_mock: true`, `hosted_checkout: false`) puis appelez `GET /v1/payments/{id}/status` : voir [Tests](/guides/testing).
 
 ## Bonnes pratiques
 
 <AccordionGroup>
   <Accordion title="Répondre rapidement">
-    Répondez avec un `200 OK` en moins de 5 secondes. Si le traitement est long, faites-le en async.
+    Répondez `200 OK` en quelques secondes. Si le traitement est long, faites-le en asynchrone.
   </Accordion>
   <Accordion title="Gérer l'idempotence">
-    Utilisez `X-SahelPay-Event-ID` pour éviter de traiter deux fois le même événement.
+    Un même événement peut arriver plusieurs fois : dédupliquez sur `X-SahelPay-Event-ID` (ou `id` du payload).
   </Accordion>
-  <Accordion title="Logger les événements">
-    Conservez un log de tous les webhooks reçus pour le debug.
+  <Accordion title="Ne pas suivre de redirection">
+    SahelPay n'en suit aucune : votre endpoint doit répondre directement, en HTTPS, sur une adresse publique.
   </Accordion>
 </AccordionGroup>

@@ -85,11 +85,17 @@ Ce document définit le **contrat d'intégration officiel** pour toutes les appl
 2. **Backend crée le paiement** → `POST /v1/payments` vers SahelPay
 3. **SahelPay retourne** → `redirect_url` vers le checkout
 4. **Client redirigé** → Page de paiement SahelPay
-5. **Client paie** → Via Orange Money, Wave, etc.
-6. **Provider confirme** → SahelPay reçoit la confirmation
+5. **Client paie** → Via Orange Money (seul moyen de paiement ; libellé `SPAY-<nom du marchand>`)
+6. **Orange confirme** → SahelPay vérifie la confirmation
 7. **Webhook envoyé** → `payment.success` vers l'app ⚠️ **SOURCE DE VÉRITÉ**
-8. **Client redirigé** → Vers `return_url` de l'app
-9. **Page return** → Vérifie le statut (UX uniquement)
+8. **Client redirigé** → Automatiquement vers `return_url` après un paiement **confirmé** (HTTPS, hors domaines SahelPay, sans paramètre ajouté)
+9. **Page return** → Vérifie le statut côté serveur à partir de `order_id` (UX uniquement)
+
+### Prérequis production
+
+- Sandbox (`sk_test_...`) gratuite, sans abonnement.
+- Live (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay et **abonnement SahelPay payé en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon).
+- Plafond mensuel live selon le forfait : 200 000 FCFA pour Starter et Pro (`403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
 
 ---
 
@@ -108,7 +114,7 @@ async function createPayment(
   amount: number,
   customer: Customer
 ) {
-  // Générer une clé d'idempotence unique
+  // Clé d'idempotence stable par commande (header obligatoire)
   const idempotencyKey = `${APP_NAME}-order-${orderId}`;
 
   const response = await fetch(`${SAHELPAY_API_URL}/v1/payments`, {
@@ -129,7 +135,8 @@ async function createPayment(
         email: customer.email,
       },
       return_url: `${APP_URL}/checkout/return?order_id=${orderId}`,
-      client_reference: orderId,
+      client_reference: orderId, // renvoyé dans chaque webhook
+      hosted_checkout: true,
       metadata: {
         app_order_id: orderId,
         app_user_id: customer.id,
@@ -173,6 +180,7 @@ async function createPayment(
   },
   "return_url": "https://app.example.com/checkout/return?order_id=xxx",
   "client_reference": "order_abc123",
+  "hosted_checkout": true,
   "metadata": {
     "app_order_id": "order_abc123",
     "app_user_id": "user_xyz"
@@ -180,19 +188,23 @@ async function createPayment(
 }
 ```
 
+> Seul Orange Money est accepté (`payment_method`: `MOBILE_MONEY`, `ORANGE_MONEY` ou `ORANGE`). Les `metadata` personnalisées sont conservées sur le paiement mais **ne sont pas renvoyées dans les webhooks** : utilisez `client_reference`.
+
 ### 3. Réponse SahelPay
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "txn_abc123def456",
-    "status": "PENDING",
+    "id": "8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "status": "INITIATED",
     "amount": 5000,
+    "amount_charged": 5000,
+    "fee_total": 50,
     "currency": "XOF",
-    "redirect_url": "https://pay.sahelpay.ml/checkout/txn_abc123def456",
-    "expires_at": "2025-12-18T17:00:00.000Z",
-    "created_at": "2025-12-18T16:45:00.000Z"
+    "redirect_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "checkout_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "created_at": "2026-10-03T10:00:00.000Z"
   }
 }
 ```
@@ -212,35 +224,42 @@ async function createPayment(
 
 ```json
 {
+  "id": "evt_1759480000000_9f2c4e1a7b3d5c60",
   "event": "payment.success",
   "version": "v1",
-  "timestamp": "2025-12-18T16:50:00.000Z",
+  "timestamp": "2026-10-03T10:05:00.000Z",
   "data": {
-    "id": "txn_abc123def456",
-    "reference_id": "txn_abc123def456",
+    "id": "8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "reference_id": "order_abc123",
+    "client_reference": "order_abc123",
     "amount": 5000,
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
     "currency": "XOF",
     "status": "SUCCESS",
-    "provider": "ORANGE_MONEY",
-    "provider_ref": "OM123456789",
+    "provider": "orange_webpay_ml",
     "customer_phone": "+22370123456",
     "metadata": {
-      "app_order_id": "order_abc123",
-      "app_user_id": "user_xyz"
+      "description": "Commande #123"
     },
-    "created_at": "2025-12-18T16:45:00.000Z",
-    "updated_at": "2025-12-18T16:50:00.000Z"
+    "dashboard_url": "https://app.sahelpay.ml/dashboard/transactions/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:05:00.000Z"
   }
 }
 ```
 
+Événements de paiement émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated` (plus `webhook.test`). Aucun `payment.cancelled`.
+
 ### Headers webhook
 
-| Header                 | Description                |
-| ---------------------- | -------------------------- |
-| `X-SahelPay-Signature` | `t=timestamp,v1=signature` |
-| `X-SahelPay-Timestamp` | Timestamp UNIX (secondes)  |
-| `X-SahelPay-Event-ID`  | ID unique de l'événement   |
+| Header                           | Description                |
+| -------------------------------- | -------------------------- |
+| `X-SahelPay-Signature`           | `t=timestamp,v1=signature` |
+| `X-SahelPay-Timestamp`           | Timestamp UNIX (secondes)  |
+| `X-SahelPay-Event-ID`            | ID unique de l'événement   |
+| `X-SahelPay-Signature-Algorithm` | `HMAC-SHA256`              |
 
 ### Implémentation webhook
 
@@ -278,7 +297,10 @@ function verifySignature(
     .update(payload)
     .digest("hex");
 
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  return (
+    signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+  );
 }
 
 export async function POST(request: Request) {
@@ -291,7 +313,7 @@ export async function POST(request: Request) {
   }
 
   const { event, data } = JSON.parse(rawBody);
-  const orderId = data.metadata?.app_order_id;
+  const orderId = data.client_reference; // les metadata personnalisées ne sont pas renvoyées
 
   // 2. Idempotence: vérifier si déjà traité
   const existing = await db.payments.findByTransactionId(data.id);
@@ -309,6 +331,10 @@ export async function POST(request: Request) {
 
     case "payment.failed":
       await db.payments.update(data.id, { status: "failed" });
+      break;
+
+    case "payment.expired":
+      await db.payments.update(data.id, { status: "expired" });
       break;
   }
 
@@ -338,7 +364,7 @@ headers: {
 // Vérifier si le paiement est déjà dans un état terminal
 const existing = await db.payments.findByTransactionId(data.id);
 
-if (existing && ["success", "failed", "cancelled"].includes(existing.status)) {
+if (existing && ["success", "failed", "expired"].includes(existing.status)) {
   console.log(`Payment ${data.id} already processed`);
   return Response.json({ received: true, already_processed: true });
 }
@@ -348,13 +374,16 @@ if (existing && ["success", "failed", "cancelled"].includes(existing.status)) {
 
 ## Erreurs courantes
 
-| Code                   | Description                      | Action                    |
-| ---------------------- | -------------------------------- | ------------------------- |
-| `INVALID_AMOUNT`       | Montant invalide (< 100 ou > 5M) | Vérifier le montant       |
-| `INVALID_PHONE`        | Numéro de téléphone invalide     | Format: +223XXXXXXXX      |
-| `ALREADY_PAID`         | Commande déjà payée              | Vérifier l'idempotence    |
-| `PAYMENT_EXPIRED`      | Paiement expiré                  | Créer un nouveau paiement |
-| `INSUFFICIENT_BALANCE` | Solde client insuffisant         | Informer le client        |
+| Code (HTTP)                          | Description                                               | Action                                  |
+| ------------------------------------ | --------------------------------------------------------- | --------------------------------------- |
+| `IDEMPOTENCY_KEY_REQUIRED` (400)     | Header `X-Idempotency-Key` absent                         | Toujours l'envoyer                      |
+| `BAD_REQUEST` (400)                  | Montant hors 100–5 000 000, téléphone non international, provider autre qu'Orange | Corriger la requête |
+| `PAID_SUBSCRIPTION_REQUIRED` (403)   | Pas d'abonnement SahelPay payé pour le live               | Payer l'abonnement (dashboard)          |
+| `PLAN_MONTHLY_VOLUME_EXCEEDED` (403) | Plafond mensuel du forfait atteint                        | Attendre le mois suivant / changer d'offre |
+| `KYC_PAYMENT_LIMIT_EXCEEDED` (403)   | Plafond KYC dépassé                                       | Compléter le KYC                        |
+| — (409)                              | Même clé d'idempotence, demande différente                | Vérifier la commande avant de réessayer |
+
+Un paiement expiré (`payment.expired`) ne se relance pas : créez un nouveau paiement avec une nouvelle clé d'idempotence.
 
 ---
 
@@ -362,7 +391,7 @@ if (existing && ["success", "failed", "cancelled"].includes(existing.status)) {
 
 ### 🚫 INTERDICTIONS ABSOLUES
 
-1. **NE PAS appeler Orange / CinetPay / Wave directement**
+1. **NE PAS appeler Orange Money directement**
 
    - Tout passe par SahelPay
 
@@ -407,12 +436,13 @@ if (existing && ["success", "failed", "cancelled"].includes(existing.status)) {
 - [ ] Idempotence sur création de paiement
 - [ ] Idempotence sur traitement webhook
 - [ ] Bouton "Payer avec SahelPay" dans l'UI
-- [ ] Tests en sandbox avant production
+- [ ] Tests en sandbox avant production (simulateur : `metadata.sahelpay_mock: true`)
+- [ ] KYC approuvé, accès production et abonnement SahelPay payé avant le passage en live
 
 ---
 
 ## Support
 
-- Documentation API: https://docs.sahelpay.ml
-- Swagger: https://api.sahelpay.ml/docs
-- Email: support@sahelpay.ml
+- Documentation API : https://docs.sahelpay.ml
+- Dashboard : https://app.sahelpay.ml
+- Email : support@sahelpay.africa

@@ -1,0 +1,41 @@
+---
+title: Confirmer la livraison
+api: POST /v1/secure-orders/{id}/confirm-delivery
+description: "Libérer les fonds avec le code de livraison de l'acheteur"
+---
+
+# Confirmer la livraison
+
+Même vérification que la page livreur (`delivery_url`) : le code à 6 chiffres reçu par l'acheteur libère les fonds sur votre solde.
+
+## Endpoint
+
+```
+POST /v1/secure-orders/{id}/confirm-delivery
+```
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `code` | string | ✅ | Code de livraison communiqué par l'acheteur à la réception |
+
+## Exemple
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/secure-orders/5f0c2c55-.../confirm-delivery \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "code": "482913" }'
+```
+
+En cas de succès, `data` est l'objet paiement sécurisé au statut `RELEASED` et le webhook `secure_order.released` est émis.
+
+## Erreurs
+
+| HTTP | Code | Cause |
+|------|------|-------|
+| `409` | `NOT_PAID` | La commande n'est pas encore payée |
+| `409` | `ORDER_CLOSED` | Commande annulée ou remboursée |
+| `410` | `DELIVERY_EXPIRED` | Délai dépassé : l'acheteur est remboursé automatiquement |
+| `429` | `CODE_LOCKED` | 5 codes incorrects : confirmation par code bloquée, contactez le support |
