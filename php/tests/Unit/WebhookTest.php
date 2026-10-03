@@ -38,9 +38,15 @@ class WebhookTest extends TestCase
     {
         $payload = '{"event":"payment.success","data":{"reference_id":"SP-123"}}';
         $header = 't=123,v1=invalid_signature';
-        
+
+        $this->assertFalse($this->webhook->verify($payload, $header, 10 ** 12));
+    }
+
+    public function testConstructEventThrowsOnInvalidSignature(): void
+    {
+        $payload = '{"event":"payment.success","data":{"reference_id":"SP-123"}}';
         $this->expectException(WebhookSignatureException::class);
-        $this->webhook->verify($payload, $header);
+        $this->webhook->constructEvent($payload, 't=123,v1=invalid_signature', 10 ** 12);
     }
 
     public function testCanParsePayload(): void

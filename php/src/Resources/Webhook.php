@@ -46,13 +46,12 @@ class Webhook
     }
 
     /**
-     * Vérifier la signature d'un webhook (format Stripe-like)
-     * 
-     * @param string $payload Le body brut de la requête
-     * @param string $signatureHeader Le header X-SahelPay-Signature complet
-     * @param int $tolerance Tolérance en secondes pour le timestamp (défaut: 300)
-     * @return bool True si la signature est valide
-     * @throws WebhookSignatureException Si le format est invalide ou la signature incorrecte
+     * Vérifier la signature d'un webhook.
+     *
+     * Format actuel : X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>.
+     * Repli legacy : header = HMAC-SHA256 hex du body seul.
+     *
+     * @return bool True si la signature est valide, false sinon (y compris replay hors tolérance)
      */
     public function verify(string $payload, string $signatureHeader, int $tolerance = self::DEFAULT_TOLERANCE): bool
     {
@@ -62,46 +61,37 @@ class Webhook
             throw new \RuntimeException("Webhook secret non configuré");
         }
 
-        // Parser le header de signature (format: t=...,v1=...)
         $parts = $this->parseSignatureHeader($signatureHeader);
-        
         $timestamp = $parts['t'] ?? null;
         $signature = $parts['v1'] ?? null;
 
-        if (!$timestamp || !$signature) {
-            throw new WebhookSignatureException("Format de signature invalide. Attendu: t=<timestamp>,v1=<signature>");
+        if ($timestamp !== null && $signature !== null) {
+            if (!ctype_digit($timestamp)) {
+                return false;
+            }
+
+            if (abs(time() - (int) $timestamp) > $tolerance) {
+                return false;
+            }
+
+            $expectedSignature = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
+            return hash_equals($expectedSignature, $signature);
         }
 
-        // Protection contre les replay attacks
-        $now = time();
-        if (abs($now - intval($timestamp)) > $tolerance) {
-            throw new WebhookSignatureException("Timestamp trop ancien, possible replay attack");
-        }
-
-        // Calculer la signature attendue
-        $signaturePayload = $timestamp . '.' . $payload;
-        $expectedSignature = hash_hmac('sha256', $signaturePayload, $secret);
-
-        // Comparaison timing-safe
-        if (!hash_equals($expectedSignature, $signature)) {
-            throw new WebhookSignatureException("Signature invalide");
-        }
-
-        return true;
+        $expectedLegacySignature = hash_hmac('sha256', $payload, $secret);
+        return hash_equals($expectedLegacySignature, $signatureHeader);
     }
 
     /**
      * Construire et vérifier un événement webhook
-     * 
-     * @param string $payload Le body brut de la requête
-     * @param string $signatureHeader Le header X-SahelPay-Signature
-     * @param int $tolerance Tolérance en secondes pour le timestamp
-     * @return WebhookEvent L'événement vérifié
+     *
      * @throws WebhookSignatureException Si la signature est invalide
      */
     public function constructEvent(string $payload, string $signatureHeader, int $tolerance = self::DEFAULT_TOLERANCE): WebhookEvent
     {
-        $this->verify($payload, $signatureHeader, $tolerance);
+        if (!$this->verify($payload, $signatureHeader, $tolerance)) {
+            throw new WebhookSignatureException('Invalid webhook signature');
+        }
         return $this->parse($payload);
     }
 
