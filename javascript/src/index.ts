@@ -24,6 +24,29 @@
  * ```
  */
 
+import { SahelPayError } from './errors';
+
+export { SahelPayError } from './errors';
+export {
+  CAPABILITIES,
+  CAPABILITY_DESCRIPTIONS,
+  hasCapability,
+  getCapabilities,
+  getCapabilityDescription,
+  getMethodsWithCapability,
+  type PaymentMethod,
+  type Capability,
+  type ProviderCapabilities,
+} from './capabilities';
+
+async function generateIdempotencyKey(explicit?: string): Promise<string> {
+  if (explicit) return explicit;
+  const uuid =
+    globalThis.crypto?.randomUUID?.() ??
+    (await import('node:crypto')).randomUUID();
+  return `sdk_${uuid}`;
+}
+
 declare const require: any;
 
 export interface SahelPayConfig {
@@ -84,7 +107,10 @@ export interface CreatePaymentParams {
   return_url?: string;
   success_url?: string;
   cancel_url?: string;
+  /** Stable par commande ; réutilisez-la pour les retries. Générée si absente. */
   idempotency_key?: string;
+  /** Partenaires SPAY : lignes du catalogue validé ; le montant doit en être le total exact. */
+  items?: Array<{ product_id: string; quantity?: number }>;
   /**
    * Si true, redirige vers la page de checkout SahelPay avant le provider.
    * Si false, initie directement le paiement et redirige vers le provider.
@@ -100,7 +126,7 @@ export interface Payment {
   amount: number;
   currency: string;
   provider: string;
-  status: 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+  status: 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
   customer_phone: string;
   description?: string;
   payment_method?: string;
@@ -184,8 +210,30 @@ export interface PayoutStats {
   total_volume: number;
 }
 
+/** Événements webhook émis par SahelPay vers le marchand. */
+export type WebhookEventType =
+  | 'payment.success'
+  | 'payment.failed'
+  | 'payment.pending'
+  | 'payment.expired'
+  | 'payment.updated'
+  | 'secure_order.paid'
+  | 'secure_order.released'
+  | 'secure_order.refunded'
+  | 'secure_order.disputed'
+  | 'secure_order.cancelled'
+  | 'subscription.renewed'
+  | 'subscription.payment_due'
+  | 'invoice.created'
+  | 'invoice.paid'
+  | 'webhook.test';
+
 export interface WebhookEvent {
-  event: 'webhook.test' | 'payment.success' | 'payment.failed' | 'payment.cancelled' | 'payout.completed' | 'payout.failed' | 'subscription.payment_due' | 'subscription.cancelled' | 'refund.success' | 'refund.failed';
+  /** Identifiant unique de l'événement : dédupliquez sur ce champ. */
+  id: string;
+  /** Les événements ajoutés plus tard arrivent comme des chaînes : ignorez ceux que vous ne gérez pas. */
+  event: WebhookEventType | (string & {});
+  version?: string;
   data: Payment | Payout | SubscriptionWebhookData | Refund | Record<string, any>;
   timestamp: string;
 }
@@ -205,22 +253,29 @@ export interface Refund {
 }
 
 export interface CreateRefundParams {
+  /** Identifiant du paiement (PaymentIntent) à rembourser. */
   payment_id: string;
+  /** Montant entier en XOF. */
   amount: number;
   reason?: string;
   refund_fees?: boolean;
+  /** Stable par remboursement ; réutilisez-la pour les retries. Générée si absente. */
+  idempotency_key?: string;
 }
 
 // ==================== PLANS ====================
 
+export type PlanInterval = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+
 export interface Plan {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   amount: number;
   currency: string;
-  interval: 'WEEKLY' | 'MONTHLY';
+  interval: PlanInterval;
   is_active: boolean;
+  /** Renvoyé par `plans.list()` uniquement. */
   subscriber_count?: number;
   created_at: string;
 }
@@ -232,16 +287,44 @@ export interface CreatePlanParams {
   description?: string;
 }
 
+export interface UpdatePlanParams {
+  name?: string;
+  description?: string;
+  amount?: number;
+  is_active?: boolean;
+}
+
+export interface DeletePlanResult {
+  /** false si le plan avait déjà des abonnements : il est alors seulement désactivé. */
+  deleted: boolean;
+  is_active?: boolean;
+  message?: string;
+}
+
+export interface SendPlanLinkResult {
+  subscription_id: string;
+  invoice_id: string;
+  payment_link: {
+    id: string;
+    url: string;
+    amount: number;
+  };
+  sms_sent: boolean;
+  message: string;
+}
+
 // ==================== SUBSCRIPTIONS ====================
+
+export type SubscriptionStatus = 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INCOMPLETE';
 
 export interface Subscription {
   id: string;
-  plan_id: string;
+  /** Renvoyé par `subscriptions.create()` ; dans `list()`, utilisez `plan.id`. */
+  plan_id?: string;
   plan_name?: string;
   customer_phone: string;
-  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+  status: SubscriptionStatus;
   next_billing_date: string;
-  retry_count: number;
   plan?: {
     id: string;
     name: string;
@@ -255,6 +338,32 @@ export interface CreateSubscriptionParams {
   plan_id: string;
   customer_phone: string;
   start_date?: string; // ISO date, defaults to now
+}
+
+export interface CreateSubscriptionWithPaymentResult {
+  subscription: {
+    id: string;
+    plan_id: string;
+    plan_name: string;
+    plan_amount: number;
+    customer_phone: string;
+    /** `INCOMPLETE` jusqu'au paiement de la première facture. */
+    status: SubscriptionStatus;
+    next_billing_date: string;
+    created_at: string;
+  };
+  invoice: {
+    id: string;
+    invoice_number: string;
+    status: string;
+    total: number;
+    amount_due: number;
+  };
+  payment_link: {
+    id: string;
+    url: string;
+    amount: number;
+  };
 }
 
 export interface SubscriptionWebhookData {
@@ -272,20 +381,26 @@ export interface SubscriptionWebhookData {
 
 // ==================== CUSTOMERS ====================
 
+/**
+ * Client final d'un marchand. Créé automatiquement par SahelPay (abonnement,
+ * lien de plan, session portail) : il n'y a pas d'API de création directe.
+ */
 export interface Customer {
   id: string;
   phone: string;
-  name?: string;
-  email?: string;
-  metadata?: Record<string, any>;
+  name?: string | null;
+  email?: string | null;
+  transaction_count: number;
+  total_spent: number;
+  last_transaction_at?: string | null;
   created_at: string;
 }
 
-export interface CreateCustomerParams {
-  phone: string;
-  name?: string;
-  email?: string;
-  metadata?: Record<string, any>;
+export interface ListCustomersParams {
+  /** Filtre sur téléphone, nom ou e-mail. */
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 // ==================== PORTAL ====================
@@ -345,10 +460,11 @@ class PaymentsAPI {
       success_url: params.success_url,
       cancel_url: params.cancel_url,
       hosted_checkout: params.hosted_checkout ?? true,
+      items: params.items,
     }, {
-      headers: params.idempotency_key
-        ? { 'X-Idempotency-Key': params.idempotency_key }
-        : undefined,
+      headers: {
+        'X-Idempotency-Key': await generateIdempotencyKey(params.idempotency_key),
+      },
     });
 
     const data = response.data;
@@ -366,6 +482,7 @@ class PaymentsAPI {
       country: data.country,
       provider_ref: data.provider_ref,
       redirect_url: data.redirect_url,
+      checkout_url: data.checkout_url,
       expires_at: data.expires_at,
       metadata: data.metadata,
       gateway_used: data.gateway_used,
@@ -410,6 +527,7 @@ class PaymentsAPI {
       country: data.country,
       provider_ref: data.provider_ref,
       redirect_url: data.redirect_url,
+      checkout_url: data.checkout_url,
       expires_at: data.expires_at,
       metadata: data.metadata,
       gateway_used: data.gateway_used,
@@ -569,7 +687,7 @@ class PaymentsAPI {
             options.onStatus(status, payment);
           }
 
-          if (['SUCCESS', 'FAILED', 'CANCELLED'].includes(status)) {
+          if (['SUCCESS', 'FAILED', 'EXPIRED'].includes(status)) {
             resolve(payment);
             return;
           }
@@ -667,6 +785,10 @@ class PaymentLinksAPI {
   }
 }
 
+/**
+ * @deprecated Les payouts sont refusés par la plateforme (aucun transfert
+ * automatique Orange Money). Utilisez `withdrawals.create` (retrait manuel).
+ */
 class PayoutsAPI {
   constructor(private client: SahelPayClient) {}
 
@@ -807,12 +929,32 @@ class WithdrawalsAPI {
    * Créer un retrait
    */
   async create(params: {
+    /** Entier en FCFA, de 50 000 à 5 000 000. Traité manuellement par SahelPay. */
     amount: number;
-    recipient_phone: string;
-    recipient_name?: string;
-    description?: string;
+    /** Numéro Orange Money qui reçoit les fonds. */
+    phone_number: string;
+    provider?: 'ORANGE_MONEY';
+    notes?: string;
+    /** Frais annoncés par GET /v1/withdrawals/quote (refus si les frais ont changé). */
+    quoted_fee?: number;
+    /** Stable par retrait ; réutilisez-la pour les retries. Générée si absente. */
+    idempotency_key?: string;
   }): Promise<Withdrawal> {
-    const response = await this.client.request('POST', '/v1/withdrawals', params);
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', '/v1/withdrawals', { provider: 'ORANGE_MONEY', ...body }, {
+      headers: {
+        'X-Idempotency-Key': await generateIdempotencyKey(idempotency_key),
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Devis avant confirmation (frais, montant débité, montant reçu).
+   * Passez `fee` comme `quoted_fee` à create() : l'API refuse (409) si les frais ont changé.
+   */
+  async quote(amount: number): Promise<any> {
+    const response = await this.client.request('GET', `/v1/withdrawals/quote?amount=${encodeURIComponent(String(amount))}`);
     return response.data;
   }
 
@@ -874,41 +1016,54 @@ class PlansAPI {
 
   /**
    * Créer un nouveau plan d'abonnement
+   * POST /v1/billing/plans
    */
   async create(params: CreatePlanParams): Promise<Plan> {
-    const response = await this.client.request('POST', '/v1/plans', params);
+    const response = await this.client.request('POST', '/v1/billing/plans', params);
     return response.data;
   }
 
   /**
    * Lister tous les plans
+   * GET /v1/billing/plans
    */
   async list(): Promise<Plan[]> {
-    const response = await this.client.request('GET', '/v1/plans');
+    const response = await this.client.request('GET', '/v1/billing/plans');
     return response.data || [];
   }
 
   /**
-   * Récupérer un plan par ID
+   * Modifier un plan
+   * PATCH /v1/billing/plans/:id
    */
-  async retrieve(id: string): Promise<Plan> {
-    const response = await this.client.request('GET', `/v1/plans/${id}`);
+  async update(id: string, params: UpdatePlanParams): Promise<{ success: boolean }> {
+    return this.client.request('PATCH', `/v1/billing/plans/${id}`, params);
+  }
+
+  /**
+   * Désactiver un plan (alias de update({ is_active: false }))
+   */
+  async deactivate(id: string): Promise<{ success: boolean }> {
+    return this.update(id, { is_active: false });
+  }
+
+  /**
+   * Supprimer un plan. S'il a déjà des abonnements, il est seulement désactivé
+   * (`deleted: false`).
+   * DELETE /v1/billing/plans/:id
+   */
+  async delete(id: string): Promise<DeletePlanResult> {
+    const response = await this.client.request('DELETE', `/v1/billing/plans/${id}`);
     return response.data;
   }
 
   /**
-   * Désactiver un plan
+   * Créer un abonnement INCOMPLETE et un lien de paiement pour un client.
+   * POST /v1/billing/plans/:id/send-link
    */
-  async deactivate(id: string): Promise<Plan> {
-    const response = await this.client.request('PATCH', `/v1/plans/${id}/deactivate`);
+  async sendLink(id: string, params: { customer_phone: string }): Promise<SendPlanLinkResult> {
+    const response = await this.client.request('POST', `/v1/billing/plans/${id}/send-link`, params);
     return response.data;
-  }
-
-  /**
-   * Supprimer un plan
-   */
-  async delete(id: string): Promise<void> {
-    await this.client.request('DELETE', `/v1/plans/${id}`);
   }
 
   /**
@@ -961,40 +1116,31 @@ class SubscriptionsAPI {
    * ```
    */
   async create(params: CreateSubscriptionParams): Promise<Subscription> {
-    const response = await this.client.request('POST', '/v1/subscriptions', params);
+    const response = await this.client.request('POST', '/v1/billing/subscriptions', params);
     return response.data;
   }
 
   /**
    * Lister tous les abonnements
+   * GET /v1/billing/subscriptions
    */
-  async list(params?: { 
-    plan_id?: string; 
-    status?: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
-    limit?: number;
+  async list(params?: {
+    status?: SubscriptionStatus;
   }): Promise<{ subscriptions: Subscription[]; pagination: any }> {
     const query = new URLSearchParams();
-    if (params?.plan_id) query.set('plan_id', params.plan_id);
     if (params?.status) query.set('status', params.status);
-    if (params?.limit) query.set('limit', params.limit.toString());
 
-    const response = await this.client.request('GET', `/v1/subscriptions?${query.toString()}`);
-    return response.data;
-  }
-
-  /**
-   * Récupérer un abonnement par ID
-   */
-  async retrieve(id: string): Promise<Subscription> {
-    const response = await this.client.request('GET', `/v1/subscriptions/${id}`);
+    const qs = query.toString();
+    const response = await this.client.request('GET', `/v1/billing/subscriptions${qs ? `?${qs}` : ''}`);
     return response.data;
   }
 
   /**
    * Annuler un abonnement
+   * DELETE /v1/billing/subscriptions/:id
    */
   async cancel(id: string): Promise<{ success: boolean }> {
-    const response = await this.client.request('DELETE', `/v1/subscriptions/${id}`);
+    const response = await this.client.request('DELETE', `/v1/billing/subscriptions/${id}`);
     return response;
   }
 
@@ -1022,16 +1168,8 @@ class SubscriptionsAPI {
     customer_phone: string;
     redirect_url?: string;
     metadata?: Record<string, any>;
-  }): Promise<{
-    subscription: Subscription;
-    payment_link: {
-      id: string;
-      slug: string;
-      url: string;
-      amount: number;
-    };
-  }> {
-    const response = await this.client.request('POST', '/v1/subscriptions/with-payment', params);
+  }): Promise<CreateSubscriptionWithPaymentResult> {
+    const response = await this.client.request('POST', '/v1/billing/subscriptions/with-payment', params);
     return response.data;
   }
 }
@@ -1042,46 +1180,21 @@ class CustomersAPI {
   constructor(private client: SahelPayClient) {}
 
   /**
-   * Créer un nouveau client
+   * Lister les clients du marchand.
+   * GET /v1/billing/customers
+   *
+   * Les clients sont créés automatiquement (abonnement, lien de plan, session
+   * portail) : il n'y a pas d'API de création, mise à jour ou suppression.
    */
-  async create(params: CreateCustomerParams): Promise<Customer> {
-    const response = await this.client.request('POST', '/v1/customers', params);
-    return response.data;
-  }
-
-  /**
-   * Lister tous les clients
-   */
-  async list(params?: { limit?: number; offset?: number }): Promise<{ customers: Customer[]; pagination: any }> {
+  async list(params?: ListCustomersParams): Promise<{ customers: Customer[]; pagination: any }> {
     const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', params.page.toString());
     if (params?.limit) query.set('limit', params.limit.toString());
-    if (params?.offset) query.set('offset', params.offset.toString());
 
-    const response = await this.client.request('GET', `/v1/customers?${query.toString()}`);
+    const qs = query.toString();
+    const response = await this.client.request('GET', `/v1/billing/customers${qs ? `?${qs}` : ''}`);
     return response.data;
-  }
-
-  /**
-   * Récupérer un client par ID
-   */
-  async retrieve(id: string): Promise<Customer> {
-    const response = await this.client.request('GET', `/v1/customers/${id}`);
-    return response.data;
-  }
-
-  /**
-   * Mettre à jour un client
-   */
-  async update(id: string, params: Partial<CreateCustomerParams>): Promise<Customer> {
-    const response = await this.client.request('PATCH', `/v1/customers/${id}`, params);
-    return response.data;
-  }
-
-  /**
-   * Supprimer un client
-   */
-  async delete(id: string): Promise<void> {
-    await this.client.request('DELETE', `/v1/customers/${id}`);
   }
 }
 
@@ -1093,22 +1206,21 @@ class RefundsAPI {
   constructor(private client: SahelPayClient) {}
 
   /**
-   * Créer un remboursement
+   * Créer un remboursement.
+   *
+   * En production, POST /v1/refunds répond **503** (`REFUNDS_UNAVAILABLE`) :
+   * les remboursements en ligne ne sont pas encore disponibles. Contactez
+   * SahelPay pour rembourser un client. GET /v1/refunds n'existe pas.
+   *
+   * `X-Idempotency-Key` est obligatoire ; générée si absente.
    */
   async create(params: CreateRefundParams): Promise<Refund> {
-    const response = await this.client.request('POST', '/v1/refunds', params);
-    return response.data;
-  }
-
-  /**
-   * Lister les remboursements
-   */
-  async list(params?: { limit?: number; offset?: number }): Promise<{ refunds: Refund[]; pagination: any }> {
-    const query = new URLSearchParams();
-    if (params?.limit) query.set('limit', params.limit.toString());
-    if (params?.offset) query.set('offset', params.offset.toString());
-
-    const response = await this.client.request('GET', `/v1/refunds?${query.toString()}`);
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', '/v1/refunds', body, {
+      headers: {
+        'X-Idempotency-Key': await generateIdempotencyKey(idempotency_key),
+      },
+    });
     return response.data;
   }
 }
@@ -1137,6 +1249,28 @@ class PortalAPI {
     const response = await this.client.request('POST', '/v1/portal/sessions', params);
     return response.data;
   }
+}
+
+type NodeCrypto = {
+  createHmac(algorithm: string, key: string): { update(data: string): { digest(encoding: 'hex'): string } };
+  timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean;
+};
+
+/**
+ * Module crypto de Node, en CommonJS comme en ESM : `require` n'existe pas
+ * dans un module ESM (le build .mjs levait « Dynamic require of "crypto" »).
+ */
+function loadNodeCrypto(): NodeCrypto {
+  const proc = (globalThis as { process?: { getBuiltinModule?: (id: string) => unknown } }).process;
+  if (typeof proc?.getBuiltinModule === 'function') {
+    return proc.getBuiltinModule('node:crypto') as NodeCrypto;
+  }
+  if (typeof require === 'function') {
+    return require('crypto') as NodeCrypto;
+  }
+  throw new Error(
+    'SahelPay: vérification de webhook impossible dans ce runtime ESM (Node >= 20.16 requis, ou utilisez le build CommonJS).',
+  );
 }
 
 /**
@@ -1202,52 +1336,40 @@ class WebhooksAPI {
       return false;
     }
 
-    // Parser le header de signature
+    const crypto = loadNodeCrypto();
+    const safeEqual = (a: string, b: string): boolean => {
+      const encoder = new TextEncoder();
+      const aBuffer = encoder.encode(a);
+      const bBuffer = encoder.encode(b);
+      return aBuffer.length === bBuffer.length && crypto.timingSafeEqual(aBuffer, bBuffer);
+    };
+
     const { timestamp, signature } = this.parseSignatureHeader(signatureHeader);
 
-    if (!timestamp || !signature) {
-      throw new SahelPayError(
-        'Invalid signature header format. Expected: t=<timestamp>,v1=<signature>',
-        'WEBHOOK_SIGNATURE_ERROR',
-        400
-      );
+    if (timestamp && signature) {
+      const timestampNum = Number(timestamp);
+      if (!Number.isFinite(timestampNum)) return false;
+
+      const now = Math.floor(Date.now() / 1000);
+      if (Math.abs(now - timestampNum) > tolerance) {
+        return false;
+      }
+
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(`${timestamp}.${payload}`)
+        .digest('hex');
+
+      return safeEqual(signature, expectedSignature);
     }
 
-    // Protection contre les replay attacks
-    const now = Math.floor(Date.now() / 1000);
-    const timestampNum = parseInt(timestamp, 10);
-    
-    if (Math.abs(now - timestampNum) > tolerance) {
-      throw new SahelPayError(
-        'Timestamp too old, possible replay attack',
-        'WEBHOOK_TIMESTAMP_ERROR',
-        400
-      );
+    // Compatibilité legacy : header = hash direct du body
+    if (signatureHeader.length === 64) {
+      const expectedLegacy = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+      return safeEqual(signatureHeader, expectedLegacy);
     }
 
-    // Calculer la signature attendue
-    const crypto = require('crypto');
-    const signaturePayload = `${timestamp}.${payload}`;
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(signaturePayload)
-      .digest('hex');
-
-    // Comparaison timing-safe
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-
-    if (!isValid) {
-      throw new SahelPayError(
-        'Invalid webhook signature',
-        'WEBHOOK_SIGNATURE_ERROR',
-        400
-      );
-    }
-
-    return true;
+    return false;
   }
 
   /**
@@ -1277,7 +1399,13 @@ class WebhooksAPI {
       );
     }
 
-    this.verifySignature(payloadString, signatureHeader, webhookSecret, tolerance);
+    if (!this.verifySignature(payloadString, signatureHeader, webhookSecret, tolerance)) {
+      throw new SahelPayError(
+        'Invalid webhook signature',
+        'WEBHOOK_SIGNATURE_ERROR',
+        400
+      );
+    }
     return JSON.parse(payloadString);
   }
 
@@ -1338,13 +1466,29 @@ class SahelPayClient {
       const response = await fetch(url, requestInit);
       clearTimeout(timeoutId);
 
-      const json = await response.json();
+      const text = await response.text();
+      let json: any = {};
+      if (text) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          throw new SahelPayError('Invalid JSON response', 'INVALID_RESPONSE', response.status);
+        }
+      }
 
       if (!response.ok) {
         throw new SahelPayError(
           json.error?.message || 'API Error',
           json.error?.code || 'UNKNOWN_ERROR',
           response.status
+        );
+      }
+
+      if (json && json.success === false && json.error) {
+        throw new SahelPayError(
+          json.error?.message || 'API Error',
+          json.error?.code || 'UNKNOWN_ERROR',
+          typeof json.error.http_status === 'number' ? json.error.http_status : 400
         );
       }
 
@@ -1560,17 +1704,6 @@ class MerchantsAPI {
   }
 }
 
-export class SahelPayError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number
-  ) {
-    super(message);
-    this.name = 'SahelPayError';
-  }
-}
-
 /**
  * Client principal SahelPay
  * 
@@ -1596,6 +1729,7 @@ export class SahelPay {
   
   public payments: PaymentsAPI;
   public paymentLinks: PaymentLinksAPI;
+  /** @deprecated Les payouts sont refusés par la plateforme. Utilisez `withdrawals`. */
   public payouts: PayoutsAPI;
   public withdrawals: WithdrawalsAPI;
   public webhooks: WebhooksAPI;
@@ -1688,14 +1822,3 @@ export class SahelPay {
 
 // Garder l'import default: import SahelPay from "@sahelpay/sdk"
 export default SahelPay;
-
-// Export Gateway Stream utilities
-export {
-  GatewayEventSource,
-  useGatewayStream,
-  type GatewayConfigEvent,
-  type GatewayConfigEventType,
-  type GatewayStreamOptions,
-  type UseGatewayStreamOptions,
-  type UseGatewayStreamReturn,
-} from './gateway-stream';

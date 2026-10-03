@@ -46,7 +46,7 @@ export class ValidationError extends SahelPayError {
 export class ProviderNotSupportedError extends SahelPayError {
   constructor(public provider: string) {
     super(
-      `Provider "${provider}" is not supported. Available providers: ORANGE_MONEY, WAVE, MOOV, VISA`,
+      `Provider "${provider}" is not supported. Seul ORANGE_MONEY est disponible.`,
       'PROVIDER_NOT_SUPPORTED',
       400
     );

@@ -3,8 +3,10 @@ Client principal SahelPay
 """
 
 import json
+import uuid
 import hmac
 import hashlib
+import warnings
 from typing import Optional, Dict, Any, List
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -42,6 +44,7 @@ class PaymentsAPI:
         mock: bool = False,
         hosted_checkout: bool = True,
         idempotency_key: Optional[str] = None,
+        items: Optional[List[Dict[str, Any]]] = None,
     ) -> Payment:
         """
         Créer un nouveau paiement
@@ -62,9 +65,11 @@ class PaymentsAPI:
                   montant (4000 réussi, 4001 échoué, 4002 en attente).
             hosted_checkout: Si True (défaut), affiche la page SahelPay.
                             Si False, redirige directement vers le provider.
+            items: Partenaires SPAY : lignes du catalogue validé
+                   (`[{product_id, quantity}]`). Le montant doit en être le total exact.
 
         Returns:
-            Payment: Objet paiement créé
+            Payment: Objet paiement créé. `checkout_url` est renvoyé si hosted_checkout=True.
         """
         # Orange Money est le seul rail intégré; l'API rejette toute autre
         # valeur avec un 400, inutile de deviner une méthode carte ici.
@@ -104,13 +109,16 @@ class PaymentsAPI:
             "client_reference": client_reference,
             "hosted_checkout": hosted_checkout,
         }
+        if items:
+            data["items"] = items
 
         if final_metadata:
             data["metadata"] = final_metadata
 
-        request_headers: Optional[Dict[str, str]] = None
-        if idempotency_key:
-            request_headers = {"X-Idempotency-Key": idempotency_key}
+        # L'API exige cet en-tête : sans clé fournie, on en génère une unique.
+        request_headers: Dict[str, str] = {
+            "X-Idempotency-Key": idempotency_key or f"sdk_{uuid.uuid4()}"
+        }
 
         response = self._client._request("POST", "/v1/payments", data, headers=request_headers)
         payload = response.get("data", {})
@@ -199,7 +207,7 @@ class PaymentsAPI:
             if on_status:
                 on_status(status, payment)
 
-            if status in ["SUCCESS", "FAILED", "CANCELLED"]:
+            if status in ["SUCCESS", "FAILED", "EXPIRED"]:
                 return payment
 
             if time.time() - start > timeout:
@@ -451,10 +459,22 @@ class WebhooksAPI:
 
 
 class PayoutsAPI:
-    """API pour gérer les payouts (envoi d'argent)"""
+    """API pour gérer les payouts (envoi d'argent).
+
+    .. deprecated::
+        Les payouts automatiques sont refusés par la plateforme.
+        Utilisez :meth:`WithdrawalsAPI.create`.
+    """
 
     def __init__(self, client: "Client"):
         self._client = client
+
+    def _warn(self) -> None:
+        warnings.warn(
+            "Les payouts sont refusés par la plateforme. Utilisez withdrawals.create (retrait manuel).",
+            DeprecationWarning,
+            stacklevel=3,
+        )
 
     def create(
         self,
@@ -483,6 +503,7 @@ class PayoutsAPI:
         Returns:
             Payout: Objet payout créé
         """
+        self._warn()
         if amount < 100:
             raise ValidationError(
                 "Le montant minimum est de 100 FCFA", "INVALID_AMOUNT", 400)
@@ -572,35 +593,59 @@ class WithdrawalsAPI:
         response = self._client._request("GET", "/v1/withdrawals/balance")
         return response.get("data", {})
 
+    def quote(self, amount: int) -> Dict[str, Any]:
+        """Devis avant confirmation. GET /v1/withdrawals/quote?amount="""
+        response = self._client._request(
+            "GET", f"/v1/withdrawals/quote?amount={int(amount)}"
+        )
+        return response.get("data", {})
+
     def create(
         self,
-        amount: float,
-        recipient_phone: str,
-        recipient_name: Optional[str] = None,
-        description: Optional[str] = None,
+        amount: int,
+        phone_number: Optional[str] = None,
+        provider: str = "ORANGE_MONEY",
+        notes: Optional[str] = None,
+        quoted_fee: Optional[int] = None,
+        idempotency_key: Optional[str] = None,
+        recipient_phone: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Créer un retrait
+        Créer un retrait manuel vers Orange Money.
+
+        POST /v1/withdrawals — `X-Idempotency-Key` obligatoire (généré si absent).
 
         Args:
-            amount: Montant à retirer
-            recipient_phone: Numéro de téléphone destinataire
-            recipient_name: Nom du destinataire (optionnel)
-            description: Description (optionnel)
-
-        Returns:
-            Dict avec les détails du retrait
+            amount: Entier en FCFA, 50 000 à 5 000 000
+            phone_number: Numéro Orange Money destinataire
+            provider: ORANGE_MONEY uniquement
+            notes: Note interne (optionnel)
+            quoted_fee: Frais renvoyés par quote() (refus 409 s'ils ont changé)
+            idempotency_key: Stable par retrait ; générée si absente
+            recipient_phone: Alias déprécié de phone_number
         """
-        data = {
-            "amount": amount,
-            "recipient_phone": recipient_phone,
-        }
-        if recipient_name:
-            data["recipient_name"] = recipient_name
-        if description:
-            data["description"] = description
+        phone = phone_number or recipient_phone
+        if not phone:
+            raise ValidationError(
+                "Le champ 'phone_number' est requis", "INVALID_PHONE", 400
+            )
 
-        response = self._client._request("POST", "/v1/withdrawals", data)
+        data: Dict[str, Any] = {
+            "amount": amount,
+            "phone_number": phone,
+            "provider": provider or "ORANGE_MONEY",
+        }
+        if notes:
+            data["notes"] = notes
+        if quoted_fee is not None:
+            data["quoted_fee"] = quoted_fee
+
+        headers = {
+            "X-Idempotency-Key": idempotency_key or f"sdk_{uuid.uuid4()}"
+        }
+        response = self._client._request(
+            "POST", "/v1/withdrawals", data, headers=headers
+        )
         return response.get("data", {})
 
     def list(
@@ -665,28 +710,35 @@ class PlansAPI:
         if description:
             data["description"] = description
 
-        response = self._client._request("POST", "/v1/plans", data)
+        response = self._client._request("POST", "/v1/billing/plans", data)
         return response.get("data", {})
 
     def list(self) -> List[Dict[str, Any]]:
-        """Lister tous les plans"""
-        response = self._client._request("GET", "/v1/plans")
+        """Lister tous les plans. GET /v1/billing/plans"""
+        response = self._client._request("GET", "/v1/billing/plans")
         return response.get("data", [])
 
-    def retrieve(self, plan_id: str) -> Dict[str, Any]:
-        """Récupérer un plan par ID"""
-        response = self._client._request("GET", f"/v1/plans/{plan_id}")
-        return response.get("data", {})
+    def update(self, plan_id: str, **fields: Any) -> Dict[str, Any]:
+        """Modifier un plan. PATCH /v1/billing/plans/:id"""
+        return self._client._request("PATCH", f"/v1/billing/plans/{plan_id}", fields)
 
     def deactivate(self, plan_id: str) -> Dict[str, Any]:
-        """Désactiver un plan"""
-        response = self._client._request(
-            "PATCH", f"/v1/plans/{plan_id}/deactivate", {})
+        """Désactiver un plan (PATCH is_active=false)."""
+        return self.update(plan_id, is_active=False)
+
+    def delete(self, plan_id: str) -> Dict[str, Any]:
+        """Supprimer un plan. DELETE /v1/billing/plans/:id"""
+        response = self._client._request("DELETE", f"/v1/billing/plans/{plan_id}")
         return response.get("data", {})
 
-    def delete(self, plan_id: str) -> None:
-        """Supprimer un plan"""
-        self._client._request("DELETE", f"/v1/plans/{plan_id}")
+    def send_link(self, plan_id: str, customer_phone: str) -> Dict[str, Any]:
+        """Créer un abonnement INCOMPLETE et un lien de paiement."""
+        response = self._client._request(
+            "POST",
+            f"/v1/billing/plans/{plan_id}/send-link",
+            {"customer_phone": customer_phone},
+        )
+        return response.get("data", {})
 
 
 class SubscriptionsAPI:
@@ -725,122 +777,73 @@ class SubscriptionsAPI:
         if start_date:
             data["start_date"] = start_date
 
-        response = self._client._request("POST", "/v1/subscriptions", data)
+        response = self._client._request("POST", "/v1/billing/subscriptions", data)
         return response.get("data", {})
 
     def list(
         self,
-        plan_id: Optional[str] = None,
         status: Optional[str] = None,
-        limit: int = 20,
     ) -> Dict[str, Any]:
-        """
-        Lister les abonnements
-
-        Args:
-            plan_id: Filtrer par plan (optionnel)
-            status: Filtrer par statut (ACTIVE, PAST_DUE, CANCELLED)
-            limit: Nombre max de résultats
-        """
-        params = {"limit": limit}
-        if plan_id:
-            params["plan_id"] = plan_id
+        """Lister les abonnements. GET /v1/billing/subscriptions"""
+        path = "/v1/billing/subscriptions"
         if status:
-            params["status"] = status
-
-        response = self._client._request(
-            "GET",
-            f"/v1/subscriptions?{urlencode(params)}"
-        )
-        return response.get("data", {})
-
-    def retrieve(self, subscription_id: str) -> Dict[str, Any]:
-        """Récupérer un abonnement par ID"""
-        response = self._client._request(
-            "GET", f"/v1/subscriptions/{subscription_id}")
+            path = f"{path}?{urlencode({'status': status})}"
+        response = self._client._request("GET", path)
         return response.get("data", {})
 
     def cancel(self, subscription_id: str) -> Dict[str, Any]:
-        """Annuler un abonnement"""
+        """Annuler un abonnement. DELETE /v1/billing/subscriptions/:id"""
         response = self._client._request(
-            "DELETE", f"/v1/subscriptions/{subscription_id}")
+            "DELETE", f"/v1/billing/subscriptions/{subscription_id}")
         return response
+
+    def create_with_payment(
+        self,
+        plan_id: str,
+        customer_phone: str,
+        redirect_url: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Créer un abonnement INCOMPLETE + lien de premier paiement."""
+        data: Dict[str, Any] = {
+            "plan_id": plan_id,
+            "customer_phone": customer_phone,
+        }
+        if redirect_url:
+            data["redirect_url"] = redirect_url
+        if metadata:
+            data["metadata"] = metadata
+        response = self._client._request(
+            "POST", "/v1/billing/subscriptions/with-payment", data
+        )
+        return response.get("data", {})
 
 
 class CustomersAPI:
-    """API pour gérer les clients"""
+    """API pour lister les clients.
+
+    Les clients sont créés automatiquement (abonnement, lien de plan, portail) :
+    il n'y a pas d'API de création, mise à jour ou suppression.
+    """
 
     def __init__(self, client: "Client"):
         self._client = client
 
-    def create(
-        self,
-        phone: str,
-        name: Optional[str] = None,
-        email: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Créer un nouveau client
-
-        Args:
-            phone: Numéro de téléphone
-            name: Nom du client (optionnel)
-            email: Email du client (optionnel)
-            metadata: Données personnalisées (optionnel)
-        """
-        data = {"phone": phone}
-        if name:
-            data["name"] = name
-        if email:
-            data["email"] = email
-        if metadata:
-            data["metadata"] = metadata
-
-        response = self._client._request("POST", "/v1/customers", data)
-        return response.get("data", {})
-
     def list(
         self,
+        search: Optional[str] = None,
+        page: int = 1,
         limit: int = 20,
-        offset: int = 0,
     ) -> Dict[str, Any]:
-        """Lister les clients"""
-        params = {"limit": limit, "offset": offset}
+        """Lister les clients. GET /v1/billing/customers"""
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        if search:
+            params["search"] = search
         response = self._client._request(
             "GET",
-            f"/v1/customers?{urlencode(params)}"
+            f"/v1/billing/customers?{urlencode(params)}"
         )
         return response.get("data", {})
-
-    def retrieve(self, customer_id: str) -> Dict[str, Any]:
-        """Récupérer un client par ID"""
-        response = self._client._request("GET", f"/v1/customers/{customer_id}")
-        return response.get("data", {})
-
-    def update(
-        self,
-        customer_id: str,
-        name: Optional[str] = None,
-        email: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """Mettre à jour un client"""
-        data = {}
-        if name:
-            data["name"] = name
-        if email:
-            data["email"] = email
-        if metadata:
-            data["metadata"] = metadata
-
-        response = self._client._request(
-            "PATCH", f"/v1/customers/{customer_id}", data)
-        return response.get("data", {})
-
-    def delete(self, customer_id: str) -> None:
-        """Supprimer un client"""
-        self._client._request("DELETE", f"/v1/customers/{customer_id}")
 
 
 class PortalAPI:
@@ -902,9 +905,14 @@ class RefundsAPI:
         amount: float,
         reason: Optional[str] = None,
         refund_fees: bool = False,
+        idempotency_key: Optional[str] = None,
     ) -> "Refund":
-        """Créer un remboursement"""
-        data = {
+        """Créer un remboursement.
+
+        En production, POST /v1/refunds répond 503 (REFUNDS_UNAVAILABLE).
+        GET /v1/refunds n'existe pas.
+        """
+        data: Dict[str, Any] = {
             "payment_id": payment_id,
             "amount": amount,
             "refund_fees": refund_fees,
@@ -912,26 +920,12 @@ class RefundsAPI:
         if reason:
             data["reason"] = reason
 
-        response = self._client._request("POST", "/v1/refunds", data)
+        headers = {
+            "X-Idempotency-Key": idempotency_key or f"sdk_{uuid.uuid4()}"
+        }
+        response = self._client._request("POST", "/v1/refunds", data, headers=headers)
         from .resources import Refund
         return Refund.from_dict(response.get("data", {}))
-
-    def list(
-        self,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> Dict[str, Any]:
-        """Lister les remboursements"""
-        params = {"limit": limit, "offset": offset}
-        response = self._client._request(
-            "GET", f"/v1/refunds?{urlencode(params)}")
-        
-        from .resources import Refund
-        data = response.get("data", {})
-        return {
-            "refunds": [Refund.from_dict(r) for r in data.get("refunds", [])],
-            "pagination": data.get("pagination", {}),
-        }
 
 
 class Client:

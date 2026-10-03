@@ -8,7 +8,9 @@ use SahelPay\Http\Client;
 use SahelPay\Http\Response;
 
 /**
- * Resource pour les payouts (envoi d'argent)
+ * Resource pour les payouts (envoi d'argent).
+ *
+ * @deprecated Les payouts sont refusés par la plateforme. Utilisez Withdrawal.
  */
 class Payout
 {
@@ -35,10 +37,14 @@ class Payout
      */
     public function create(array $data): Response
     {
+        @trigger_error(
+            'SahelPay\\Resources\\Payout est déprécié. Les payouts sont refusés par la plateforme ; utilisez withdrawals().',
+            E_USER_DEPRECATED
+        );
         $this->validateRequired($data, ['amount', 'provider', 'recipient_phone']);
         
         // Valider le provider
-        $validProviders = ['ORANGE_MONEY', 'WAVE', 'MOOV'];
+        $validProviders = ['ORANGE_MONEY'];
         if (!in_array($data['provider'], $validProviders)) {
             throw new \InvalidArgumentException(
                 "Provider invalide. Utilisez: " . implode(', ', $validProviders)

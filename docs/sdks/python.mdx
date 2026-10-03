@@ -139,8 +139,8 @@ def webhook(request):
 ```
 
 <Note>
-  `construct_event()` convertit `data` en objet `Payment` pour tous les événements autres que `webhook.test`.
-  Pour les événements `secure_order.*`, `invoice.*` et `subscription.*`, relisez le JSON brut.
+  `construct_event()` convertit `data` en objet `Payment` uniquement pour les événements `payment.*`.
+  Les autres (`invoice.*`, `subscription.*`, `secure_order.*`, `webhook.test`) restent des dictionnaires.
 </Note>
 
 ## Fonctions à éviter pour l'instant
@@ -149,7 +149,5 @@ def webhook(request):
 |--------|--------|
 | `payouts.*` | Payouts automatiques indisponibles |
 | `refunds.*` | Remboursements en ligne désactivés (`503`) |
-| `plans.*`, `subscriptions.*`, `customers.*` | Appellent d'anciennes routes ; utilisez `/v1/billing/*` |
-| `withdrawals.create()` | Payload obsolète ; utilisez [l'API HTTP](/api-reference/withdrawals/create) |
-| `has_capability()` & co. | Table statique obsolète (Wave, Moov, cartes, payouts) |
+| `has_capability()` & co. | Table statique : seul Orange Money, sans payouts automatiques |
 | `gateway_stream` | Flux réservé à l'administration SahelPay |

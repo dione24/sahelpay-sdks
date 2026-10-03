@@ -9,8 +9,8 @@ namespace SahelPay\Exceptions;
  */
 class ApiException extends SahelPayException
 {
-    public function __construct(string $message, string $code = 'API_ERROR', int $statusCode = 0)
+    public function __construct(string $message, string $code = 'API_ERROR', int $statusCode = 0, mixed $details = null)
     {
-        parent::__construct($message, $code, $statusCode);
+        parent::__construct($message, $code, $statusCode, $details);
     }
 }

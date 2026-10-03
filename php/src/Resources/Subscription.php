@@ -8,7 +8,9 @@ use SahelPay\Http\Client;
 use SahelPay\Http\Response;
 
 /**
- * Resource pour les abonnements
+ * Resource pour les abonnements clients.
+ *
+ * Routes : /v1/billing/subscriptions
  */
 class Subscription
 {
@@ -20,7 +22,8 @@ class Subscription
     }
 
     /**
-     * Créer un nouvel abonnement
+     * Créer un abonnement ACTIVE (sans premier paiement).
+     * POST /v1/billing/subscriptions
      *
      * @param array{
      *   plan_id: string,
@@ -31,47 +34,54 @@ class Subscription
     public function create(array $data): Response
     {
         $this->validateRequired($data, ['plan_id', 'customer_phone']);
-        
-        return $this->client->post('/subscriptions', $data);
+
+        return $this->client->post('/billing/subscriptions', $data);
+    }
+
+    /**
+     * Créer un abonnement INCOMPLETE + facture + lien de paiement.
+     * POST /v1/billing/subscriptions/with-payment
+     *
+     * @param array{
+     *   plan_id: string,
+     *   customer_phone: string,
+     *   redirect_url?: string,
+     *   metadata?: array
+     * } $data
+     */
+    public function createWithPayment(array $data): Response
+    {
+        $this->validateRequired($data, ['plan_id', 'customer_phone']);
+
+        return $this->client->post('/billing/subscriptions/with-payment', $data);
     }
 
     /**
      * Lister les abonnements
+     * GET /v1/billing/subscriptions
      *
-     * @param array{
-     *   plan_id?: string,
-     *   status?: string,
-     *   limit?: int
-     * } $options
+     * @param array{status?: string} $options
      */
     public function all(array $options = []): Response
     {
-        return $this->client->get('/subscriptions', $options);
-    }
+        $query = array_intersect_key($options, array_flip(['status']));
 
-    /**
-     * Récupérer un abonnement par ID
-     */
-    public function get(string $subscriptionId): Response
-    {
-        return $this->client->get("/subscriptions/{$subscriptionId}");
+        return $this->client->get('/billing/subscriptions', $query);
     }
 
     /**
      * Annuler un abonnement
+     * DELETE /v1/billing/subscriptions/:id
      */
     public function cancel(string $subscriptionId): Response
     {
-        return $this->client->delete("/subscriptions/{$subscriptionId}");
+        return $this->client->delete('/billing/subscriptions/' . rawurlencode($subscriptionId));
     }
 
-    /**
-     * Valider les champs requis
-     */
     private function validateRequired(array $data, array $required): void
     {
         foreach ($required as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
+            if (!isset($data[$field]) || $data[$field] === '') {
                 throw new \InvalidArgumentException("Le champ '{$field}' est requis");
             }
         }

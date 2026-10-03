@@ -8,7 +8,9 @@ use SahelPay\Http\Client;
 use SahelPay\Http\Response;
 
 /**
- * Resource pour les plans d'abonnement
+ * Resource pour les plans d'abonnement clients.
+ *
+ * Routes : /v1/billing/plans
  */
 class Plan
 {
@@ -21,6 +23,7 @@ class Plan
 
     /**
      * Créer un nouveau plan d'abonnement
+     * POST /v1/billing/plans
      *
      * @param array{
      *   name: string,
@@ -32,24 +35,28 @@ class Plan
     public function create(array $data): Response
     {
         $this->validateRequired($data, ['name', 'amount', 'interval']);
-        
-        return $this->client->post('/plans', $data);
+
+        return $this->client->post('/billing/plans', $data);
     }
 
     /**
      * Lister tous les plans
+     * GET /v1/billing/plans
      */
     public function all(): Response
     {
-        return $this->client->get('/plans');
+        return $this->client->get('/billing/plans');
     }
 
     /**
-     * Récupérer un plan par ID
+     * Modifier un plan
+     * PATCH /v1/billing/plans/:id
+     *
+     * @param array{name?: string, description?: string, amount?: int, is_active?: bool} $data
      */
-    public function get(string $planId): Response
+    public function update(string $planId, array $data): Response
     {
-        return $this->client->get("/plans/{$planId}");
+        return $this->client->patch('/billing/plans/' . rawurlencode($planId), $data);
     }
 
     /**
@@ -57,24 +64,33 @@ class Plan
      */
     public function deactivate(string $planId): Response
     {
-        return $this->client->patch("/plans/{$planId}/deactivate", []);
+        return $this->update($planId, ['is_active' => false]);
     }
 
     /**
-     * Supprimer un plan
+     * Supprimer un plan. S'il a déjà des abonnements, il est seulement désactivé.
+     * DELETE /v1/billing/plans/:id
      */
     public function delete(string $planId): Response
     {
-        return $this->client->delete("/plans/{$planId}");
+        return $this->client->delete('/billing/plans/' . rawurlencode($planId));
     }
 
     /**
-     * Valider les champs requis
+     * Créer un abonnement INCOMPLETE et un lien de paiement.
+     * POST /v1/billing/plans/:id/send-link
      */
+    public function sendLink(string $planId, string $customerPhone): Response
+    {
+        return $this->client->post('/billing/plans/' . rawurlencode($planId) . '/send-link', [
+            'customer_phone' => $customerPhone,
+        ]);
+    }
+
     private function validateRequired(array $data, array $required): void
     {
         foreach ($required as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
+            if (!isset($data[$field]) || $data[$field] === '') {
                 throw new \InvalidArgumentException("Le champ '{$field}' est requis");
             }
         }

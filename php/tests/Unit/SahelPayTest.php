@@ -12,6 +12,7 @@ use SahelPay\Resources\PaymentLink;
 use SahelPay\Resources\Payout;
 use SahelPay\Resources\Transaction;
 use SahelPay\Resources\Webhook;
+use SahelPay\Resources\Withdrawal;
 
 class SahelPayTest extends TestCase
 {
@@ -54,6 +55,12 @@ class SahelPayTest extends TestCase
     public function testHasWebhooksResource(): void
     {
         $this->assertInstanceOf(Webhook::class, $this->sahelpay->webhooks);
+    }
+
+    public function testHasWithdrawalsResource(): void
+    {
+        $this->assertInstanceOf(Withdrawal::class, $this->sahelpay->withdrawals);
+        $this->assertSame($this->sahelpay->withdrawals, $this->sahelpay->withdrawals());
     }
 
     public function testDetectsSandboxModeFromTestKey(): void

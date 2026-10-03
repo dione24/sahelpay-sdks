@@ -153,6 +153,24 @@ class Webhook
  */
 class WebhookEvent
 {
+    public const EVENTS = [
+        'payment.success',
+        'payment.failed',
+        'payment.pending',
+        'payment.expired',
+        'payment.updated',
+        'secure_order.paid',
+        'secure_order.released',
+        'secure_order.refunded',
+        'secure_order.disputed',
+        'secure_order.cancelled',
+        'subscription.renewed',
+        'subscription.payment_due',
+        'invoice.created',
+        'invoice.paid',
+        'webhook.test',
+    ];
+
     private array $data;
 
     public function __construct(array $data)
@@ -212,6 +230,26 @@ class WebhookEvent
         $status = $this->getStatus();
         
         return str_contains($type, 'failed') || $status === 'FAILED';
+    }
+
+    /**
+     * Vérifier si c'est un paiement expiré
+     */
+    public function isExpired(): bool
+    {
+        $type = $this->getType();
+        $status = $this->getStatus();
+
+        return $type === 'payment.expired' || $status === 'EXPIRED';
+    }
+
+    /**
+     * Référence de commande marchand (data.client_reference).
+     */
+    public function getClientReference(): ?string
+    {
+        $value = $this->data['data']['client_reference'] ?? $this->data['client_reference'] ?? null;
+        return is_string($value) ? $value : null;
     }
 
     /**

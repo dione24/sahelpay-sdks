@@ -158,9 +158,9 @@ public function handle(Request $request, SahelPay $sahelpay)
 
 | Ressource | Raison |
 |-----------|--------|
-| `payouts` | Payouts automatiques indisponibles |
+| `payouts` | Payouts automatiques indisponibles ; utilisez `withdrawals` |
 | `refunds` | Remboursements en ligne désactivés (`503`) |
-| `plans`, `subscriptions`, `customers` | Appellent d'anciennes routes ; utilisez `/v1/billing/*` |
 | `transactions->get()` | Appelle l'endpoint public de statut ; préférez `payments->verify()` |
 
-Les retraits et le paiement sécurisé à la livraison ne sont pas exposés par le SDK PHP : utilisez l'API HTTP.
+Les retraits sont exposés via `$sahelpay->withdrawals` (`create`, `quote`, `balance`, `list`, `cancel`).
+Les plans, abonnements et clients passent par `/v1/billing/*`.

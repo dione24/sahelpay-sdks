@@ -223,15 +223,12 @@ class WebhookEvent:
         event_type = data.get("event", "")
         event_data = data.get("data", {})
         
-        # Parse data based on event type
-        if event_type == "webhook.test":
-            parsed_data = event_data
-        elif "payout" in event_type:
-            parsed_data = Payout.from_dict(event_data)
-        elif "refund" in event_type:
-            parsed_data = Refund.from_dict(event_data)
+        # Seuls les événements payment.* sont convertis en Payment.
+        # invoice.*, subscription.*, secure_order.*, webhook.test restent des dicts.
+        if isinstance(event_type, str) and event_type.startswith("payment."):
+            parsed_data = Payment.from_dict(event_data if isinstance(event_data, dict) else {})
         else:
-            parsed_data = Payment.from_dict(event_data)
+            parsed_data = event_data
         
         return cls(
             event=event_type,

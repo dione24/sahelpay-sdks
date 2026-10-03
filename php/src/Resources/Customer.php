@@ -8,7 +8,12 @@ use SahelPay\Http\Client;
 use SahelPay\Http\Response;
 
 /**
- * Resource pour les clients
+ * Resource pour les clients d'un marchand.
+ *
+ * Les clients sont créés automatiquement (abonnement, lien de plan, portail) :
+ * il n'y a pas d'API de création, mise à jour ou suppression.
+ *
+ * Route : GET /v1/billing/customers
  */
 class Customer
 {
@@ -20,74 +25,25 @@ class Customer
     }
 
     /**
-     * Créer un nouveau client
-     *
-     * @param array{
-     *   phone: string,
-     *   name?: string,
-     *   email?: string,
-     *   metadata?: array
-     * } $data
-     */
-    public function create(array $data): Response
-    {
-        $this->validateRequired($data, ['phone']);
-        
-        return $this->client->post('/customers', $data);
-    }
-
-    /**
      * Lister les clients
+     * GET /v1/billing/customers
      *
-     * @param array{
-     *   limit?: int,
-     *   offset?: int
-     * } $options
+     * @param array{search?: string, page?: int, limit?: int} $options
      */
     public function all(array $options = []): Response
     {
-        return $this->client->get('/customers', $options);
+        $query = array_intersect_key($options, array_flip(['search', 'page', 'limit']));
+
+        return $this->client->get('/billing/customers', $query);
     }
 
     /**
-     * Récupérer un client par ID
-     */
-    public function get(string $customerId): Response
-    {
-        return $this->client->get("/customers/{$customerId}");
-    }
-
-    /**
-     * Mettre à jour un client
+     * Alias de all().
      *
-     * @param array{
-     *   name?: string,
-     *   email?: string,
-     *   metadata?: array
-     * } $data
+     * @param array{search?: string, page?: int, limit?: int} $options
      */
-    public function update(string $customerId, array $data): Response
+    public function list(array $options = []): Response
     {
-        return $this->client->patch("/customers/{$customerId}", $data);
-    }
-
-    /**
-     * Supprimer un client
-     */
-    public function delete(string $customerId): Response
-    {
-        return $this->client->delete("/customers/{$customerId}");
-    }
-
-    /**
-     * Valider les champs requis
-     */
-    private function validateRequired(array $data, array $required): void
-    {
-        foreach ($required as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
-                throw new \InvalidArgumentException("Le champ '{$field}' est requis");
-            }
-        }
+        return $this->all($options);
     }
 }

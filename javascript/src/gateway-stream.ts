@@ -1,6 +1,9 @@
 /**
+ * @deprecated Flux SSE réservé à l'administration SahelPay
+ * (`GET /admin/gateways/stream`). Non exporté par le SDK public marchand.
+ *
  * SahelPay SDK – Gateway Real-time Stream (SSE)
- * 
+ *
  * Permet de s'abonner aux changements de configuration gateway en temps réel
  * via Server-Sent Events (SSE).
  * 

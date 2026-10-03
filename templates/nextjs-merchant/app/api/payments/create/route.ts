@@ -77,10 +77,9 @@ export async function POST(request: NextRequest) {
           name: body.customer_name,
           email: body.customer_email,
         },
-        return_url: `${APP_URL}/checkout/return?order_id=${body.order_id}`,
+        return_url: `${APP_URL}/checkout/return?order_id=${encodeURIComponent(body.order_id)}`,
         client_reference: body.order_id,
         metadata: {
-          app_order_id: body.order_id,
           description: body.description,
         },
       }),

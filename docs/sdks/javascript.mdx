@@ -138,7 +138,5 @@ Voir [Codes d'erreur](/resources/error-codes).
 |--------|--------|
 | `payouts.*` | Payouts automatiques indisponibles ([détails](/guides/payouts)) |
 | `refunds.*` | Remboursements en ligne désactivés (`503`) |
-| `plans.*`, `subscriptions.*`, `customers.*` | Appellent d'anciennes routes ; utilisez `/v1/billing/*` ([guide](/guides/subscriptions)) |
-| `withdrawals.create()` | Payload obsolète ; utilisez [l'API HTTP](/api-reference/withdrawals/create) |
-| `hasCapability()` & co. | Table statique obsolète (Wave, Moov, cartes, payouts) |
-| `GatewayEventSource` / `useGatewayStream()` | Flux réservé à l'administration SahelPay |
+| `hasCapability()` & co. | Table statique : seul Orange Money, sans payouts automatiques |
+| `GatewayEventSource` / `useGatewayStream()` | Retiré de l'export public (flux admin SahelPay) |
