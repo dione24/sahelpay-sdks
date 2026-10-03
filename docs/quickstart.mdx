@@ -5,14 +5,20 @@ description: "Intégrez SahelPay en 5 minutes"
 
 # Démarrage rapide
 
-Ce guide vous montre comment accepter votre premier paiement avec SahelPay.
+Ce guide vous montre comment accepter votre premier paiement Orange Money avec SahelPay, en sandbox.
 
 ## Prérequis
 
-- Un compte SahelPay ([créer un compte](https://dashboard.sahelpay.ml/register))
-- Vos clés API (disponibles dans le dashboard)
+- Un compte SahelPay ([créer un compte](https://app.sahelpay.ml/register))
+- Vos clés API de test (`sk_test_...`, disponibles dans le dashboard)
+
+<Note>
+  La sandbox est gratuite et ne demande aucun abonnement. L'abonnement payé n'est requis que pour encaisser en production (voir [Passer en production](/guides/going-live)).
+</Note>
 
 ## 1. Créer un paiement
+
+Le header `X-Idempotency-Key` est **obligatoire** sur `POST /v1/payments` (400 `IDEMPOTENCY_KEY_REQUIRED` sinon). Réutilisez la même clé pour un retry : vous obtenez le même paiement, jamais un doublon.
 
 <CodeGroup>
 
@@ -20,14 +26,16 @@ Ce guide vous montre comment accepter votre premier paiement avec SahelPay.
 curl -X POST https://api.sahelpay.ml/v1/payments \
   -H "Authorization: Bearer sk_test_xxx" \
   -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: order-123" \
   -d '{
     "amount": 5000,
     "currency": "XOF",
     "payment_method": "ORANGE_MONEY",
     "country": "ML",
     "customer_phone": "+22370123456",
-    "return_url": "https://votre-site.com/checkout/return",
-    "metadata": { "sandbox": true }
+    "client_reference": "order-123",
+    "return_url": "https://votre-site.com/checkout/return?order=order-123",
+    "hosted_checkout": true
   }'
 ```
 
@@ -35,7 +43,7 @@ curl -X POST https://api.sahelpay.ml/v1/payments \
 import SahelPay from '@sahelpay/sdk';
 
 const sahelpay = new SahelPay({
-  secretKey: 'sk_test_xxx',
+  secretKey: process.env.SAHELPAY_SECRET_KEY, // sk_test_...
   environment: 'sandbox'
 });
 
@@ -45,18 +53,18 @@ const payment = await sahelpay.payments.create({
   payment_method: 'ORANGE_MONEY',
   customer_phone: '+22370123456',
   description: 'Commande #123',
-  return_url: 'https://votre-site.com/checkout/return',
-  sandbox: true
+  client_reference: 'order-123',
+  return_url: 'https://votre-site.com/checkout/return?order=order-123',
+  idempotency_key: 'order-123' // obligatoire côté API
 });
 
-// Rediriger le client vers Orange Money
-window.location.href = payment.redirect_url;
+// Renvoyer payment.redirect_url à votre frontend pour rediriger le client
 ```
 
 ```php PHP
 use SahelPay\SahelPay;
 
-$sahelpay = new SahelPay('sk_test_xxx');
+$sahelpay = new SahelPay(getenv('SAHELPAY_SECRET_KEY')); // sk_test_...
 
 $payment = $sahelpay->payments->initiate([
     'amount' => 5000,
@@ -64,11 +72,12 @@ $payment = $sahelpay->payments->initiate([
     'provider' => 'ORANGE_MONEY',
     'customer_phone' => '+22370123456',
     'description' => 'Commande #123',
-    'return_url' => 'https://votre-site.com/checkout/return',
-    'sandbox' => true
+    'client_reference' => 'order-123',
+    'return_url' => 'https://votre-site.com/checkout/return?order=order-123',
+    'idempotency_key' => 'order-123', // obligatoire côté API
 ]);
 
-// Rediriger le client vers Orange Money
+// Rediriger le client vers le checkout
 header('Location: ' . $payment->redirect_url);
 ```
 
@@ -83,34 +92,37 @@ payment = sahelpay.payments.create(
     provider='ORANGE_MONEY',
     customer_phone='+22370123456',
     description='Commande #123',
-    return_url='https://votre-site.com/checkout/return',
-    sandbox=True,
+    client_reference='order-123',
+    return_url='https://votre-site.com/checkout/return?order=order-123',
+    idempotency_key='order-123',  # obligatoire côté API
 )
 
-# Rediriger le client vers Orange Money
+# Rediriger le client vers le checkout
 redirect(payment.redirect_url)
 ```
 
 </CodeGroup>
 
+<Note>
+  Les SDKs demandent `hosted_checkout: true` par défaut : `redirect_url` pointe alors vers le checkout hébergé SahelPay. Avec `hosted_checkout: false` (défaut de l'API brute), SahelPay initie directement le paiement Orange Money et `redirect_url` pointe vers la page Orange.
+</Note>
+
 ## 2. Rediriger le client
 
-Après la création, redirigez le client vers `redirect_url` :
+Redirigez le client vers `redirect_url`. Il valide le paiement sur la page Orange Money, où il apparaît sous le libellé `SPAY-<nom du marchand>`.
 
 ```javascript
 window.location.href = payment.redirect_url;
 ```
 
-Le client sera redirigé vers la page de checkout SahelPay où il pourra choisir son mode de paiement.
-
 <Note>
-  Deux modes de test : `metadata.sahelpay_mock: true` utilise le simulateur SahelPay et n'appelle pas l'opérateur, tandis que `metadata.sandbox: true` appelle bien l'environnement de test d'Orange. Voir le [guide de test](/guides/testing).
+  Deux modes de test : `metadata.sahelpay_mock: true` (option SDK `mock`) utilise le simulateur SahelPay et n'appelle pas l'opérateur, tandis que `metadata.sandbox: true` (option SDK `sandbox`) appelle l'environnement de test d'Orange. Voir le [guide de test](/guides/testing).
 </Note>
 
 ## 3. Recevoir le webhook
 
 <Warning>
-  **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu le webhook `payment.success`.
+  **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu et vérifié le webhook `payment.success`.
 </Warning>
 
 Configurez votre endpoint webhook dans le dashboard, puis implémentez le handler :
@@ -130,7 +142,7 @@ export async function POST(request) {
     event = sahelpay.webhooks.constructEvent(
       rawBody,
       signature,
-      process.env.SAHELPAY_WEBHOOK_SECRET!
+      process.env.SAHELPAY_WEBHOOK_SECRET
     );
   } catch {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
@@ -139,8 +151,8 @@ export async function POST(request) {
   const { data } = event;
 
   if (event.event === 'payment.success') {
-    // Marquer la commande comme payée
-    await updateOrder(data.metadata.order_id, { status: 'paid' });
+    // client_reference = votre identifiant de commande
+    await updateOrder(data.client_reference, { status: 'paid' });
   }
 
   return Response.json({ received: true });
@@ -149,16 +161,18 @@ export async function POST(request) {
 
 ## 4. Page de retour
 
-Quand le client revient sur votre site via `return_url`, affichez un message de confirmation :
+Après un paiement **confirmé par le serveur** (`SUCCESS`), la page de paiement SahelPay redirige automatiquement le client vers votre `return_url` après quelques secondes (un lien « Retour au site marchand » reste affiché). Un paiement en attente, échoué ou non vérifié ne déclenche jamais de redirection automatique.
+
+SahelPay n'ajoute aucun paramètre à votre `return_url` : incluez-y votre propre référence de commande. L'URL doit être en `https://` et hors des domaines SahelPay, sinon la page de paiement ne propose aucun retour.
 
 ```javascript
-// /checkout/return?payment_intent_id=xxx
-const paymentId = searchParams.get('payment_intent_id');
-const result = await sahelpay.payments.checkStatus(paymentId);
+// /checkout/return?order=order-123
+const orderId = searchParams.get('order');
+const payment = await sahelpay.payments.search(orderId); // par client_reference
 
-if (result.status === 'SUCCESS') {
+if (payment?.status === 'SUCCESS') {
   // Afficher "Paiement confirmé"
-} else if (result.status === 'PENDING') {
+} else {
   // Afficher "En cours de traitement..."
 }
 ```
@@ -167,45 +181,37 @@ if (result.status === 'SUCCESS') {
   La page de retour sert uniquement à l'UX. Le statut définitif vient toujours du webhook.
 </Note>
 
-## Méthodes de paiement disponibles
+## Méthode de paiement disponible
 
 | Méthode | Type | Description |
 |---------|------|-------------|
 | `ORANGE_MONEY` | Mobile Money | Orange Money (Mali) |
 
-Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers `ORANGE_MONEY`.
+Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers Orange Money.
 
 <Warning>
-  Orange Money est le seul rail intégré. Une autre valeur de `provider` renvoie
-  `400`. Voir [Méthodes de paiement](/guides/smart-routing) pour interroger la
-  liste des rails activés plutôt que de la coder en dur.
+  Orange Money est le seul moyen de paiement. Une autre valeur de `provider` ou de `payment_method` renvoie `400`.
 </Warning>
 
 ## Prochaines étapes
 
 <CardGroup cols={2}>
-  <Card title="Méthodes de paiement" icon="route" href="/guides/smart-routing">
-    Comprendre le routing automatique
+  <Card title="Passer en production" icon="rocket" href="/guides/going-live">
+    KYC, activation, abonnement et plafonds
   </Card>
   <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
     Configurer et sécuriser vos webhooks
   </Card>
-  <Card title="Payouts" icon="send" href="/guides/payouts">
-    Envoyer de l'argent vers Mobile Money
+  <Card title="Tests" icon="flask" href="/guides/testing">
+    Sandbox opérateur et simulateur SahelPay
   </Card>
-  <Card title="Subscriptions" icon="repeat" href="/guides/subscriptions">
-    Paiements récurrents
-  </Card>
-  <Card title="Test Accounts" icon="flask" href="/resources/test-accounts">
-    Numéros de test pour le sandbox
+  <Card title="Retraits" icon="send" href="/guides/payouts">
+    Retirer votre solde vers Orange Money
   </Card>
   <Card title="SDKs" icon="box" href="/sdks/overview">
     Installer les SDKs officiels
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/overview">
     Documentation complète de l'API
-  </Card>
-  <Card title="Customer Portal" icon="user" href="/guides/customer-portal">
-    Portail client self-service
   </Card>
 </CardGroup>

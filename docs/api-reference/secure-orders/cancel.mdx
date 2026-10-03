@@ -1,0 +1,36 @@
+---
+title: Annuler ou rembourser
+api: POST /v1/secure-orders/{id}/cancel
+description: "Annuler une commande non payée ou rembourser une commande payée"
+---
+
+# Annuler ou rembourser un paiement sécurisé
+
+## Endpoint
+
+```
+POST /v1/secure-orders/{id}/cancel
+```
+
+## Comportement
+
+| Statut actuel | Effet |
+|---------------|-------|
+| `CREATED` | Commande annulée (`CANCELLED`), webhook `secure_order.cancelled` |
+| `PAID_HELD` ou `DISPUTED` | Acheteur remboursé (`REFUNDED`), webhook `secure_order.refunded` |
+| Autre | Refusé (commande déjà clôturée) |
+
+## Body
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `reason` | string | | Motif visible dans le tableau de bord (300 caractères max) |
+
+## Exemple
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/secure-orders/5f0c2c55-.../cancel \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "reason": "Article en rupture" }'
+```

@@ -5,30 +5,49 @@ description: "SDK Python pour SahelPay"
 
 # Python SDK
 
-Le SDK Python officiel pour intégrer SahelPay dans vos applications Python, Django ou Flask.
+Le SDK Python officiel pour intégrer SahelPay dans vos applications Python 3.8+, Django ou Flask.
 
 ## Installation
 
-```bash
-pip install sahelpay
-```
+Le paquet `sahelpay` n'est pas encore publié sur PyPI. Installez-le depuis le dépôt :
 
-<Note>
-  En attendant la publication sur PyPI, clonez le repo GitHub :
-  ```bash
-  git clone https://github.com/dione24/sahelpay-sdks.git
-  cd sahelpay-sdks/python
-  pip install -e .
-  ```
-</Note>
+```bash
+git clone https://github.com/dione24/sahelpay-sdks.git
+cd sahelpay-sdks/python
+pip install -e .
+```
 
 ## Configuration
 
 ```python
 from sahelpay import Client
 
-sahelpay = Client(secret_key='sk_test_xxx', environment='sandbox')
+sahelpay = Client(secret_key='sk_test_xxx')  # base URL https://api.sahelpay.ml dans tous les cas
 ```
+
+## Créer un paiement
+
+```python
+payment = sahelpay.payments.create(
+    amount=5000,
+    provider='ORANGE_MONEY',  # seul moyen de paiement
+    customer_phone='+22370123456',
+    description='Commande #123',
+    client_reference='order-123',
+    return_url='https://votre-site.com/checkout/return?order=order-123',
+    idempotency_key='order-123',  # obligatoire côté API : toujours la fournir
+)
+
+redirect(payment.redirect_url)
+```
+
+<Warning>
+  Sans `idempotency_key`, le SDK génère une clé aléatoire à chaque appel : un retry créerait un second
+  paiement. Fournissez une clé stable liée à votre commande. Le SDK n'expose pas encore `items`
+  (Partenaires SPAY) : utilisez l'API HTTP pour ces paiements.
+</Warning>
+
+`hosted_checkout=True` par défaut : `redirect_url` pointe vers le checkout SahelPay. Après un paiement confirmé, le client est renvoyé automatiquement vers `return_url`.
 
 ## Créer un lien de paiement
 
@@ -36,38 +55,33 @@ sahelpay = Client(secret_key='sk_test_xxx', environment='sandbox')
 link = sahelpay.payment_links.create(
     title='Commande #123',
     price=5000,
-    redirect_url='https://votre-site.com/checkout/return'
+    redirect_url='https://votre-site.com/merci',
 )
 
-# Rediriger le client
-redirect(link.url)
+redirect(link.url)  # https://pay.sahelpay.ml/<slug>
 ```
 
 ## Vérifier le statut
 
 ```python
-payment = sahelpay.payments.retrieve('txn_abc123')
+payment = sahelpay.payments.retrieve(payment.id)   # GET /v1/payments/{id}/status
+print(payment.status)  # INITIATED, PENDING, SUCCESS, FAILED, EXPIRED
 
-print(payment.status)  # 'PENDING', 'SUCCESS', 'FAILED'
-print(payment.amount)
+by_order = sahelpay.payments.search('order-123')   # par client_reference, None si introuvable
 ```
 
 ## Tester sans appel opérateur
 
-L'option `mock` active le simulateur SahelPay : aucun appel opérateur, et le
-statut final est piloté par le montant (`4000` réussi, `4001` échoué, `4002` en
-attente, `4003` erreur opérateur).
-
-À ne pas confondre avec `sandbox`, qui appelle bien l'environnement de test de
-l'opérateur.
+L'option `mock` active le simulateur SahelPay (statut piloté par le montant : `4000` réussi, `4001` échoué, `4002` en attente, `4003` erreur opérateur). `sandbox` appelle l'environnement de test d'Orange. Les deux sont refusées avec une clé live.
 
 ```python
 payment = sahelpay.payments.create(
     amount=4000,
     provider='ORANGE_MONEY',
     customer_phone='+22370123456',
-    return_url='https://votre-site.com/checkout/return',
+    hosted_checkout=False,  # la simulation démarre à l'initiation
     mock=True,
+    idempotency_key='test-4000-1',
 )
 
 result = sahelpay.payments.check_status(payment.id)
@@ -79,15 +93,11 @@ sahelpay.webhooks.test()  # envoie webhook.test vers votre endpoint configuré
 ## Vérifier un webhook
 
 ```python
-from sahelpay import Client
-
-sahelpay = Client(secret_key='sk_test_xxx', environment='sandbox')
-
 # Flask
 @app.route('/webhooks/sahelpay', methods=['POST'])
 def webhook():
     raw_body = request.get_data(as_text=True)
-    signature = request.headers.get('X-SahelPay-Signature')
+    signature = request.headers.get('X-SahelPay-Signature', '')
 
     try:
         event = sahelpay.webhooks.construct_event(
@@ -99,74 +109,47 @@ def webhook():
         return jsonify({'error': 'Invalid signature'}), 401
 
     if event.event == 'payment.success':
+        order_id = event.data.client_reference
         # Mettre à jour la commande
-        pass
 
     return jsonify({'received': True})
 ```
 
-## Django View
-
 ```python
+# Django
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from sahelpay import Client
-
-sahelpay = Client(secret_key=settings.SAHELPAY_SECRET_KEY)
 
 @csrf_exempt
 def webhook(request):
     raw_body = request.body.decode('utf-8')
-    signature = request.headers.get('X-SahelPay-Signature')
+    signature = request.headers.get('X-SahelPay-Signature', '')
 
     try:
         event = sahelpay.webhooks.construct_event(
-            raw_body,
-            signature,
-            settings.SAHELPAY_WEBHOOK_SECRET,
+            raw_body, signature, settings.SAHELPAY_WEBHOOK_SECRET,
         )
     except Exception:
         return JsonResponse({'error': 'Invalid signature'}, status=401)
 
     if event.event == 'payment.success':
-        # Mettre à jour la commande
-        pass
+        pass  # Mettre à jour la commande
 
     return JsonResponse({'received': True})
 ```
 
-## Méthodes de paiement
-
-| Méthode | Description | Pays |
-|---------|-------------|------|
-| `ORANGE_MONEY` | Orange Money | Mali |
-
-```python
-payment = client.payments.create(
-    amount=5000,
-    provider='ORANGE_MONEY',  # seul rail intégré aujourd'hui
-    customer_phone='+22370123456',
-    description='Commande #123'
-)
-
-# Informations de routing (automatique)
-print(payment.gateway_used)    # Identifiant technique interne
-print(payment.routing_reason)  # Explication du routing choisi
-```
-
 <Note>
-  SahelPay utilise un **Smart Routing** automatique. Vous spécifiez la méthode de paiement (ex: `ORANGE_MONEY`) et SahelPay choisit le meilleur gateway en interne.
+  `construct_event()` convertit `data` en objet `Payment` pour tous les événements autres que `webhook.test`.
+  Pour les événements `secure_order.*`, `invoice.*` et `subscription.*`, relisez le JSON brut.
 </Note>
 
-## Capabilities
+## Fonctions à éviter pour l'instant
 
-```python
-from sahelpay import has_capability, get_methods_with_capability
-
-# Vérifier si Orange Money supporte les payouts
-has_capability('ORANGE_MONEY', 'payouts')  # True
-
-# Lister les méthodes supportant les payouts
-get_methods_with_capability('payouts')  # ['ORANGE_MONEY']
-```
-
+| Helper | Raison |
+|--------|--------|
+| `payouts.*` | Payouts automatiques indisponibles |
+| `refunds.*` | Remboursements en ligne désactivés (`503`) |
+| `plans.*`, `subscriptions.*`, `customers.*` | Appellent d'anciennes routes ; utilisez `/v1/billing/*` |
+| `withdrawals.create()` | Payload obsolète ; utilisez [l'API HTTP](/api-reference/withdrawals/create) |
+| `has_capability()` & co. | Table statique obsolète (Wave, Moov, cartes, payouts) |
+| `gateway_stream` | Flux réservé à l'administration SahelPay |

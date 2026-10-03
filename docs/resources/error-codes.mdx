@@ -1,54 +1,9 @@
 ---
 title: Codes d'erreur
-description: "Liste des codes d'erreur de l'API SahelPay"
+description: "Codes d'erreur renvoyés par l'API SahelPay"
 ---
 
 # Codes d'erreur
-
-Liste complète des codes d'erreur retournés par l'API.
-
-## Erreurs de validation
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `INVALID_AMOUNT` | 400 | Montant invalide (< 100 ou > 5M) |
-| `MISSING_PHONE` | 400 | Numéro de téléphone requis |
-| `INVALID_PHONE` | 400 | Format de numéro invalide |
-| `MISSING_RETURN_URL` | 400 | URL de retour requise |
-| `INVALID_CURRENCY` | 400 | Devise non supportée |
-
-## Erreurs d'authentification
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `UNAUTHORIZED` | 401 | Clé API manquante ou invalide |
-| `INVALID_API_KEY` | 401 | Clé API invalide |
-| `FORBIDDEN` | 403 | Accès refusé à cette ressource |
-
-## Erreurs de paiement
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `PAYMENT_NOT_FOUND` | 404 | Paiement introuvable |
-| `PAYMENT_EXPIRED` | 400 | Délai de paiement expiré |
-| `PAYMENT_ALREADY_PAID` | 400 | Paiement déjà effectué |
-| `INSUFFICIENT_BALANCE` | 400 | Solde client insuffisant |
-| `PROVIDER_ERROR` | 502 | Erreur de l'opérateur |
-
-## Erreurs de webhook
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `INVALID_SIGNATURE` | 401 | Signature webhook invalide |
-| `TIMESTAMP_TOO_OLD` | 401 | Timestamp trop ancien (replay) |
-
-## Erreurs système
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `RATE_LIMIT_EXCEEDED` | 429 | Trop de requêtes |
-| `INTERNAL_ERROR` | 500 | Erreur interne du serveur |
-| `SERVICE_UNAVAILABLE` | 503 | Service temporairement indisponible |
 
 ## Format de réponse d'erreur
 
@@ -56,8 +11,82 @@ Liste complète des codes d'erreur retournés par l'API.
 {
   "success": false,
   "error": {
-    "code": "INVALID_AMOUNT",
-    "message": "Le montant doit être supérieur à 100 FCFA"
+    "code": "PLAN_MONTHLY_VOLUME_EXCEEDED",
+    "message": "Le volume mensuel autorisé par votre forfait est atteint.",
+    "http_status": 403,
+    "path": "/v1/payments",
+    "timestamp": "2026-10-03T10:00:00.000Z"
   }
 }
 ```
+
+- `code` est stable : basez votre logique dessus, pas sur `message`.
+- Les erreurs de validation des champs renvoient `400` avec `code: "BAD_REQUEST"`, le premier message en `message` et la liste complète en `details`.
+- Quand une erreur n'a pas de code métier, `code` reprend le statut HTTP (`BAD_REQUEST`, `NOT_FOUND`, `RATE_LIMIT_EXCEEDED`…).
+- Les erreurs `5xx` renvoient le code du statut HTTP (`SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`…) et un message générique, sans détail technique.
+
+## Authentification
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `MISSING_API_KEY` | 401 | Header `Authorization` absent |
+| `INVALID_AUTH_FORMAT` | 401 | Header mal formé (attendu : `Bearer sk_...`) |
+| `INVALID_KEY_TYPE` | 401 | Clé autre qu'une clé secrète `sk_...` |
+| `INVALID_API_KEY` | 401 | Clé inconnue ou révoquée |
+| `MERCHANT_INACTIVE` | 401 | Compte marchand désactivé |
+| `PRODUCTION_KEY_DISABLED` | 401 | Clé live alors que la production n'est pas ouverte pour ce compte |
+| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Clé live ou paiement live sans abonnement SahelPay payé en cours |
+
+## Création de paiement
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `IDEMPOTENCY_KEY_REQUIRED` | 400 | Header `X-Idempotency-Key` absent |
+| `INVALID_IDEMPOTENCY_KEY` | 400 | Clé d'idempotence de plus de 128 caractères |
+| `BAD_REQUEST` | 400 | Champ invalide (montant hors 100–5 000 000, téléphone non international, `provider` autre qu'Orange Money, métadonnées de test en production, Orange Money en maintenance…) |
+| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte ne peut pas recevoir ce paiement |
+| `KYC_PAYMENT_LIMIT_EXCEEDED` | 403 | Plafond KYC journalier ou mensuel dépassé |
+| `PLAN_MONTHLY_VOLUME_EXCEEDED` | 403 | Plafond mensuel du forfait atteint |
+| — | 409 | Même `X-Idempotency-Key` réutilisée pour une demande différente |
+| `RATE_LIMIT_EXCEEDED` | 429 | Plus de 10 créations par minute |
+
+## Programme Partenaires SPAY
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `PARTNER_PRODUCT_REQUIRED` | 400 | Paiement ou lien live sans produit du catalogue validé |
+| `PARTNER_ITEMS_INVALID` | 400 | `items` mal formé |
+| `PARTNER_PRODUCT_NOT_FOUND` | 400 | Produit inconnu |
+| `PARTNER_PRODUCT_NOT_APPROVED` | 400 | Produit non validé par SahelPay |
+| `PARTNER_AMOUNT_MISMATCH` | 400 | `amount` différent du total du catalogue |
+| `PARTNER_WITHDRAWAL_CLOSED` | 403 | Pas de retrait : redevance versée chaque mois |
+
+## Paiement sécurisé à la livraison
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `SECURE_ORDERS_DISABLED` | 404 | Service non activé pour votre compte |
+| `IDEMPOTENCY_CONFLICT` | 409 | Clé déjà utilisée pour une autre commande |
+| `NOT_PAID` | 409 | Commande pas encore payée |
+| `ORDER_CLOSED` | 409 | Commande annulée ou remboursée |
+| `DELIVERY_EXPIRED` | 410 | Délai de livraison dépassé |
+| `CODE_LOCKED` | 429 | Trop de codes de livraison incorrects |
+
+## Liens de paiement
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `PAYMENT_LINK_NOT_FOUND` | 404 | Lien introuvable (slug invalide ou inconnu) |
+
+## Système
+
+| Code | HTTP | Description |
+|------|------|-------------|
+| `RATE_LIMIT_EXCEEDED` | 429 | Trop de requêtes |
+| `INTERNAL_ERROR` | 500 | Erreur interne |
+| `SERVICE_UNAVAILABLE` | 503 | Service momentanément indisponible. Inclut `POST /v1/refunds` (remboursements en ligne désactivés, refus `REFUNDS_UNAVAILABLE` côté serveur) |
+
+<Note>
+  Certaines routes renvoient encore `200` avec `{ "success": false, "message": "..." }` quand une ressource
+  est introuvable (`GET /v1/payments/{id}/status`, `/details`, `/search`). Testez toujours `success`.
+</Note>

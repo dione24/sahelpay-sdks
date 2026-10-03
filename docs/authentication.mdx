@@ -13,12 +13,12 @@ Vous avez deux types de clés :
 
 | Type | Préfixe | Usage |
 |------|---------|-------|
-| **Clé publique** | `pk_test_` / `pk_live_` | Côté client (frontend) |
-| **Clé secrète** | `sk_test_` / `sk_live_` | Côté serveur uniquement |
+| **Clé publique** | `pk_test_` / `pk_live_` | Identifiant public, n'authentifie pas les appels API |
+| **Clé secrète** | `sk_test_` / `sk_live_` | Côté serveur uniquement, pour tous les appels API |
 
 <Warning>
-  **Ne jamais exposer votre clé secrète** côté client (JavaScript frontend, mobile app). 
-  Utilisez-la uniquement dans votre backend.
+  **Ne jamais exposer votre clé secrète** côté client (JavaScript frontend, application mobile).
+  Utilisez-la uniquement dans votre backend. Une clé `pk_...` envoyée comme Bearer est refusée (`401 INVALID_KEY_TYPE`).
 </Warning>
 
 ## Utilisation
@@ -26,7 +26,7 @@ Vous avez deux types de clés :
 Incluez votre clé secrète dans le header `Authorization` :
 
 ```bash
-curl https://api.sahelpay.ml/v1/payments \
+curl https://api.sahelpay.ml/v1/payments/history \
   -H "Authorization: Bearer sk_test_xxx"
 ```
 
@@ -38,8 +38,33 @@ curl https://api.sahelpay.ml/v1/payments \
 | **Production** | `sk_live_xxx` | `https://api.sahelpay.ml` |
 
 <Note>
-  Le sandbox est un mode logique porté par les clés `sk_test_...`. Utilisez la même base URL API. Avec `metadata.sandbox: true`, l'appel part vers l'environnement de test de l'opérateur ; avec `metadata.sahelpay_mock: true`, le simulateur SahelPay répond sans aucun appel opérateur.
+  Le sandbox est un mode logique porté par les clés `sk_test_...` : utilisez la même base URL API. Avec `metadata.sandbox: true`, l'appel part vers l'environnement de test de l'opérateur ; avec `metadata.sahelpay_mock: true`, le simulateur SahelPay répond sans aucun appel opérateur. Ces deux métadonnées sont refusées en production.
 </Note>
+
+## Clé live : conditions d'utilisation
+
+Une clé `sk_live_...` n'est acceptée que si votre compte peut encaisser en production :
+
+- compte actif, KYC approuvé (niveau Starter ou Business) et mode production activé ;
+- compte sélectionné par SahelPay pour la production ;
+- **abonnement SahelPay payé et en cours** (ou contrat [Partenaires SPAY](/guides/partners) validé).
+
+| Situation | Réponse |
+|-----------|---------|
+| Production non activée / compte non sélectionné | `401 PRODUCTION_KEY_DISABLED` |
+| Pas d'abonnement payé en cours | `403 PAID_SUBSCRIPTION_REQUIRED` |
+
+Quand l'abonnement expire, tout le compte repasse en sandbox : les clés live sont refusées (jamais simulées) jusqu'au renouvellement. Voir [Passer en production](/guides/going-live).
+
+## Erreurs d'authentification
+
+| Code | HTTP | Cause |
+|------|------|-------|
+| `MISSING_API_KEY` | 401 | Header `Authorization` absent |
+| `INVALID_AUTH_FORMAT` | 401 | Header mal formé (attendu : `Bearer sk_...`) |
+| `INVALID_KEY_TYPE` | 401 | Clé autre qu'une clé secrète `sk_...` |
+| `INVALID_API_KEY` | 401 | Clé inconnue ou révoquée |
+| `MERCHANT_INACTIVE` | 401 | Compte marchand désactivé |
 
 ## Régénérer vos clés
 

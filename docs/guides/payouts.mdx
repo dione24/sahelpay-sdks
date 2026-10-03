@@ -1,199 +1,92 @@
 ---
-title: Payouts
-description: "Envoyer de l'argent vers Mobile Money"
+title: Retraits et payouts
+description: "Retirer votre solde vers Orange Money (traitement manuel)"
 ---
 
-# Payouts (Envoi d'argent)
+# Retraits et payouts
 
-Les **Payouts** permettent d'envoyer de l'argent depuis votre compte SahelPay vers un compte Mobile Money (Orange Money).
+<Warning>
+  **Les payouts automatiques (`POST /v1/payouts`) ne sont pas disponibles.** Orange Money ne permet pas
+  d'envoi d'argent automatique depuis SahelPay : une création de payout est refusée (`403` avec une clé de
+  test, `400` « Les transferts automatiques Orange Money ne sont pas disponibles » avec une clé live).
+  Les envois vers des fournisseurs, salariés ou partenaires ne sont donc pas proposés.
+</Warning>
 
-## Cas d'usage
+Pour récupérer votre argent, créez une **demande de retrait** de votre solde disponible vers Orange Money. Chaque demande est **vérifiée puis exécutée manuellement** par l'équipe SahelPay.
 
-- **Paiement fournisseurs** : Régler vos fournisseurs via Mobile Money
-- **Salaires** : Payer vos employés
-- **Commissions** : Verser des commissions à vos partenaires
-- **Remboursements** : Rembourser vos clients
-- **Retraits marchands** : Retirer vos fonds vers votre compte Mobile Money
-
-## Créer un payout
-
-<CodeGroup>
-
-```javascript JavaScript
-const payout = await sahelpay.payouts.create({
-  amount: 50000,
-  provider: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
-  recipient_phone: '+22370123456',
-  recipient_name: 'Mamadou Diallo',
-  description: 'Paiement fournisseur #123',
-  type: 'SUPPLIER_PAYMENT',
-  idempotency_key: 'supplier-123' // Optionnel
-});
-
-console.log(payout.reference); // PAY_xxx
-console.log(payout.status);    // PENDING
-```
-
-```python Python
-payout = client.payouts.create(
-    amount=50000,
-    provider='ORANGE_MONEY',
-    recipient_phone='+22370123456',
-    recipient_name='Mamadou Diallo',
-    description='Paiement fournisseur #123',
-    payout_type='SUPPLIER_PAYMENT',
-    idempotency_key='supplier-123'
-)
-
-print(payout.reference)  # PAY_xxx
-print(payout.status)     # PENDING
-```
-
-```php PHP
-$payout = $sahelpay->payouts->create([
-    'amount' => 50000,
-    'provider' => 'ORANGE_MONEY',
-    'recipient_phone' => '+22370123456',
-    'recipient_name' => 'Mamadou Diallo',
-    'description' => 'Paiement fournisseur #123',
-    'type' => 'SUPPLIER_PAYMENT',
-    'idempotency_key' => 'supplier-123'
-]);
-
-echo $payout->reference; // PAY_xxx
-echo $payout->status;     // PENDING
-```
-
-</CodeGroup>
-
-## Limites
-
-| Limite | Valeur |
-|--------|--------|
-| **Montant minimum** | 100 FCFA |
-| **Montant maximum** | 5,000,000 FCFA |
-| **Providers supportés** | Orange Money |
-
-## Types de payouts
-
-| Type | Description |
-|------|-------------|
-| `MERCHANT_WITHDRAWAL` | Retrait marchand vers votre compte |
-| `SUPPLIER_PAYMENT` | Paiement fournisseur |
-| `SALARY` | Salaire employé |
-| `COMMISSION` | Commission partenaire |
-| `REFUND` | Remboursement client |
-| `MARKETPLACE_SPLIT` | Split marketplace |
-| `OTHER` | Autre (défaut) |
-
-## Statuts
+## Cycle de vie d'un retrait
 
 | Statut | Description |
 |--------|-------------|
-| `PENDING` | En attente de traitement |
-| `PROCESSING` | En cours de traitement |
-| `COMPLETED` | Paiement effectué avec succès |
-| `FAILED` | Échec du paiement |
-| `CANCELLED` | Annulé |
+| `PENDING` | Demande enregistrée, fonds réservés sur votre solde |
+| `PROCESSING` | Prise en charge par SahelPay |
+| `COMPLETED` | Transfert Orange Money effectué (référence de transfert enregistrée) |
+| `REJECTED` | Demande refusée, fonds restitués |
+| `CANCELLED` | Annulée par vous tant qu'elle était `PENDING` |
 
-## Vérifier le statut
+## Règles
 
-```javascript
-const payout = await sahelpay.payouts.retrieve('PAY_xxx');
+| Règle | Valeur |
+|-------|--------|
+| Montant minimum | 50 000 FCFA |
+| Montant maximum | 5 000 000 FCFA |
+| Frais | 1 % du montant, minimum 100 FCFA, **déduits du montant** |
+| Opérateur | `ORANGE_MONEY` uniquement |
+| Prérequis | Compte actif et KYC approuvé |
+| Idempotence | Header `X-Idempotency-Key` obligatoire |
 
-if (payout.status === 'COMPLETED') {
-  console.log('Payout réussi !');
-} else if (payout.status === 'FAILED') {
-  console.error('Erreur:', payout.error_message);
-}
+Exemple : un retrait de 100 000 FCFA débite 100 000 FCFA de votre solde et vous recevez 99 000 FCFA.
+
+<Note>
+  Les membres du [Programme Partenaires SPAY](/guides/partners) n'ont pas de solde à retirer : SAHEL PAY TECHNOLOGIES leur verse leur redevance chaque mois (`403 PARTNER_WITHDRAWAL_CLOSED`).
+</Note>
+
+## Vérifier votre solde et le devis
+
+```bash
+curl https://api.sahelpay.ml/v1/withdrawals/balance \
+  -H "Authorization: Bearer sk_live_xxx"
+
+curl "https://api.sahelpay.ml/v1/withdrawals/quote?amount=100000" \
+  -H "Authorization: Bearer sk_live_xxx"
 ```
 
-## Polling
+Le devis renvoie `amount`, `fee`, `amount_debited`, `recipient_amount`, `currency` et `provider`. Passez `quoted_fee` à la création : si les frais ont changé entre-temps, la demande est refusée (`409`) au lieu d'être exécutée à un autre prix.
 
-Pour attendre la fin d'un payout :
+## Créer une demande de retrait
 
-```javascript
-const payout = await sahelpay.payouts.poll('PAY_xxx', {
-  timeout: 120000, // 2 minutes
-  onStatus: (status, payout) => {
-    console.log(`Status: ${status}`);
-  }
-});
-
-console.log('Payout final:', payout.status);
+```bash
+curl -X POST https://api.sahelpay.ml/v1/withdrawals \
+  -H "Authorization: Bearer sk_live_xxx" \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: withdrawal-2026-10-03" \
+  -d '{
+    "amount": 100000,
+    "quoted_fee": 1000,
+    "provider": "ORANGE_MONEY",
+    "phone_number": "+22370123456",
+    "notes": "Retrait hebdomadaire"
+  }'
 ```
 
-## Lister les payouts
+Rejouer la même clé avec la même demande renvoie la demande existante ; la même clé avec un autre montant ou un autre numéro est refusée (`409`).
 
-```javascript
-const { payouts, pagination } = await sahelpay.payouts.list({
-  limit: 20,
-  page: 1,
-  status: 'COMPLETED', // Optionnel
-  type: 'SUPPLIER_PAYMENT' // Optionnel
-});
-```
+<Warning>
+  Les helpers `withdrawals.create()` des SDK JavaScript et Python n'envoient pas encore les champs attendus
+  (`provider`, `phone_number`) ni le header `X-Idempotency-Key` : utilisez l'appel HTTP ci-dessus ou le dashboard.
+  `withdrawals.balance()`, `withdrawals.list()`, `withdrawals.stats()` et `withdrawals.cancel()` fonctionnent.
+</Warning>
 
-## Annuler un payout
-
-Un payout en statut `PENDING` peut être annulé :
-
-```javascript
-const payout = await sahelpay.payouts.cancel('PAY_xxx');
-```
-
-## Statistiques
-
-```javascript
-const stats = await sahelpay.payouts.stats();
-
-console.log(stats.total);        // Nombre total
-console.log(stats.completed);    // Réussis
-console.log(stats.failed);       // Échoués
-console.log(stats.success_rate); // Taux de succès
-```
-
-## Webhooks
-
-Les événements webhook pour les payouts :
-
-- `payout.completed` : Payout réussi
-- `payout.failed` : Payout échoué
-
-```javascript
-if (event === 'payout.completed') {
-  await updateSupplierPayment(data.metadata.supplier_id, { paid: true });
-}
-```
-
-## Vérification des fonds
-
-Avant de créer un payout, vérifiez que vous avez suffisamment de fonds :
+## Suivre et annuler
 
 ```javascript
 const balance = await sahelpay.withdrawals.balance();
+console.log(balance.available_balance);
 
-if (balance.available < amount + fee) {
-  throw new Error('Fonds insuffisants');
-}
+const result = await sahelpay.withdrawals.list({ page: 1, limit: 20 });
+
+// Annuler une demande encore PENDING
+await sahelpay.withdrawals.cancel('withdrawal_id');
 ```
 
-<Warning>
-  Les payouts sont débités de votre solde SahelPay. Assurez-vous d'avoir suffisamment de fonds disponibles avant de créer un payout.
-</Warning>
-
-## Idempotence
-
-Utilisez `idempotency_key` pour éviter les doublons :
-
-```javascript
-const payout = await sahelpay.payouts.create({
-  amount: 50000,
-  provider: 'ORANGE_MONEY',
-  recipient_phone: '+22370123456',
-  idempotency_key: 'supplier-123' // Unique par fournisseur
-});
-
-// Si appelé deux fois avec la même clé, retourne le même payout
-```
-
+Voir la référence : [Créer un retrait](/api-reference/withdrawals/create) et [Lister, solde, annulation](/api-reference/withdrawals/list).

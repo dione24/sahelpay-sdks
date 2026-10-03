@@ -1,45 +1,41 @@
 ---
-title: Créer un remboursement
+title: Remboursements (indisponible)
 api: POST /v1/refunds
-description: "Rembourser totalement ou partiellement un paiement réussi"
+description: "Les remboursements en ligne sont désactivés pour l'instant"
 ---
 
-# Créer un remboursement
+# Remboursements : indisponibles
 
-Permet de retourner des fonds à un client. Le montant sera débité du solde disponible du marchand.
+<Warning>
+  **Les remboursements en ligne sont désactivés en production pour l'instant.** `POST /v1/refunds`
+  répond toujours HTTP `503` (refus `REFUNDS_UNAVAILABLE` côté serveur), sans réserver de fonds.
 
-## Body
+  Pour rembourser un client, contactez le support : [support@sahelpay.africa](mailto:support@sahelpay.africa),
+  en indiquant l'ID du paiement et le montant.
+</Warning>
 
-| Paramètre | Type | Requis | Description |
-|-----------|------|--------|-------------|
-| `payment_id` | string | ✅ | ID du paiement original |
-| `amount` | integer | ✅ | Montant à rembourser |
-| `reason` | string | | Raison du remboursement |
-| `refund_fees` | boolean | | Si `true`, tente de rembourser également les frais de plateforme |
+## Réponse actuelle
 
-## Exemple
-
-```bash
-curl -X POST https://api.sahelpay.ml/v1/refunds \
-  -H "Authorization: Bearer sk_live_xxx" \
-  -d '{
-    "payment_id": "txn_123",
-    "amount": 1000,
-    "reason": "Client insatisfait"
-  }'
-```
-
-## Réponse
+Comme toute erreur `5xx`, la réponse publique est normalisée : testez le statut HTTP `503` plutôt que le code.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "ref_abc123",
-    "status": "COMPLETED",
-    "amount": 1000,
-    "currency": "XOF",
-    "created_at": "2025-12-19T11:00:00Z"
+  "success": false,
+  "error": {
+    "code": "SERVICE_UNAVAILABLE",
+    "message": "Le service est momentanément indisponible. Réessayez ou contactez le support.",
+    "http_status": 503
   }
 }
 ```
+
+<Note>
+  Les helpers `refunds.create()` des SDKs reçoivent cette même erreur. `refunds.list()` (JS, Python, PHP)
+  appelle `GET /v1/refunds`, qui n'existe pas.
+</Note>
+
+## Paiement sécurisé à la livraison
+
+Les remboursements liés au [paiement sécurisé à la livraison](/guides/secure-orders) ne sont pas concernés :
+annuler une commande payée (`POST /v1/secure-orders/{id}/cancel`) rembourse l'acheteur, et un délai de
+livraison dépassé déclenche un remboursement automatique.

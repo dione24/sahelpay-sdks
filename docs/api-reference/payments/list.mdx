@@ -1,31 +1,37 @@
 ---
-title: Lister les paiements
-api: GET /v1/payments
-description: "Lister tous les paiements"
+title: Historique des transactions
+api: GET /v1/payments/history
+description: "Lister l'historique des transactions"
 ---
 
-# Lister les paiements
-
-Récupère la liste des paiements avec pagination.
+# Historique des transactions
 
 ## Endpoint
 
 ```
-GET /v1/payments
+GET /v1/payments/history
 ```
 
-## Query Parameters
+<Warning>
+  Cet endpoint lit l'historique des **transactions de l'ancien flux** de paiement. Les paiements créés via
+  `POST /v1/payments` n'y figurent pas : pour eux, utilisez les webhooks, `GET /v1/payments/search`
+  (par `client_reference`) ou `GET /v1/payments/{id}/details`, ou les exports du dashboard.
+</Warning>
+
+## Query parameters
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `page` | integer | Numéro de page (défaut: 1) |
-| `limit` | integer | Résultats par page (max: 100) |
+| `limit` | integer | Résultats (défaut 20, max 100) |
+| `offset` | integer | Décalage (défaut 0) |
 | `status` | string | Filtrer par statut |
+| `start_date` | string | `created_at >=` (ISO ou `YYYY-MM-DD`) |
+| `end_date` | string | `created_at <=` (ISO ou `YYYY-MM-DD`) |
 
 ## Exemple
 
 ```bash
-curl "https://api.sahelpay.ml/v1/payments?page=1&limit=20&status=SUCCESS" \
+curl "https://api.sahelpay.ml/v1/payments/history?limit=20&offset=0&status=SUCCESS" \
   -H "Authorization: Bearer sk_test_xxx"
 ```
 
@@ -35,21 +41,23 @@ curl "https://api.sahelpay.ml/v1/payments?page=1&limit=20&status=SUCCESS" \
 {
   "success": true,
   "data": {
-    "payments": [
+    "transactions": [
       {
-        "id": "txn_abc123",
-        "status": "SUCCESS",
+        "id": "...",
+        "reference_id": "...",
         "amount": 5000,
         "currency": "XOF",
-        "created_at": "2025-12-18T16:45:00.000Z"
+        "provider": "ORANGE_MONEY",
+        "status": "SUCCESS",
+        "customer_phone": "+22370123456",
+        "recipient_alias": null,
+        "description": "Commande #123",
+        "created_at": "2026-10-03T10:00:00.000Z"
       }
     ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 150,
-      "pages": 8
-    }
+    "pagination": { "total": 1, "limit": 20, "offset": 0 }
   }
 }
 ```
+
+SDKs : `payments.list()` (JS, Python), `$sahelpay->payments->all()` (PHP).

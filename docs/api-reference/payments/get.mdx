@@ -1,61 +1,70 @@
 ---
-title: Récupérer un paiement
-api: GET /v1/payments/{id}
-description: "Récupérer les détails d'un paiement"
+title: Statut d'un paiement
+api: GET /v1/payments/{id}/status
+description: "Lire le statut d'un paiement"
 ---
 
-# Récupérer un paiement
+# Statut d'un paiement
 
-Récupère les détails d'un paiement existant.
-
-## Endpoint
+## Endpoint authentifié (recommandé)
 
 ```
-GET /v1/payments/{id}
+GET /v1/payments/{id}/status
 ```
-
-## Paramètres
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `id` | string | ID du paiement (`txn_xxx`) |
-
-## Exemple
+| `id` | string | ID du paiement renvoyé à la création (UUID) |
 
 ```bash
-curl https://api.sahelpay.ml/v1/payments/txn_abc123 \
+curl https://api.sahelpay.ml/v1/payments/8d6f1c2e-.../status \
   -H "Authorization: Bearer sk_test_xxx"
 ```
-
-## Réponse
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "txn_abc123def456",
+    "id": "8d6f1c2e-...",
     "status": "SUCCESS",
+    "payment_method": "MOBILE_MONEY",
+    "country": "ML",
     "amount": 5000,
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
     "currency": "XOF",
-    "provider": "ORANGE_MONEY",
-    "provider_ref": "OM123456789",
-    "customer_phone": "+22370123456",
-    "client_reference": "order_123",
-    "metadata": {
-      "order_id": "order_123"
-    },
-    "created_at": "2025-12-18T16:45:00.000Z",
-    "updated_at": "2025-12-18T16:50:00.000Z"
+    "provider_ref": "MP261003.1000.A12345",
+    "redirect_url": "https://...",
+    "expires_at": "2026-10-03T10:30:00.000Z",
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:05:00.000Z"
   }
 }
 ```
+
+Pour un paiement simulé (`sahelpay_mock`), cet appel applique le statut simulé et déclenche le webhook correspondant.
+
+SDKs : `sahelpay.payments.retrieve(id)` / `checkStatus(id)` (JS), `client.payments.retrieve(id)` / `check_status(id)` (Python), `$sahelpay->payments->verify($id)` (PHP).
+
+<Note>
+  Si le paiement est introuvable, la réponse est `200` avec `{ "success": false, "message": "PaymentIntent not found" }`.
+</Note>
+
+## Endpoint public
+
+```
+GET /v1/payments/{id}
+```
+
+Sans clé API (20 requêtes par minute) : utilisé par les pages de paiement SahelPay. Il renvoie `id`, `status`, les montants, `currency`, `reference` (votre `client_reference` ou un code court), `return_url`, `created_at` et `updated_at`. Si un paiement est `PENDING` depuis plus de quelques secondes, l'appel déclenche une revérification auprès d'Orange Money.
 
 ## Statuts
 
 | Statut | Description |
 |--------|-------------|
-| `PENDING` | En attente de paiement |
+| `INITIATED` | Créé, pas encore initié auprès d'Orange |
+| `PENDING` | En attente de validation du client |
 | `SUCCESS` | Paiement confirmé |
 | `FAILED` | Paiement échoué |
-| `EXPIRED` | Délai expiré |
-| `CANCELLED` | Annulé par le client |
+| `EXPIRED` | Expiré (délai écoulé ou `POST /v1/payments/{id}/expire`) |

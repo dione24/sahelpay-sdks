@@ -1,15 +1,15 @@
 ---
 title: Comptes de test
-description: "Numéros et données de test pour le sandbox"
+description: "Montants et données de test pour le sandbox"
 ---
 
 # Comptes de test
 
-Utilisez ces données pour tester votre intégration en sandbox.
+Utilisez ces données pour tester votre intégration en sandbox (gratuite, sans abonnement).
 
 ## Déclencheurs du simulateur
 
-Avec `metadata.sahelpay_mock: true`, le statut final est piloté par le **montant** :
+Avec `metadata.sahelpay_mock: true` (option SDK `mock`), le statut final est piloté par le **montant** :
 
 | Montant | Résultat |
 |---------|----------|
@@ -21,17 +21,20 @@ Avec `metadata.sahelpay_mock: true`, le statut final est piloté par le **montan
 
 <Note>
   Il n'y a pas de numéros de téléphone de test : le simulateur ne regarde que le
-  montant. Utilisez un numéro malien valide au format `+223XXXXXXXX`.
+  montant. Utilisez un numéro malien valide au format international `+223XXXXXXXX`.
+  Créez le paiement avec `hosted_checkout: false`, puis lisez `GET /v1/payments/{id}/status`.
 </Note>
 
-## Clés API de test
+## Clés de test
 
 ```
-Public Key: pk_test_xxxxxxxxxxxxxxxx
-Secret Key: sk_test_xxxxxxxxxxxxxxxx
-Webhook Secret: whsec_test_xxxxxxxx
+Public Key:     pk_test_xxxxxxxxxxxxxxxx
+Secret Key:     sk_test_xxxxxxxxxxxxxxxx
+Webhook Secret: whsec_xxxxxxxxxxxxxxxx
 ```
+
+Vos vraies clés de test sont dans le dashboard (**Développeurs** → **Clés API**).
 
 <Note>
-  Les clés de test utilisent la base URL `https://api.sahelpay.ml`. Pour le simulateur SahelPay sans appel opérateur, envoyez `metadata.sahelpay_mock: true`. Avec `metadata.sandbox: true`, l'appel part vers l'environnement de test de l'opérateur.
+  Les clés de test utilisent la base URL `https://api.sahelpay.ml`. Avec `metadata.sahelpay_mock: true`, le simulateur SahelPay répond sans appel opérateur ; avec `metadata.sandbox: true`, l'appel part vers l'environnement de test d'Orange. Ces deux métadonnées sont refusées en production.
 </Note>

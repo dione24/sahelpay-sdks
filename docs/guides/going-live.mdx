@@ -1,0 +1,80 @@
+---
+title: Passer en production
+description: "KYC, activation, abonnement payé et plafonds d'encaissement live"
+---
+
+# Passer en production
+
+La sandbox est gratuite et sans limite de durée. Encaisser de vrais paiements Orange Money demande un compte activé **et** un abonnement SahelPay payé.
+
+## Conditions pour encaisser en live
+
+<Steps>
+  <Step title="KYC approuvé">
+    Complétez votre vérification dans le dashboard. Le live exige un KYC approuvé de niveau Starter ou Business.
+  </Step>
+  <Step title="Activation de la production">
+    Activez le mode production dans le dashboard. L'accès production est ensuite ouvert compte par compte par SahelPay.
+  </Step>
+  <Step title="Abonnement payé">
+    Choisissez et payez un forfait dans **Mon offre** (dashboard). Le live n'est ouvert que pendant une période payée et en cours.
+  </Step>
+  <Step title="Clés live">
+    Utilisez votre clé `sk_live_...` et configurez votre URL webhook de production.
+  </Step>
+</Steps>
+
+<Note>
+  Les membres du [Programme Partenaires SPAY](/guides/partners) dont le contrat est validé encaissent en production sans abonnement : SahelPay est alors le vendeur.
+</Note>
+
+## Ce qui se passe sans abonnement
+
+- Sans période payée (ou après expiration), **tout le compte fonctionne en sandbox**.
+- Une clé `sk_live_...` est alors refusée avec `403 PAID_SUBSCRIPTION_REQUIRED` : un vrai client ne doit jamais croire avoir payé.
+- Le renouvellement rouvre le live automatiquement, sans autre action.
+
+## Plafonds d'encaissement live
+
+Chaque forfait fixe un volume encaissé maximal par **mois civil (UTC)** :
+
+| Forfait | Plafond mensuel live |
+|---------|----------------------|
+| Starter | 200 000 FCFA |
+| Pro | 200 000 FCFA |
+| Entreprise | 500 000 FCFA (point de départ, offre attribuée par SahelPay) |
+
+Les tarifs à jour sont publiés par `GET /v1/sahelpay/plans` (public) et dans le dashboard. Votre forfait courant est lisible via `GET /v1/merchant/plan` et `GET /v1/merchant/subscription` (clé secrète).
+
+Ce qui compte dans le plafond :
+
+- les paiements live `PENDING` et `SUCCESS` du mois ;
+- un paiement `INITIATED` (checkout ouvert mais pas encore validé) réserve son montant pendant 30 minutes ;
+- les paiements sandbox ou simulés ne comptent jamais.
+
+Des plafonds journaliers et mensuels liés à votre niveau KYC peuvent aussi s'appliquer.
+
+| Code | HTTP | Signification |
+|------|------|---------------|
+| `PLAN_MONTHLY_VOLUME_EXCEEDED` | 403 | Le volume mensuel de votre forfait est atteint |
+| `KYC_PAYMENT_LIMIT_EXCEEDED` | 403 | Plafond KYC journalier ou mensuel dépassé |
+| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte ne peut pas recevoir ce paiement (compte inactif, KYC ou activation manquants) |
+| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Pas d'abonnement payé en cours |
+
+## Libellé côté client
+
+Sur la page Orange Money, vos paiements apparaissent sous le libellé `SPAY-<nom du marchand>` (30 caractères maximum). Les paiements dus à SahelPay elle-même (votre abonnement) restent libellés « SahelPay ».
+
+Le paiement de votre abonnement SahelPay n'est jamais traité comme une vente : il ne déclenche aucun webhook vers votre intégration et n'entre pas dans vos encaissements.
+
+## Checklist
+
+<CheckboxGroup>
+  <Checkbox>KYC approuvé et production activée</Checkbox>
+  <Checkbox>Abonnement payé (ou contrat Partenaires SPAY validé)</Checkbox>
+  <Checkbox>Clé `sk_live_...` stockée côté serveur uniquement</Checkbox>
+  <Checkbox>URL webhook de production en HTTPS et signature vérifiée</Checkbox>
+  <Checkbox>`X-Idempotency-Key` envoyé sur chaque création</Checkbox>
+  <Checkbox>Aucune métadonnée `sandbox` / `sahelpay_mock` en production (refusées)</Checkbox>
+  <Checkbox>Gestion des erreurs de plafond (`PLAN_MONTHLY_VOLUME_EXCEEDED`)</Checkbox>
+</CheckboxGroup>

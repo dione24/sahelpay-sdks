@@ -1,4 +1,1 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="6" fill="#00C853"/>
-    <text x="8" y="22" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ffffff">S</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SahelPay"><rect width="64" height="64" rx="15" fill="#153c32"/><path d="M15 26H45L37 18" fill="none" stroke="#a9d472" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M49 38H19L27 46" fill="none" stroke="#f8f7f2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>

@@ -6,7 +6,7 @@ description: "Créer un lien de paiement réutilisable"
 
 # Créer un lien de paiement
 
-Crée un lien de paiement qui peut être partagé avec vos clients.
+Crée un lien de paiement partageable, à montant fixe (produit) ou libre (le client saisit le montant).
 
 ## Endpoint
 
@@ -18,11 +18,17 @@ POST /v1/payment-links
 
 | Paramètre | Type | Requis | Description |
 |-----------|------|--------|-------------|
-| `title` | string | ✅ | Titre affiché au client |
-| `price` | integer | ✅ | Montant en FCFA |
-| `currency` | string | | Devise (défaut: `XOF`) |
-| `description` | string | | Description du produit |
-| `redirect_url` | string | | URL de retour après paiement |
+| `name` | string | ✅ | Nom affiché au client (`title` accepté comme alias) |
+| `description` | string | | Description |
+| `amount_mode` | string | | `OPEN` (montant libre, défaut) ou `FIXED` |
+| `fixed_amount` | integer | si `FIXED` | Montant fixe, 100 à 5 000 000 FCFA (`price` / `amount` acceptés comme alias) |
+| `min_amount` / `max_amount` | integer | | Bornes en mode `OPEN` (défaut 100 / 500 000) |
+| `currency` | string | | Défaut `XOF` |
+| `success_redirect_url` | string | | URL de retour après paiement (`redirect_url` accepté comme alias) |
+| `image_url` | string | | Image du produit |
+| `expires_at` | string | | Date d'expiration ISO 8601 |
+| `max_uses` | integer | | Nombre maximal de paiements (1 à 10 000) |
+| `product_id` | string | | Partenaires SPAY : produit validé du catalogue (lien `FIXED` au prix validé, obligatoire en live) |
 
 ## Exemple
 
@@ -31,37 +37,23 @@ curl -X POST https://api.sahelpay.ml/v1/payment-links \
   -H "Authorization: Bearer sk_test_xxx" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Abonnement Premium",
-    "price": 10000,
+    "name": "Abonnement Premium",
+    "amount_mode": "FIXED",
+    "fixed_amount": 10000,
     "description": "Accès illimité pendant 1 mois",
-    "redirect_url": "https://votre-site.com/merci"
+    "success_redirect_url": "https://votre-site.com/merci"
   }'
 ```
 
 ## Réponse
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "pl_xyz789",
-    "title": "Abonnement Premium",
-    "price": 10000,
-    "currency": "XOF",
-    "slug": "abonnement-premium-xyz789",
-    "url": "https://pay.sahelpay.ml/abonnement-premium-xyz789",
-    "is_active": true,
-    "created_at": "2025-12-18T16:45:00.000Z"
-  }
-}
-```
+`data` est le lien créé, avec notamment `id`, `slug` (32 caractères hexadécimaux), `name`, `amount_mode`, `fixed_amount`, `min_amount`, `max_amount`, `currency`, `is_active` et `created_at`.
 
 ## Utilisation
 
-Partagez l'URL avec vos clients :
+L'URL publique du lien est `https://pay.sahelpay.ml/<slug>`. Le client y paie via Orange Money sur une page hébergée par SahelPay. Le SDK JavaScript renvoie cette URL dans le champ `url`.
 
-```
-https://pay.sahelpay.ml/abonnement-premium-xyz789
-```
-
-Le client sera redirigé vers une page de checkout hébergée par SahelPay.
+<Note>
+  Les helpers `paymentLinks.create()` des SDKs envoient `title` / `price` / `redirect_url`, alias toujours
+  acceptés par l'API.
+</Note>

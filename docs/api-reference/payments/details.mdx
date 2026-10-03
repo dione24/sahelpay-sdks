@@ -1,16 +1,12 @@
 ---
 title: Détails du paiement
 api: GET /v1/payments/{id}/details
-description: "Obtenir les détails financiers complets d'un paiement"
+description: "Obtenir les détails complets d'un paiement"
 ---
 
 # Détails du paiement
 
-Récupère toutes les informations financières liées à un paiement, y compris le calcul des frais et les écritures comptables (Ledger). 
-
-<Note>
-  Cet endpoint est principalement utilisé pour la réconciliation et l'audit financier.
-</Note>
+Récupère les informations complètes d'un paiement : montants et frais, client, URLs, et les écritures du grand livre qui concernent votre compte. Utile pour la réconciliation et l'audit.
 
 ## Path Parameters
 
@@ -18,47 +14,75 @@ Récupère toutes les informations financières liées à un paiement, y compris
 |-----------|------|--------|-------------|
 | `id` | string | ✅ | ID du paiement (UUID) |
 
+## Exemple
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.sahelpay.ml/v1/payments/8d6f1c2e-.../details \
+  -H "Authorization: Bearer sk_live_xxx"
+```
+
+```javascript Node.js
+const payment = await sahelpay.payments.details('8d6f1c2e-...');
+```
+
+```python Python
+payment = client.payments.details('8d6f1c2e-...')
+```
+
+```php PHP
+$payment = $sahelpay->payments->details('8d6f1c2e-...');
+```
+
+</CodeGroup>
+
 ## Réponse
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "txn_8f525b9f",
+    "id": "8d6f1c2e-...",
     "status": "SUCCESS",
+    "payment_method": "MOBILE_MONEY",
+    "country": "ML",
     "amount": 5000,
-    "fee_calculation": {
-      "gross_amount": 5000,
-      "platform_fee": 50,
-      "provider_fee": 50,
-      "tax_amount": 18,
-      "net_merchant": 4882
+    "amount_charged": 5000,
+    "amount_merchant_net": 4950,
+    "fee_total": 50,
+    "fee_bearer": "MERCHANT",
+    "refunded_amount": 0,
+    "currency": "XOF",
+    "client_reference": "order-123",
+    "provider": "ORANGE_MONEY",
+    "method_requested": "ORANGE_MONEY",
+    "provider_ref": "MP261003.1000.A12345",
+    "return_url": "https://votre-site.com/checkout/return?order=order-123",
+    "redirect_url": "https://...",
+    "expires_at": "2026-10-03T10:30:00.000Z",
+    "metadata": {
+      "customer": { "phone": "+22370123456" },
+      "description": "Commande #123",
+      "fee_calculation": { "total_fee": 50, "merchant_receives": 4950, "fee_bearer": "MERCHANT" }
     },
     "ledger_entries": [
       {
-        "id": "entry_1",
-        "journal_type": "TRANSACTION",
-        "description": "Orange Money Payment SUCCESS",
+        "id": "...",
+        "amount": 5000,
+        "currency": "XOF",
+        "status": "POSTED",
+        "posted_at": "2026-10-03T10:05:00.000Z",
         "lines": [
-          {
-            "account_name": "Orange Money Payable",
-            "direction": "DEBIT",
-            "amount": 5000
-          },
-          {
-            "account_name": "Merchant Available Balance",
-            "direction": "CREDIT",
-            "amount": 4882
-          }
+          { "direction": "CREDIT", "amount": 4950, "currency": "XOF", "category": "principal" }
         ]
       }
     ],
-    "metadata": {
-      "marketplace": {
-        "order_number": "8F525B9F",
-        "customer_name": "Amadou Diallo"
-      }
-    }
+    "created_at": "2026-10-03T10:00:00.000Z",
+    "updated_at": "2026-10-03T10:05:00.000Z"
   }
 }
 ```
+
+- `ledger_entries` ne contient que les lignes de vos propres comptes ; la répartition interne des frais n'est pas exposée.
+- Paiement introuvable : `200` avec `{ "success": false, "message": "PaymentIntent not found" }`.

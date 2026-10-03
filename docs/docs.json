@@ -8,17 +8,17 @@
     },
     "favicon": "/favicon.svg",
     "colors": {
-        "primary": "#00C853",
-        "light": "#4CAF50",
-        "dark": "#00C853"
+        "primary": "#153c32",
+        "light": "#a9d472",
+        "dark": "#153c32"
     },
     "topbarLinks": [{
         "name": "Support",
-        "url": "mailto:support@sahelpay.ml"
+        "url": "mailto:support@sahelpay.africa"
     }],
     "topbarCtaButton": {
         "name": "Dashboard",
-        "url": "https://dashboard.sahelpay.ml"
+        "url": "https://app.sahelpay.ml/dashboard"
     },
     "anchors": [{
         "name": "GitHub",
@@ -35,7 +35,8 @@
                         "pages": [
                             "introduction",
                             "quickstart",
-                            "authentication"
+                            "authentication",
+                            "guides/going-live"
                         ]
                     },
                     {
@@ -43,18 +44,21 @@
                         "pages": [
                             "guides/integration",
                             "guides/smart-routing",
-                            "guides/payouts",
-                            "guides/subscriptions",
-                            "guides/customer-portal",
                             "guides/webhooks",
-                            "guides/testing"
+                            "guides/testing",
+                            "guides/payouts",
+                            "guides/secure-orders",
+                            "guides/partners",
+                            "guides/subscriptions",
+                            "guides/customer-portal"
                         ]
                     },
                     {
                         "group": "Resources",
                         "pages": [
                             "resources/test-accounts",
-                            "resources/error-codes"
+                            "resources/error-codes",
+                            "resources/changelog"
                         ]
                     }
                 ]
@@ -62,6 +66,12 @@
             {
                 "tab": "API Reference",
                 "groups": [
+                    {
+                        "group": "Vue d'ensemble",
+                        "pages": [
+                            "api-reference/overview"
+                        ]
+                    },
                     {
                         "group": "Payments",
                         "pages": [
@@ -81,12 +91,19 @@
                         ]
                     },
                     {
-                        "group": "Payouts",
+                        "group": "Withdrawals",
                         "pages": [
-                            "api-reference/payouts/create",
-                            "api-reference/payouts/get",
-                            "api-reference/payouts/list",
-                            "api-reference/payouts/cancel"
+                            "api-reference/withdrawals/create",
+                            "api-reference/withdrawals/list"
+                        ]
+                    },
+                    {
+                        "group": "Secure Orders",
+                        "pages": [
+                            "api-reference/secure-orders/create",
+                            "api-reference/secure-orders/get",
+                            "api-reference/secure-orders/confirm-delivery",
+                            "api-reference/secure-orders/cancel"
                         ]
                     },
                     {

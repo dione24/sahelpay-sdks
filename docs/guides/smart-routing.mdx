@@ -1,31 +1,29 @@
 ---
-title: Méthodes de paiement
-description: "Quels rails sont disponibles et comment les interroger"
+title: Méthode de paiement
+description: "Orange Money, seul moyen de paiement disponible, et comment vérifier sa disponibilité"
 ---
 
-# Méthodes de paiement
-
-Vous spécifiez la méthode de paiement souhaitée par votre client, et SahelPay
-choisit le gateway interne correspondant.
+# Méthode de paiement
 
 <Warning>
-  **Orange Money (Mali) est le seul rail intégré aujourd'hui.** Toute autre valeur
-  de `provider` est rejetée avec une erreur `400`. Wave, Moov et les cartes
-  bancaires sont en feuille de route et ne sont pas encore disponibles.
+  **Orange Money (Mali) est le seul moyen de paiement.** Wave, Moov, les cartes
+  bancaires (Visa, Mastercard, GIM-UEMOA) et les autres agrégateurs ont été
+  retirés : toute autre valeur de `provider` ou de `payment_method` est rejetée
+  avec une erreur `400`, jamais routée ailleurs en silence.
 </Warning>
 
-## Méthodes disponibles
+## Valeurs acceptées
 
-| Méthode | Statut | Pays | Capacités |
-|---------|--------|------|-----------|
-| `ORANGE_MONEY` | ✅ Disponible | Mali | Paiements, Payouts |
+| Champ | Valeurs acceptées |
+|-------|-------------------|
+| `payment_method` | `MOBILE_MONEY`, ou les alias `ORANGE_MONEY` / `ORANGE` |
+| `provider` (ancien champ) | `ORANGE_MONEY`, `ORANGE`, `MOBILE_MONEY` |
+| `country` | `ML` (défaut) |
+| `currency` | `XOF` (défaut) |
 
-Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers `ORANGE_MONEY`.
+## Vérifier la disponibilité
 
-## Interrogez la liste, ne la codez pas en dur
-
-Les rails activés évoluent. Plutôt que de figer une liste dans votre code,
-demandez-la à l'API :
+Orange Money peut être mis en maintenance ou désactivé côté SahelPay. Dans ce cas, la création de paiement échoue avec un `400` explicite. Pour l'afficher à vos clients avant le paiement, interrogez l'endpoint public :
 
 ```bash
 curl https://api.sahelpay.ml/v1/providers/enabled
@@ -39,6 +37,7 @@ curl https://api.sahelpay.ml/v1/providers/enabled
       "provider": "ORANGE_MONEY",
       "display_name": "Orange Money",
       "category": "MOBILE_MONEY",
+      "logo_url": null,
       "min_amount": null,
       "max_amount": null
     }
@@ -46,49 +45,12 @@ curl https://api.sahelpay.ml/v1/providers/enabled
 }
 ```
 
-C'est cette liste qui alimente le checkout hébergé. En la consommant, votre
-intégration prendra en charge un nouveau rail sans que vous ayez à redéployer.
+Une liste vide signifie qu'Orange Money est momentanément indisponible. Paramètres optionnels : `operation` (`PAYMENT` par défaut, `WITHDRAWAL`) et `country` (`ML` par défaut).
 
-## Informations de routing
+## Libellé Orange Money
 
-Chaque paiement retourne le gateway retenu :
+Le client voit le libellé `SPAY-<nom du marchand>` (30 caractères maximum) sur la page Orange Money. Pour un partenaire SPAY, le libellé reprend le nom de la Solution validée par SahelPay.
 
-<CodeGroup>
+## Endpoints historiques
 
-```typescript JavaScript
-const payment = await sahelpay.payments.create({
-  amount: 5000,
-  payment_method: 'ORANGE_MONEY',
-  customer_phone: '+22370123456',
-});
-
-console.log(payment.gateway_used);    // Identifiant technique interne
-console.log(payment.routing_reason);  // Explication du routing choisi
-```
-
-```python Python
-payment = client.payments.create(
-    amount=5000,
-    provider='ORANGE_MONEY',
-    customer_phone='+22370123456'
-)
-
-print(payment.gateway_used)    # Identifiant technique interne
-print(payment.routing_reason)  # Explication du routing choisi
-```
-
-</CodeGroup>
-
-<Note>
-  Ces champs sont **informatifs** et destinés au support. Vous ne choisissez pas
-  le gateway : SahelPay le résout à partir de la méthode demandée.
-</Note>
-
-## Disponibilité d'un rail
-
-Un rail peut être désactivé ou mis en maintenance côté administration. Dans ce
-cas, une demande de paiement sur ce rail échoue avec un `400` explicite plutôt
-que d'être routée ailleurs en silence.
-
-Ces changements s'appliquent sans redéploiement, d'où l'intérêt de lire
-`/v1/providers/enabled` au moment d'afficher les options à votre client.
+`GET /v1/payments/providers` et `GET /v1/payments/recommend?phone=...` existent toujours mais ne renvoient plus qu'Orange Money Mali (`ORANGE_MONEY_ML`). `recommend` indique seulement, via `confidence`, si le numéro ressemble à un numéro Orange Mali.

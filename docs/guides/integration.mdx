@@ -11,9 +11,9 @@ Ce guide détaille le flow complet d'intégration SahelPay pour une application 
 
 <Warning>
   **Règles non négociables :**
-  - Votre app est un **MERCHANT** SahelPay, pas un PSP
-  - Votre app **NE calcule AUCUN frais** - SahelPay gère tout
-  - Le **webhook est la SEULE source de vérité** pour le statut paiement
+  - Votre app est un **marchand** SahelPay, pas un PSP : vous n'encaissez pas pour le compte de tiers
+  - Votre app **ne calcule aucun frais** : SahelPay les calcule et les renvoie
+  - Le **webhook est la seule source de vérité** pour le statut d'un paiement
 </Warning>
 
 ## Architecture
@@ -23,13 +23,14 @@ flowchart LR
     A[Votre App] -->|POST /v1/payments| B[SahelPay API]
     B -->|redirect_url| A
     A -->|Redirection| C[Client]
-    C -->|Paiement| D[SahelPay Checkout]
-    D -->|Webhook| A
+    C -->|Paiement Orange Money| D[SahelPay Checkout]
+    D -->|Webhook signé| A
+    D -->|Retour après SUCCESS| A
 ```
 
 ## Flow détaillé
 
-### 1. Créer le paiement (Backend)
+### 1. Créer le paiement (backend)
 
 ```javascript
 // Votre API route: POST /api/payments/create
@@ -38,16 +39,17 @@ const response = await fetch('https://api.sahelpay.ml/v1/payments', {
   headers: {
     'Authorization': `Bearer ${SAHELPAY_SECRET_KEY}`,
     'Content-Type': 'application/json',
-    'X-Idempotency-Key': `order-${orderId}`, // Important!
+    'X-Idempotency-Key': `order-${orderId}`, // obligatoire
   },
   body: JSON.stringify({
     amount: 5000,
     currency: 'XOF',
-    payment_method: 'ORANGE_MONEY', // seul rail intégré aujourd'hui
+    payment_method: 'ORANGE_MONEY', // seul moyen de paiement
     country: 'ML',
     customer_phone: '+22370123456',
-    return_url: `${APP_URL}/checkout/return?order_id=${orderId}`,
     client_reference: orderId,
+    return_url: `${APP_URL}/checkout/return?order=${orderId}`,
+    hosted_checkout: true,
     metadata: { order_id: orderId }
   })
 });
@@ -57,7 +59,7 @@ const { data } = await response.json();
 ```
 
 <Note>
-  Interrogez `GET /v1/providers/enabled` pour connaître les rails activés plutôt que de les coder en dur.
+  `client_reference` est renvoyé dans chaque webhook et sert à `GET /v1/payments/search`. C'est la clé la plus simple pour relier un paiement à votre commande. Les `metadata` personnalisées ne sont **pas** recopiées dans les webhooks (seuls `description` et `marketplace` le sont).
 </Note>
 
 ### 2. Rediriger le client
@@ -67,6 +69,8 @@ const { data } = await response.json();
 window.location.href = redirectUrl;
 ```
 
+Le client valide sur Orange Money (libellé `SPAY-<nom du marchand>`). Si la page est rechargée ou si le client clique deux fois sur « Payer », le checkout reprend la même session Orange au lieu d'en créer une nouvelle.
+
 ### 3. Recevoir le webhook
 
 ```javascript
@@ -75,37 +79,42 @@ export async function POST(request) {
   const rawBody = await request.text();
   const signature = request.headers.get('x-sahelpay-signature');
 
-  // TOUJOURS vérifier la signature
+  // TOUJOURS vérifier la signature sur le corps brut
   if (!verifySignature(rawBody, signature, WEBHOOK_SECRET)) {
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  const { event, data } = JSON.parse(rawBody);
+  const { id: eventId, event, data } = JSON.parse(rawBody);
 
-  // Idempotence: vérifier si déjà traité
-  const existing = await db.payments.findByTransactionId(data.id);
-  if (existing?.status === 'success') {
+  // Idempotence : un même événement peut être livré plusieurs fois
+  if (await db.webhookEvents.exists(eventId)) {
     return Response.json({ received: true, already_processed: true });
   }
 
   switch (event) {
     case 'payment.success':
-      await db.orders.update(data.metadata.order_id, { status: 'paid' });
+      await db.orders.markPaid(data.client_reference, { payment_id: data.id });
       break;
     case 'payment.failed':
-      // Laisser la commande en pending pour retry
+    case 'payment.expired':
+      // Laisser la commande payable : le client peut réessayer
       break;
   }
 
+  await db.webhookEvents.save(eventId);
   return Response.json({ received: true });
 }
 ```
+
+### 4. Page de retour
+
+Après un paiement confirmé (`SUCCESS`), la page de paiement SahelPay redirige automatiquement le client vers votre `return_url` (HTTPS, hors domaines SahelPay). Aucun paramètre n'est ajouté : mettez votre référence de commande dans l'URL. Les paiements en attente ou échoués ne redirigent pas automatiquement.
 
 ## Idempotence
 
 ### Côté création
 
-Utilisez `X-Idempotency-Key` basé sur l'order_id :
+`X-Idempotency-Key` est obligatoire sur `POST /v1/payments` (128 caractères maximum). Basez-le sur votre commande :
 
 ```javascript
 headers: {
@@ -113,28 +122,24 @@ headers: {
 }
 ```
 
+- Même clé + même demande : SahelPay renvoie le paiement déjà créé.
+- Même clé + demande différente (montant, devise, téléphone, mode test/live) : erreur HTTP `409`.
+
 ### Côté webhook
 
-Vérifiez si le paiement est déjà traité avant de mettre à jour :
-
-```javascript
-const existing = await db.payments.findByTransactionId(data.id);
-if (existing?.status === 'success') {
-  return { already_processed: true };
-}
-```
+Dédupliquez sur `id` du payload (identique au header `X-SahelPay-Event-ID`), puis vérifiez l'état de la commande avant de la mettre à jour.
 
 ## Ce que votre app NE DOIT PAS faire
 
 <CardGroup cols={2}>
-  <Card title="❌ Appeler les providers directement" icon="xmark">
-    Orange Money aujourd'hui, d'autres rails ensuite : une seule intégration
+  <Card title="❌ Appeler Orange Money directement" icon="xmark">
+    Passez toujours par SahelPay
   </Card>
   <Card title="❌ Calculer des frais" icon="xmark">
-    SahelPay gère les frais automatiquement
+    SahelPay calcule et renvoie les frais
   </Card>
-  <Card title="❌ Créer un wallet" icon="xmark">
-    Pas de stockage de solde dans votre app
+  <Card title="❌ Encaisser pour des tiers" icon="xmark">
+    Pas de reversement entre vendeurs (les splits ne sont pas proposés)
   </Card>
   <Card title="❌ Marquer PAID sans webhook" icon="xmark">
     Le return_url est pour l'UX uniquement

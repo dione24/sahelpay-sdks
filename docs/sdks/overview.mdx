@@ -5,11 +5,11 @@ description: "SDKs officiels SahelPay"
 
 # SDKs officiels
 
-SahelPay fournit des SDKs pour les langages les plus populaires.
+SahelPay fournit des SDKs pour JavaScript/TypeScript, PHP et Python.
 
 <CardGroup cols={3}>
   <Card title="JavaScript" icon="js" href="/sdks/javascript">
-    Node.js, TypeScript, Deno
+    Node.js 18+, TypeScript
   </Card>
   <Card title="PHP" icon="php" href="/sdks/php">
     PHP 8+, Laravel
@@ -19,99 +19,51 @@ SahelPay fournit des SDKs pour les langages les plus populaires.
   </Card>
 </CardGroup>
 
-## Installation rapide
+<Note>
+  Les SDKs ne sont pas encore publiés sur npm, Packagist ou PyPI : installez-les depuis le dépôt GitHub
+  (voir chaque page). Noms de paquets cibles : `@sahelpay/sdk`, `sahelpay/sahelpay-php`, `sahelpay`.
+</Note>
 
-<CodeGroup>
+## Fonctionnalités par SDK
 
-```bash JavaScript
-npm install @sahelpay/sdk
-# ou
-yarn add @sahelpay/sdk
-```
+| Fonction | JS | PHP | Python | État côté API |
+|----------|----|-----|--------|---------------|
+| Créer un paiement | `payments.create()` | `payments->initiate()` | `payments.create()` | ✅ |
+| Statut | `payments.retrieve()` / `checkStatus()` | `payments->verify()` | `payments.retrieve()` / `check_status()` | ✅ |
+| Rechercher par référence | `payments.search()` | `payments->search()` | `payments.search()` | ✅ |
+| Détails | `payments.details()` | `payments->details()` | `payments.details()` | ✅ |
+| Réconcilier | `payments.reconcile()` | `payments->reconcile()` | `payments.reconcile()` | ✅ |
+| Polling | `payments.poll()` | — | `payments.poll()` | ✅ |
+| Historique | `payments.list()` | `payments->all()` | `payments.list()` | ⚠️ ancien flux uniquement ([détails](/api-reference/payments/list)) |
+| Liens de paiement | `paymentLinks.*` | `paymentLinks->*` | `payment_links.*` | ✅ |
+| Webhooks : vérification | `webhooks.constructEvent()` | `webhooks->constructEvent()` | `webhooks.construct_event()` | ✅ |
+| Webhooks : test | `webhooks.test()` | `webhooks->test()` | `webhooks.test()` | ✅ |
+| Retraits : solde, liste, annulation | `withdrawals.*` | — | `withdrawals.*` | ✅ |
+| Retraits : création | `withdrawals.create()` | — | `withdrawals.create()` | ❌ payload obsolète, utilisez [l'API HTTP](/api-reference/withdrawals/create) |
+| Customer Portal | `portal.createSession()` | `portal->createSession()` | `portal.create_session()` | ✅ |
+| Payouts | `payouts.*` | `payouts->*` | `payouts.*` | ❌ indisponible ([détails](/guides/payouts)) |
+| Remboursements | `refunds.*` | `refunds->*` | `refunds.*` | ❌ désactivés (`503`) |
+| Plans, abonnements, clients | `plans.*`, `subscriptions.*`, `customers.*` | idem | idem | ❌ anciennes routes ; utilisez `/v1/billing/*` ([guide](/guides/subscriptions)) |
+| Paiement sécurisé à la livraison | — | — | — | API HTTP uniquement ([guide](/guides/secure-orders)) |
 
-```bash PHP
-composer require sahelpay/php
-```
+## Options de paiement communes
 
-```bash Python
-pip install sahelpay
-```
+| Option | Effet |
+|--------|-------|
+| `idempotency_key` | Envoyée dans `X-Idempotency-Key` (obligatoire côté API). Les trois SDKs en génèrent une aléatoire si vous ne la fournissez pas ; passez une clé stable liée à votre commande pour que les retries ne créent pas de doublon |
+| `hosted_checkout` | `true` par défaut dans les SDKs : `redirect_url` pointe vers le checkout SahelPay |
+| `mock` | `metadata.sahelpay_mock = true` : simulateur SahelPay, clé de test uniquement |
+| `sandbox` | `metadata.sandbox = true` : sandbox Orange, clé de test uniquement |
 
-</CodeGroup>
+## Capabilities
 
-## Fonctionnalités
+Les helpers `hasCapability()` / `getCapabilities()` / `getMethodsWithCapability()` (JS) et `has_capability()` (Python) sont des tables statiques embarquées dans le SDK. Elles listent encore Wave, Moov et les cartes et annoncent `payouts` pour Orange Money : **ne vous y fiez pas**. Seul `ORANGE_MONEY` est disponible, sans payouts automatiques. Pour la disponibilité réelle, appelez `GET /v1/providers/enabled`.
 
-Tous les SDKs exposent les mêmes fonctionnalités :
+## Gateway Stream
 
-### Paiements
-
-| Fonction | Description |
-|----------|-------------|
-| `payments.create()` | Créer un paiement Mobile Money ou carte |
-| `payments.retrieve()` | Récupérer un paiement par ID |
-| `payments.list()` | Lister les paiements |
-| `payments.search()` | Rechercher par référence client |
-| `payments.details()` | Détails complets (fees, ledger) |
-| `payments.reconcile()` | Réconcilier manuellement |
-
-### Liens de paiement
-
-| Fonction | Description |
-|----------|-------------|
-| `paymentLinks.create()` | Créer un lien de paiement réutilisable |
-| `paymentLinks.list()` | Lister les liens |
-| `paymentLinks.retrieve()` | Récupérer un lien par slug |
-
-### Payouts (Envoi d'argent)
-
-| Fonction | Description |
-|----------|-------------|
-| `payouts.create()` | Envoyer de l'argent vers Mobile Money |
-| `payouts.retrieve()` | Récupérer un payout |
-| `payouts.list()` | Lister les payouts |
-| `payouts.cancel()` | Annuler un payout en attente |
-
-### Abonnements
-
-| Fonction | Description |
-|----------|-------------|
-| `plans.create()` | Créer un plan d'abonnement |
-| `plans.list()` | Lister les plans |
-| `subscriptions.create()` | Créer un abonnement |
-| `subscriptions.list()` | Lister les abonnements |
-| `subscriptions.cancel()` | Annuler un abonnement |
-
-### Customer Portal
-
-| Fonction | Description |
-|----------|-------------|
-| `portal.createSession()` | Créer une session portail client |
-
-### Webhooks
-
-| Fonction | Description |
-|----------|-------------|
-| `webhooks.verifySignature()` | Vérifier la signature webhook |
-| `webhooks.constructEvent()` | Parser un événement webhook |
-
-### Capabilities
-
-| Fonction | Description |
-|----------|-------------|
-| `hasCapability()` | Vérifier si une méthode supporte une fonctionnalité |
-| `getCapabilities()` | Obtenir toutes les capabilities d'une méthode |
-| `getMethodsWithCapability()` | Lister les méthodes avec une capability |
-
-### Gateway Stream (JavaScript uniquement)
-
-| Fonction | Description |
-|----------|-------------|
-| `GatewayEventSource` | Écouter les changements de config en temps réel (SSE) |
-| `useGatewayStream()` | Hook React pour Gateway Stream |
+`GatewayEventSource` / `useGatewayStream()` (JS) et `gateway_stream` (Python) écoutent `/admin/gateways/stream`, un flux réservé à l'administration SahelPay. Ils ne sont pas utilisables avec une clé marchande.
 
 ## Code source
-
-Les SDKs sont open source et disponibles sur GitHub :
 
 <Card title="github.com/dione24/sahelpay-sdks" icon="github" href="https://github.com/dione24/sahelpay-sdks">
   Contribuez ou signalez des bugs
