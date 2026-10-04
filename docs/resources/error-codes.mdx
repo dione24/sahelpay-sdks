@@ -11,9 +11,9 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 {
   "success": false,
   "error": {
-    "code": "PLAN_MONTHLY_VOLUME_EXCEEDED",
-    "message": "Le volume mensuel autorisé par votre forfait est atteint.",
-    "http_status": 403,
+    "code": "IDEMPOTENCY_KEY_REQUIRED",
+    "message": "Le header X-Idempotency-Key est obligatoire.",
+    "http_status": 400,
     "path": "/v1/payments",
     "timestamp": "2026-10-03T10:00:00.000Z"
   }
@@ -35,7 +35,7 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 | `INVALID_API_KEY` | 401 | Clé inconnue ou révoquée |
 | `MERCHANT_INACTIVE` | 401 | Compte marchand désactivé |
 | `PRODUCTION_KEY_DISABLED` | 401 | Clé live alors que la production n'est pas ouverte pour ce compte |
-| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Clé live ou paiement live sans abonnement SahelPay payé en cours |
+| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Clé live ou paiement live sans accès production en cours |
 
 ## Création de paiement
 
@@ -44,9 +44,7 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Header `X-Idempotency-Key` absent |
 | `INVALID_IDEMPOTENCY_KEY` | 400 | Clé d'idempotence de plus de 128 caractères |
 | `BAD_REQUEST` | 400 | Champ invalide (montant hors 100–5 000 000, téléphone non international, `provider` autre qu'Orange Money, métadonnées de test en production, Orange Money en maintenance…) |
-| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte ne peut pas recevoir ce paiement |
-| `KYC_PAYMENT_LIMIT_EXCEEDED` | 403 | Plafond KYC journalier ou mensuel dépassé |
-| `PLAN_MONTHLY_VOLUME_EXCEEDED` | 403 | Plafond mensuel du forfait atteint |
+| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte n'est pas autorisé à créer ce paiement |
 | — | 409 | Même `X-Idempotency-Key` réutilisée pour une demande différente |
 | `RATE_LIMIT_EXCEEDED` | 429 | Plus de 10 créations par minute |
 
@@ -59,18 +57,6 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 | `PARTNER_PRODUCT_NOT_FOUND` | 400 | Produit inconnu |
 | `PARTNER_PRODUCT_NOT_APPROVED` | 400 | Produit non validé par SahelPay |
 | `PARTNER_AMOUNT_MISMATCH` | 400 | `amount` différent du total du catalogue |
-| `PARTNER_WITHDRAWAL_CLOSED` | 403 | Pas de retrait : redevance versée chaque mois |
-
-## Paiement sécurisé à la livraison
-
-| Code | HTTP | Description |
-|------|------|-------------|
-| `SECURE_ORDERS_DISABLED` | 404 | Service non activé pour votre compte |
-| `IDEMPOTENCY_CONFLICT` | 409 | Clé déjà utilisée pour une autre commande |
-| `NOT_PAID` | 409 | Commande pas encore payée |
-| `ORDER_CLOSED` | 409 | Commande annulée ou remboursée |
-| `DELIVERY_EXPIRED` | 410 | Délai de livraison dépassé |
-| `CODE_LOCKED` | 429 | Trop de codes de livraison incorrects |
 
 ## Liens de paiement
 
@@ -84,7 +70,7 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 |------|------|-------------|
 | `RATE_LIMIT_EXCEEDED` | 429 | Trop de requêtes |
 | `INTERNAL_ERROR` | 500 | Erreur interne |
-| `SERVICE_UNAVAILABLE` | 503 | Service momentanément indisponible. Inclut `POST /v1/refunds` (remboursements en ligne désactivés, refus `REFUNDS_UNAVAILABLE` côté serveur) |
+| `SERVICE_UNAVAILABLE` | 503 | Service momentanément indisponible |
 
 <Note>
   Certaines routes renvoient encore `200` avec `{ "success": false, "message": "..." }` quand une ressource

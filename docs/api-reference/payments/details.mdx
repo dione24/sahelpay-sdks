@@ -6,7 +6,7 @@ description: "Obtenir les détails complets d'un paiement"
 
 # Détails du paiement
 
-Récupère les informations complètes d'un paiement : montants et frais, client, URLs, et les écritures du grand livre qui concernent votre compte. Utile pour la réconciliation et l'audit.
+Récupère les informations complètes d'un paiement : montants, client, URLs et métadonnées. Utile pour la réconciliation et l'audit.
 
 ## Path Parameters
 
@@ -49,10 +49,6 @@ $payment = $sahelpay->payments->details('8d6f1c2e-...');
     "country": "ML",
     "amount": 5000,
     "amount_charged": 5000,
-    "amount_merchant_net": 4950,
-    "fee_total": 50,
-    "fee_bearer": "MERCHANT",
-    "refunded_amount": 0,
     "currency": "XOF",
     "client_reference": "order-123",
     "provider": "ORANGE_MONEY",
@@ -63,26 +59,12 @@ $payment = $sahelpay->payments->details('8d6f1c2e-...');
     "expires_at": "2026-10-03T10:30:00.000Z",
     "metadata": {
       "customer": { "phone": "+22370123456" },
-      "description": "Commande #123",
-      "fee_calculation": { "total_fee": 50, "merchant_receives": 4950, "fee_bearer": "MERCHANT" }
+      "description": "Commande #123"
     },
-    "ledger_entries": [
-      {
-        "id": "...",
-        "amount": 5000,
-        "currency": "XOF",
-        "status": "POSTED",
-        "posted_at": "2026-10-03T10:05:00.000Z",
-        "lines": [
-          { "direction": "CREDIT", "amount": 4950, "currency": "XOF", "category": "principal" }
-        ]
-      }
-    ],
     "created_at": "2026-10-03T10:00:00.000Z",
     "updated_at": "2026-10-03T10:05:00.000Z"
   }
 }
 ```
 
-- `ledger_entries` ne contient que les lignes de vos propres comptes ; la répartition interne des frais n'est pas exposée.
 - Paiement introuvable : `200` avec `{ "success": false, "message": "PaymentIntent not found" }`.

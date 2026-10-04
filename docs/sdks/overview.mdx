@@ -38,12 +38,8 @@ SahelPay fournit des SDKs pour JavaScript/TypeScript, PHP et Python.
 | Liens de paiement | `paymentLinks.*` | `paymentLinks->*` | `payment_links.*` | ✅ |
 | Webhooks : vérification | `webhooks.constructEvent()` | `webhooks->constructEvent()` | `webhooks.construct_event()` | ✅ |
 | Webhooks : test | `webhooks.test()` | `webhooks->test()` | `webhooks.test()` | ✅ |
-| Retraits | `withdrawals.*` | `withdrawals->*` | `withdrawals.*` | ✅ |
 | Customer Portal | `portal.createSession()` | `portal->createSession()` | `portal.create_session()` | ✅ |
-| Payouts | `payouts.*` | `payouts->*` | `payouts.*` | ❌ indisponible ([détails](/guides/payouts)) |
-| Remboursements | `refunds.create()` | `refunds->create()` | `refunds.create()` | ❌ désactivés (`503`) |
 | Plans, abonnements, clients | `plans.*`, `subscriptions.*`, `customers.list()` | idem | idem | ✅ `/v1/billing/*` ([guide](/guides/subscriptions)) |
-| Paiement sécurisé à la livraison | — | — | — | API HTTP uniquement ([guide](/guides/secure-orders)) |
 
 ## Options de paiement communes
 
@@ -56,7 +52,7 @@ SahelPay fournit des SDKs pour JavaScript/TypeScript, PHP et Python.
 
 ## Capabilities
 
-Les helpers `hasCapability()` / `getCapabilities()` / `getMethodsWithCapability()` (JS) et `has_capability()` (Python) sont des tables statiques embarquées dans le SDK. Elles listent encore Wave, Moov et les cartes et annoncent `payouts` pour Orange Money : **ne vous y fiez pas**. Seul `ORANGE_MONEY` est disponible, sans payouts automatiques. Pour la disponibilité réelle, appelez `GET /v1/providers/enabled`.
+Les helpers `hasCapability()` / `getCapabilities()` / `getMethodsWithCapability()` (JS) et `has_capability()` (Python) sont des tables statiques embarquées dans le SDK. Elles listent encore Wave, Moov, les cartes et des capacités non proposées : **ne vous y fiez pas**. Seul `ORANGE_MONEY` est disponible. Pour la disponibilité réelle, appelez `GET /v1/providers/enabled`.
 
 ## Gateway Stream
 

@@ -124,7 +124,7 @@ try {
   await sahelpay.payments.create({ /* ... */ });
 } catch (error) {
   if (error instanceof SahelPayError) {
-    console.log(error.code);    // ex. 'PLAN_MONTHLY_VOLUME_EXCEEDED'
+    console.log(error.code);    // ex. 'IDEMPOTENCY_KEY_REQUIRED'
     console.log(error.message);
   }
 }
@@ -136,7 +136,6 @@ Voir [Codes d'erreur](/resources/error-codes).
 
 | Helper | Raison |
 |--------|--------|
-| `payouts.*` | Payouts automatiques indisponibles ([détails](/guides/payouts)) |
-| `refunds.*` | Remboursements en ligne désactivés (`503`) |
-| `hasCapability()` & co. | Table statique : seul Orange Money, sans payouts automatiques |
+| `payouts.*`, `refunds.*`, `withdrawals.*` | Hors du périmètre de l'API documentée : ne pas utiliser |
+| `hasCapability()` & co. | Table statique non fiable : seul Orange Money est disponible |
 | `GatewayEventSource` / `useGatewayStream()` | Retiré de l'export public (flux admin SahelPay) |

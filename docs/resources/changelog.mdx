@@ -9,16 +9,15 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 
 ### Orange Money uniquement
 
-- Orange Money (Mali) est le **seul** moyen de paiement. Wave, Moov, les cartes (Visa, Mastercard, GIM-UEMOA) et les autres agrégateurs ont été retirés.
+- Orange Money (Mali) est le **seul** moyen de paiement. Wave, Moov, les cartes (Visa, Mastercard, GIM-UEMOA) et les autres fournisseurs ont été retirés.
 - Toute autre valeur de `provider` / `payment_method` est rejetée avec `400`, jamais routée ailleurs.
 - `GET /v1/payments/providers` et `GET /v1/payments/recommend` ne renvoient plus qu'Orange Money Mali.
-- Libellé côté client sur Orange : `SPAY-<nom du marchand>` (30 caractères maximum).
 
-### Production payante, sandbox gratuite
+### Production sur demande, sandbox gratuite
 
-- Encaisser en live exige un **abonnement SahelPay payé et en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon). Sans abonnement, tout le compte fonctionne en sandbox, gratuitement.
-- L'accès production est ouvert compte par compte par SahelPay (`401 PRODUCTION_KEY_DISABLED` sinon).
-- **Plafond mensuel live** selon le forfait : 200 000 FCFA pour Starter et Pro (`403 PLAN_MONTHLY_VOLUME_EXCEEDED`). Voir [Passer en production](/guides/going-live).
+- La sandbox est gratuite et ouverte à tous les comptes.
+- L'accès production est soumis à une validation et à un contrat distinct précisant son périmètre et les rôles de chaque partie (`401 PRODUCTION_KEY_DISABLED` ou `403 PAID_SUBSCRIPTION_REQUIRED` sinon). Voir [Passer en production](/guides/going-live).
+- L'ouverture de compte se fait sur demande à [support@sahelpay.africa](mailto:support@sahelpay.africa?subject=Demande%20d%27acc%C3%A8s%20SahelPay).
 
 ### Paiements
 
@@ -26,17 +25,12 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 - Le checkout hébergé reprend la même session Orange Money après un rechargement ou un double clic.
 - Après un paiement **confirmé**, la page de paiement redirige automatiquement le client vers votre `return_url` (HTTPS, hors domaines SahelPay). Aucune redirection automatique pour un paiement en attente ou échoué.
 - Option de test explicite : `metadata.sahelpay_mock` (simulateur, option SDK `mock`) est distincte de `metadata.sandbox` (sandbox Orange). Les deux sont refusées en production.
-- `payment.expired` est émis à toute expiration (délai écoulé, `POST /v1/payments/{id}/expire`, réconciliation). Aucun événement `payment.cancelled`, `payout.*` ou `refund.*` n'est émis.
-- La répartition interne des frais n'est plus exposée ; le total (`fee_total`) et le net marchand restent disponibles.
+- `payment.expired` est émis à toute expiration (délai écoulé, `POST /v1/payments/{id}/expire`, réconciliation). Aucun événement `payment.cancelled` n'est émis.
 
 ### Fonctions retirées ou restreintes
 
-- **Payouts automatiques** (`POST /v1/payouts`) : indisponibles. Les retraits de solde se font par **demande de retrait traitée manuellement** (`POST /v1/withdrawals`, minimum 50 000 FCFA).
-- **Remboursements en ligne** (`POST /v1/refunds`) : désactivés en production pour l'instant, réponse `503`. Contactez le support pour rembourser un client.
-- **Splits** : retirés de l'offre.
 - **OPR** (`/v1/opr/*`) : limité à la sandbox.
 
 ### Nouveautés
 
-- [Paiement sécurisé à la livraison](/guides/secure-orders) (`/v1/secure-orders`) : pilote, sur activation.
 - [Programme Partenaires SPAY](/guides/partners) : SahelPay vendeur de référence, catalogue de produits à prix validé, `items[]` sur `POST /v1/payments`, redevance mensuelle.

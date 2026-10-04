@@ -24,7 +24,7 @@ Toutes les requêtes marchandes incluent votre clé secrète :
 Authorization: Bearer sk_test_xxx
 ```
 
-Une clé live n'est acceptée qu'avec un compte ouvert en production et un abonnement payé en cours (voir [Authentification](/authentication)).
+Une clé live n'est acceptée qu'avec un accès production ouvert, sur demande, après validation et contrat distinct (voir [Authentification](/authentication)).
 
 ## Format des réponses
 
@@ -60,9 +60,9 @@ Voir [Codes d'erreur](/resources/error-codes).
 | `200` / `201` | Succès |
 | `400` | Requête invalide |
 | `401` | Non authentifié |
-| `403` | Accès refusé (abonnement, plafond, éligibilité) |
+| `403` | Accès refusé (accès production, éligibilité) |
 | `404` | Ressource non trouvée |
-| `409` | Conflit (idempotence, frais modifiés) |
+| `409` | Conflit (idempotence) |
 | `429` | Rate limit dépassé |
 | `5xx` | Erreur serveur ou service indisponible |
 
@@ -72,7 +72,7 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 
 ## Idempotence
 
-`X-Idempotency-Key` (128 caractères maximum) est **obligatoire** sur `POST /v1/payments` et `POST /v1/withdrawals`, recommandé sur `POST /v1/secure-orders`. La même clé rejouée avec la même demande renvoie le même résultat ; avec une demande différente, la requête est refusée (`409`).
+`X-Idempotency-Key` (128 caractères maximum) est **obligatoire** sur `POST /v1/payments`. La même clé rejouée avec la même demande renvoie le même résultat ; avec une demande différente, la requête est refusée (`409`).
 
 ## Endpoints disponibles
 
@@ -83,7 +83,7 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 | `/v1/payments` | `POST` | Créer un paiement Orange Money |
 | `/v1/payments/{id}/status` | `GET` | Statut d'un paiement (clé secrète) |
 | `/v1/payments/{id}` | `GET` | Statut public (sans clé, utilisé par les pages de paiement) |
-| `/v1/payments/{id}/details` | `GET` | Détails complets (frais, écritures) |
+| `/v1/payments/{id}/details` | `GET` | Détails complets (montants, client, URLs) |
 | `/v1/payments/{id}/reconcile` | `POST` | Revérifier auprès de l'opérateur |
 | `/v1/payments/{id}/expire` | `POST` | Expirer un paiement non terminal dont `expires_at` est dépassé (émet `payment.expired`) |
 | `/v1/payments/search` | `GET` | Rechercher par `client_reference` |
@@ -99,26 +99,6 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 | `/v1/payment-links/{id}/activate` | `PATCH` | Activer un lien |
 | `/v1/payment-links/{id}/deactivate` | `PATCH` | Désactiver un lien |
 | `/v1/payment-links/{slug}/qr` | `GET` | QR code du lien |
-
-### Retraits
-
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/v1/withdrawals` | `POST` | Demande de retrait (traitement manuel) |
-| `/v1/withdrawals` | `GET` | Lister les retraits |
-| `/v1/withdrawals/balance` | `GET` | Solde disponible |
-| `/v1/withdrawals/quote` | `GET` | Frais avant confirmation |
-| `/v1/withdrawals/{id}/cancel` | `PATCH` | Annuler une demande `PENDING` |
-
-### Paiement sécurisé à la livraison (pilote)
-
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/v1/secure-orders` | `POST` | Créer |
-| `/v1/secure-orders` | `GET` | Lister |
-| `/v1/secure-orders/{id}` | `GET` | Détail |
-| `/v1/secure-orders/{id}/confirm-delivery` | `POST` | Confirmer la livraison avec le code |
-| `/v1/secure-orders/{id}/cancel` | `POST` | Annuler ou rembourser |
 
 ### Abonnements clients
 
@@ -145,12 +125,6 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 |----------|---------|-------------|
 | `/v1/portal/sessions` | `POST` | Créer une session portail client |
 
-### Remboursements
-
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/v1/refunds` | `POST` | **Indisponible** (réponse `503`) |
-
 ### Webhooks
 
 | Endpoint | Méthode | Description |
@@ -164,10 +138,7 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
 | `/v1/providers/enabled` | `GET` | Disponibilité d'Orange Money (public) |
-| `/v1/sahelpay/plans` | `GET` | Forfaits SahelPay (public) |
-| `/v1/merchant/plan` | `GET` | Votre forfait SahelPay |
-| `/v1/merchant/subscription` | `GET` | Votre abonnement SahelPay |
 
 <Note>
-  Non disponibles : `POST /v1/payouts` (payouts automatiques, refusés), les splits et le flux OPR en production.
+  Le flux OPR n'est pas disponible en production.
 </Note>

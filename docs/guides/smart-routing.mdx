@@ -7,7 +7,7 @@ description: "Orange Money, seul moyen de paiement disponible, et comment vérif
 
 <Warning>
   **Orange Money (Mali) est le seul moyen de paiement.** Wave, Moov, les cartes
-  bancaires (Visa, Mastercard, GIM-UEMOA) et les autres agrégateurs ont été
+  bancaires (Visa, Mastercard, GIM-UEMOA) et les autres fournisseurs ont été
   retirés : toute autre valeur de `provider` ou de `payment_method` est rejetée
   avec une erreur `400`, jamais routée ailleurs en silence.
 </Warning>
@@ -45,11 +45,7 @@ curl https://api.sahelpay.ml/v1/providers/enabled
 }
 ```
 
-Une liste vide signifie qu'Orange Money est momentanément indisponible. Paramètres optionnels : `operation` (`PAYMENT` par défaut, `WITHDRAWAL`) et `country` (`ML` par défaut).
-
-## Libellé Orange Money
-
-Le client voit le libellé `SPAY-<nom du marchand>` (30 caractères maximum) sur la page Orange Money. Pour un partenaire SPAY, le libellé reprend le nom de la Solution validée par SahelPay.
+Une liste vide signifie qu'Orange Money est momentanément indisponible. Paramètre optionnel : `country` (`ML` par défaut).
 
 ## Endpoints historiques
 

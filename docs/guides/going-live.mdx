@@ -1,80 +1,53 @@
 ---
 title: Passer en production
-description: "KYC, activation, abonnement payé et plafonds d'encaissement live"
+description: "Accès production sur demande, après validation et contrat distinct"
 ---
 
 # Passer en production
 
-La sandbox est gratuite et sans limite de durée. Encaisser de vrais paiements Orange Money demande un compte activé **et** un abonnement SahelPay payé.
+SahelPay est une API technique : documentation, sandbox, webhooks signés et idempotence. La sandbox est gratuite, sans limite de durée et ouverte à tous les comptes.
 
-## Conditions pour encaisser en live
+L'accès à la production est **soumis à une validation et à des conditions distinctes** précisant son périmètre et les rôles de chaque partie. Il n'est pas ouvert automatiquement et ne s'active pas en libre-service.
+
+<Note>
+  SAHEL PAY TECHNOLOGIES (SPAY) n'est pas une banque ni un établissement de paiement agréé par la BCEAO. Les CGU ne couvrent pas l'encaissement pour compte de tiers ni le versement à un partenaire.
+</Note>
+
+## Demander l'accès production
 
 <Steps>
-  <Step title="KYC approuvé">
-    Complétez votre vérification dans le dashboard. Le live exige un KYC approuvé de niveau Starter ou Business.
+  <Step title="Intégrer en sandbox">
+    Terminez votre intégration avec une clé `sk_test_...` : création de paiement, webhooks signés, idempotence. Voir le [guide de tests](/guides/testing).
   </Step>
-  <Step title="Activation de la production">
-    Activez le mode production dans le dashboard. L'accès production est ensuite ouvert compte par compte par SahelPay.
+  <Step title="Envoyer une demande">
+    Écrivez à [support@sahelpay.africa](mailto:support@sahelpay.africa?subject=Demande%20d%27acc%C3%A8s%20SahelPay) en décrivant votre activité et votre cas d'usage.
   </Step>
-  <Step title="Abonnement payé">
-    Choisissez et payez un forfait dans **Mon offre** (dashboard). Le live n'est ouvert que pendant une période payée et en cours.
+  <Step title="Validation">
+    SahelPay étudie la demande. Les vérifications nécessaires (identité, activité) vous sont précisées à ce moment.
   </Step>
-  <Step title="Clés live">
-    Utilisez votre clé `sk_live_...` et configurez votre URL webhook de production.
+  <Step title="Contrat distinct">
+    Si la demande est retenue, un contrat séparé définit le périmètre du service et les rôles de chaque partie. Les clés `sk_live_...` ne sont utilisables qu'une fois ce contrat en place.
   </Step>
 </Steps>
 
-<Note>
-  Les membres du [Programme Partenaires SPAY](/guides/partners) dont le contrat est validé encaissent en production sans abonnement : SahelPay est alors le vendeur.
-</Note>
+## Sans accès production
 
-## Ce qui se passe sans abonnement
-
-- Sans période payée (ou après expiration), **tout le compte fonctionne en sandbox**.
-- Une clé `sk_live_...` est alors refusée avec `403 PAID_SUBSCRIPTION_REQUIRED` : un vrai client ne doit jamais croire avoir payé.
-- Le renouvellement rouvre le live automatiquement, sans autre action.
-
-## Plafonds d'encaissement live
-
-Chaque forfait fixe un volume encaissé maximal par **mois civil (UTC)** :
-
-| Forfait | Plafond mensuel live |
-|---------|----------------------|
-| Starter | 200 000 FCFA |
-| Pro | 200 000 FCFA |
-| Entreprise | 500 000 FCFA (point de départ, offre attribuée par SahelPay) |
-
-Les tarifs à jour sont publiés par `GET /v1/sahelpay/plans` (public) et dans le dashboard. Votre forfait courant est lisible via `GET /v1/merchant/plan` et `GET /v1/merchant/subscription` (clé secrète).
-
-Ce qui compte dans le plafond :
-
-- les paiements live `PENDING` et `SUCCESS` du mois ;
-- un paiement `INITIATED` (checkout ouvert mais pas encore validé) réserve son montant pendant 30 minutes ;
-- les paiements sandbox ou simulés ne comptent jamais.
-
-Des plafonds journaliers et mensuels liés à votre niveau KYC peuvent aussi s'appliquer.
+- Tout le compte fonctionne en sandbox, gratuitement.
+- Une clé `sk_live_...` utilisée sans accès production est refusée (jamais simulée) : un vrai client ne doit jamais croire avoir payé.
 
 | Code | HTTP | Signification |
 |------|------|---------------|
-| `PLAN_MONTHLY_VOLUME_EXCEEDED` | 403 | Le volume mensuel de votre forfait est atteint |
-| `KYC_PAYMENT_LIMIT_EXCEEDED` | 403 | Plafond KYC journalier ou mensuel dépassé |
-| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte ne peut pas recevoir ce paiement (compte inactif, KYC ou activation manquants) |
-| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Pas d'abonnement payé en cours |
+| `PRODUCTION_KEY_DISABLED` | 401 | Accès production non ouvert pour ce compte |
+| `PAID_SUBSCRIPTION_REQUIRED` | 403 | Le compte n'a pas d'accès production en cours |
+| `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte n'est pas autorisé à créer ce paiement en production |
 
-## Libellé côté client
-
-Sur la page Orange Money, vos paiements apparaissent sous le libellé `SPAY-<nom du marchand>` (30 caractères maximum). Les paiements dus à SahelPay elle-même (votre abonnement) restent libellés « SahelPay ».
-
-Le paiement de votre abonnement SahelPay n'est jamais traité comme une vente : il ne déclenche aucun webhook vers votre intégration et n'entre pas dans vos encaissements.
-
-## Checklist
+## Checklist technique
 
 <CheckboxGroup>
-  <Checkbox>KYC approuvé et production activée</Checkbox>
-  <Checkbox>Abonnement payé (ou contrat Partenaires SPAY validé)</Checkbox>
-  <Checkbox>Clé `sk_live_...` stockée côté serveur uniquement</Checkbox>
-  <Checkbox>URL webhook de production en HTTPS et signature vérifiée</Checkbox>
+  <Checkbox>Intégration validée de bout en bout en sandbox</Checkbox>
+  <Checkbox>Clé secrète stockée côté serveur uniquement</Checkbox>
+  <Checkbox>URL webhook en HTTPS et signature vérifiée</Checkbox>
   <Checkbox>`X-Idempotency-Key` envoyé sur chaque création</Checkbox>
   <Checkbox>Aucune métadonnée `sandbox` / `sahelpay_mock` en production (refusées)</Checkbox>
-  <Checkbox>Gestion des erreurs de plafond (`PLAN_MONTHLY_VOLUME_EXCEEDED`)</Checkbox>
+  <Checkbox>Erreurs `401` / `403` gérées sans afficher un faux succès au client</Checkbox>
 </CheckboxGroup>

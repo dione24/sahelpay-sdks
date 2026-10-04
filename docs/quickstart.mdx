@@ -9,11 +9,11 @@ Ce guide vous montre comment accepter votre premier paiement Orange Money avec S
 
 ## Prérequis
 
-- Un compte SahelPay ([créer un compte](https://app.sahelpay.ml/register))
+- Un accès SahelPay ([demander l'accès](mailto:support@sahelpay.africa?subject=Demande%20d%27acc%C3%A8s%20SahelPay) : l'ouverture de compte se fait sur demande)
 - Vos clés API de test (`sk_test_...`, disponibles dans le dashboard)
 
 <Note>
-  La sandbox est gratuite et ne demande aucun abonnement. L'abonnement payé n'est requis que pour encaisser en production (voir [Passer en production](/guides/going-live)).
+  La sandbox est gratuite. L'accès à la production est soumis à une validation et à un contrat distinct (voir [Passer en production](/guides/going-live)).
 </Note>
 
 ## 1. Créer un paiement
@@ -109,7 +109,7 @@ redirect(payment.redirect_url)
 
 ## 2. Rediriger le client
 
-Redirigez le client vers `redirect_url`. Il valide le paiement sur la page Orange Money, où il apparaît sous le libellé `SPAY-<nom du marchand>`.
+Redirigez le client vers `redirect_url`. Il valide le paiement sur la page Orange Money.
 
 ```javascript
 window.location.href = payment.redirect_url;
@@ -197,16 +197,13 @@ Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers Orange Mone
 
 <CardGroup cols={2}>
   <Card title="Passer en production" icon="rocket" href="/guides/going-live">
-    KYC, activation, abonnement et plafonds
+    Accès production sur demande
   </Card>
   <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
     Configurer et sécuriser vos webhooks
   </Card>
   <Card title="Tests" icon="flask" href="/guides/testing">
     Sandbox opérateur et simulateur SahelPay
-  </Card>
-  <Card title="Retraits" icon="send" href="/guides/payouts">
-    Retirer votre solde vers Orange Money
   </Card>
   <Card title="SDKs" icon="box" href="/sdks/overview">
     Installer les SDKs officiels
