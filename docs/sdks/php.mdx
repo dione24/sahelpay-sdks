@@ -80,7 +80,7 @@ $url = $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.ml/
 
 ## Tester sans appel opérateur
 
-L'option `mock` active le simulateur SahelPay (statut piloté par le montant : `4000` réussi, `4001` échoué, `4002` en attente, `4003` erreur opérateur). `sandbox` appelle l'environnement de test d'Orange. Les deux sont refusées avec une clé live.
+L'option `mock` active le simulateur SahelPay (statut piloté par le montant : `4000` réussi, `4001` échoué, `4002` en attente, `4003` erreur opérateur). `sandbox` appelle l'environnement de test de l'opérateur. Les deux sont refusées avec une clé live.
 
 ```php
 $payment = $sahelpay->payments->initiate([

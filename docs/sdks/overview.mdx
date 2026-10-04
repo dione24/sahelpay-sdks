@@ -48,11 +48,11 @@ SahelPay fournit des SDKs pour JavaScript/TypeScript, PHP et Python.
 | `idempotency_key` | Envoyée dans `X-Idempotency-Key` (obligatoire côté API). Les trois SDKs en génèrent une aléatoire si vous ne la fournissez pas ; passez une clé stable liée à votre commande pour que les retries ne créent pas de doublon |
 | `hosted_checkout` | `true` par défaut dans les SDKs : `redirect_url` pointe vers le checkout SahelPay |
 | `mock` | `metadata.sahelpay_mock = true` : simulateur SahelPay, clé de test uniquement |
-| `sandbox` | `metadata.sandbox = true` : sandbox Orange, clé de test uniquement |
+| `sandbox` | `metadata.sandbox = true` : sandbox de l'opérateur, clé de test uniquement |
 
 ## Capabilities
 
-Les helpers `hasCapability()` / `getCapabilities()` / `getMethodsWithCapability()` (JS) et `has_capability()` (Python) sont des tables statiques embarquées dans le SDK. Elles listent encore Wave, Moov, les cartes et des capacités non proposées : **ne vous y fiez pas**. Seul `ORANGE_MONEY` est disponible. Pour la disponibilité réelle, appelez `GET /v1/providers/enabled`.
+Les helpers `hasCapability()` / `getCapabilities()` / `getMethodsWithCapability()` (JS) et `has_capability()` (Python) sont des tables statiques embarquées dans le SDK. Elles listent encore des moyens et des capacités non proposés : **ne vous y fiez pas**. Seul `ORANGE_MONEY` est disponible. Pour la disponibilité réelle, appelez `GET /v1/providers/enabled`.
 
 ## Gateway Stream
 

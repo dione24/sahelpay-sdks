@@ -1,17 +1,17 @@
 ---
 title: Introduction
-description: "Bienvenue sur la documentation SahelPay - API technique de paiement Orange Money au Mali"
+description: "Documentation de l’API technique SahelPay : sandbox, webhooks signés et idempotence."
 ---
 
 # Bienvenue sur SahelPay
 
-SahelPay est une API technique de paiement au Mali : documentation, sandbox, webhooks signés et idempotence. **Orange Money (Mali) est le seul moyen de paiement disponible.** Wave, Moov et les cartes bancaires ne sont pas proposés : toute autre valeur de `provider` est rejetée avec une erreur `400`.
+SahelPay est une API technique de paiement au Mali : documentation, sandbox, webhooks signés et idempotence. Un seul moyen de paiement est disponible : le mobile money au Mali (`ORANGE_MONEY`). Toute autre valeur de `provider` est rejetée avec une erreur `400`.
 
 ## Pourquoi SahelPay ?
 
 <CardGroup cols={2}>
   <Card title="API REST" icon="code">
-    Une intégration unique pour les paiements Orange Money
+    Une intégration unique pour les paiements mobile money
   </Card>
   <Card title="Confirmation vérifiée" icon="shield-check">
     Un paiement n'est confirmé qu'après contrôle auprès de l'opérateur
@@ -43,15 +43,15 @@ sequenceDiagram
     participant Client
     participant Votre App
     participant SahelPay
-    participant Orange as Orange Money
+    participant Op as Opérateur
 
     Client->>Votre App: Clic "Payer"
     Votre App->>SahelPay: POST /v1/payments (X-Idempotency-Key)
     SahelPay-->>Votre App: redirect_url
     Votre App->>Client: Redirection
     Client->>SahelPay: Checkout
-    SahelPay->>Orange: Initie le paiement
-    Orange-->>Client: Validation Orange Money
+    SahelPay->>Op: Initie le paiement
+    Op-->>Client: Validation par le client
     SahelPay->>Votre App: Webhook payment.success
     SahelPay-->>Client: Retour vers votre return_url (après confirmation)
 ```
@@ -96,7 +96,7 @@ sequenceDiagram
 
 ## Fonctionnalités principales
 
-- **Paiements** : création et suivi de paiements Orange Money avec checkout hébergé
+- **Paiements** : création et suivi de paiements mobile money avec checkout hébergé
 - **Liens de paiement** : liens réutilisables à montant fixe ou libre
 - **Webhooks** : notifications signées pour chaque changement de statut
 - **Idempotence** : création rejouable sans doublon

@@ -43,7 +43,7 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
 |------|------|-------------|
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Header `X-Idempotency-Key` absent |
 | `INVALID_IDEMPOTENCY_KEY` | 400 | Clé d'idempotence de plus de 128 caractères |
-| `BAD_REQUEST` | 400 | Champ invalide (montant hors 100–5 000 000, téléphone non international, `provider` autre qu'Orange Money, métadonnées de test en production, Orange Money en maintenance…) |
+| `BAD_REQUEST` | 400 | Champ invalide (montant hors 100–5 000 000, téléphone non international, `provider` autre que `ORANGE_MONEY`, métadonnées de test en production, moyen de paiement en maintenance…) |
 | `MERCHANT_PAYMENT_DISABLED` | 403 | Le compte n'est pas autorisé à créer ce paiement |
 | — | 409 | Même `X-Idempotency-Key` réutilisée pour une demande différente |
 | `RATE_LIMIT_EXCEEDED` | 429 | Plus de 10 créations par minute |
