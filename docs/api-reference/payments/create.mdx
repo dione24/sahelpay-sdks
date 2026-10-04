@@ -124,9 +124,6 @@ $payment = $sahelpay->payments->initiate([
     "amount": 5000,
     "amount_order": 5000,
     "amount_charged": 5000,
-    "amount_merchant_net": 4950,
-    "fee_total": 50,
-    "fee_bearer": "MERCHANT",
     "currency": "XOF",
     "redirect_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
     "checkout_url": "https://app.sahelpay.ml/checkout/8d6f1c2e-4b1a-4c55-9a0e-3f2b7c1d9e10",
@@ -139,7 +136,6 @@ $payment = $sahelpay->payments->initiate([
 
 - Avec `hosted_checkout: true`, le statut est `INITIATED` jusqu'à ce que le client ouvre le checkout.
 - Avec `hosted_checkout: false`, la réponse contient aussi `provider_ref` et `redirect_url` pointe vers Orange Money ; le statut passe à `PENDING`.
-- Les montants et frais suivent le forfait du marchand ; la répartition interne des frais n'est pas exposée.
 
 ## Statuts
 
@@ -159,8 +155,7 @@ $payment = $sahelpay->payments->initiate([
 | `400` | `BAD_REQUEST` | Champ invalide, provider autre qu'Orange Money, métadonnées de test en production, Orange Money indisponible |
 | `400` | `PARTNER_*` | Règles du [Programme Partenaires SPAY](/guides/partners) |
 | `401` | `PRODUCTION_KEY_DISABLED` | Clé live sans accès production |
-| `403` | `PAID_SUBSCRIPTION_REQUIRED` | Pas d'abonnement payé en cours |
-| `403` | `MERCHANT_PAYMENT_DISABLED` | Le compte ne peut pas recevoir ce paiement |
-| `403` | `PLAN_MONTHLY_VOLUME_EXCEEDED` / `KYC_PAYMENT_LIMIT_EXCEEDED` | Plafond atteint |
+| `403` | `PAID_SUBSCRIPTION_REQUIRED` | Pas d'accès production en cours |
+| `403` | `MERCHANT_PAYMENT_DISABLED` | Le compte n'est pas autorisé à créer ce paiement |
 | `409` | — | Même clé d'idempotence, demande différente |
 | `429` | `RATE_LIMIT_EXCEEDED` | Plus de 10 créations par minute |

@@ -43,18 +43,14 @@ curl https://api.sahelpay.ml/v1/payments/history \
 
 ## Clé live : conditions d'utilisation
 
-Une clé `sk_live_...` n'est acceptée que si votre compte peut encaisser en production :
-
-- compte actif, KYC approuvé (niveau Starter ou Business) et mode production activé ;
-- compte sélectionné par SahelPay pour la production ;
-- **abonnement SahelPay payé et en cours** (ou contrat [Partenaires SPAY](/guides/partners) validé).
+Une clé `sk_live_...` n'est acceptée que si l'accès production a été ouvert pour votre compte, après validation de votre demande et signature d'un contrat distinct précisant le périmètre et les rôles de chaque partie (ou contrat [Partenaires SPAY](/guides/partners) validé).
 
 | Situation | Réponse |
 |-----------|---------|
-| Production non activée / compte non sélectionné | `401 PRODUCTION_KEY_DISABLED` |
-| Pas d'abonnement payé en cours | `403 PAID_SUBSCRIPTION_REQUIRED` |
+| Accès production non ouvert | `401 PRODUCTION_KEY_DISABLED` |
+| Accès production non en cours | `403 PAID_SUBSCRIPTION_REQUIRED` |
 
-Quand l'abonnement expire, tout le compte repasse en sandbox : les clés live sont refusées (jamais simulées) jusqu'au renouvellement. Voir [Passer en production](/guides/going-live).
+Sans accès production en cours, tout le compte fonctionne en sandbox : les clés live sont refusées (jamais simulées). Voir [Passer en production](/guides/going-live).
 
 ## Erreurs d'authentification
 

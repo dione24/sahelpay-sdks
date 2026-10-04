@@ -12,19 +12,23 @@
         "light": "#a9d472",
         "dark": "#153c32"
     },
-    "topbarLinks": [{
-        "name": "Support",
-        "url": "mailto:support@sahelpay.africa"
-    }],
+    "topbarLinks": [
+        {
+            "name": "Support",
+            "url": "mailto:support@sahelpay.africa"
+        }
+    ],
     "topbarCtaButton": {
         "name": "Dashboard",
         "url": "https://app.sahelpay.ml/dashboard"
     },
-    "anchors": [{
-        "name": "GitHub",
-        "icon": "github",
-        "url": "https://github.com/dione24/sahelpay-sdks"
-    }],
+    "anchors": [
+        {
+            "name": "GitHub",
+            "icon": "github",
+            "url": "https://github.com/dione24/sahelpay-sdks"
+        }
+    ],
     "navigation": {
         "tabs": [
             {
@@ -46,8 +50,6 @@
                             "guides/smart-routing",
                             "guides/webhooks",
                             "guides/testing",
-                            "guides/payouts",
-                            "guides/secure-orders",
                             "guides/partners",
                             "guides/subscriptions",
                             "guides/customer-portal"
@@ -91,22 +93,6 @@
                         ]
                     },
                     {
-                        "group": "Withdrawals",
-                        "pages": [
-                            "api-reference/withdrawals/create",
-                            "api-reference/withdrawals/list"
-                        ]
-                    },
-                    {
-                        "group": "Secure Orders",
-                        "pages": [
-                            "api-reference/secure-orders/create",
-                            "api-reference/secure-orders/get",
-                            "api-reference/secure-orders/confirm-delivery",
-                            "api-reference/secure-orders/cancel"
-                        ]
-                    },
-                    {
                         "group": "Plans",
                         "pages": [
                             "api-reference/plans/create",
@@ -125,12 +111,6 @@
                         "group": "Customer Portal",
                         "pages": [
                             "api-reference/portal/create-session"
-                        ]
-                    },
-                    {
-                        "group": "Refunds",
-                        "pages": [
-                            "api-reference/refunds/create"
                         ]
                     },
                     {

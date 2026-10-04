@@ -14,21 +14,15 @@ description: "Liste des événements webhook SahelPay"
 | `payment.pending` | Paiement en attente de confirmation opérateur |
 | `payment.expired` | Paiement expiré (délai écoulé, `POST /v1/payments/{id}/expire` ou réconciliation) |
 | `payment.updated` | Autre changement de statut |
-| `secure_order.paid` | Paiement sécurisé reçu, fonds bloqués |
-| `secure_order.released` | Livraison confirmée, fonds libérés |
-| `secure_order.refunded` | Acheteur remboursé |
-| `secure_order.disputed` | Litige ouvert par l'acheteur |
-| `secure_order.cancelled` | Commande sécurisée non payée annulée |
 | `invoice.created` | Facture d'échéance d'abonnement créée (avec `payment_url`) |
 | `subscription.payment_due` | Échéance d'abonnement (compatibilité, avec `payment_url`) |
 | `invoice.paid` | Facture réglée |
 | `subscription.renewed` | Abonnement prolongé après paiement |
 | `webhook.test` | Test de connectivité |
 
-<Warning>
-  `payment.cancelled`, `payout.completed`, `payout.failed` et `refund.*` ne sont pas émis : les payouts
-  automatiques et les remboursements en ligne ne sont pas disponibles.
-</Warning>
+<Note>
+  `payment.cancelled` n'est pas émis : une expiration produit toujours `payment.expired`.
+</Note>
 
 ## Enveloppe
 

@@ -25,19 +25,15 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
 | `webhook.test` | Test de connectivité envoyé par `POST /v1/webhooks/test` |
 
 <Note>
-  Aucun événement `payment.cancelled`, `payout.*` ou `refund.*` n'est émis aujourd'hui.
+  Aucun événement `payment.cancelled` n'est émis aujourd'hui.
 </Note>
 
 ### Autres
 
 | Événement | Description |
 |-----------|-------------|
-| `secure_order.paid`, `secure_order.released`, `secure_order.refunded`, `secure_order.disputed`, `secure_order.cancelled` | [Paiement sécurisé à la livraison](/guides/secure-orders) |
 | `invoice.created`, `subscription.payment_due`, `invoice.paid`, `subscription.renewed` | [Abonnements clients](/guides/subscriptions) |
 
-<Note>
-  Le paiement de votre propre abonnement SahelPay ne déclenche jamais de webhook vers votre intégration.
-</Note>
 
 ## Format du payload (paiement)
 
@@ -53,8 +49,6 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
     "client_reference": "order-123",
     "amount": 5000,
     "amount_charged": 5000,
-    "amount_merchant_net": 4950,
-    "fee_total": 50,
     "currency": "XOF",
     "status": "SUCCESS",
     "provider": "orange_webpay_ml",
@@ -71,7 +65,6 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
 
 - `data.id` est l'identifiant du paiement SahelPay ; `data.reference_id` vaut votre `client_reference`, ou l'`id` à défaut.
 - `data.metadata` ne contient que `description` et `marketplace` : vos métadonnées personnalisées ne sont pas renvoyées. Utilisez `client_reference` pour retrouver votre commande.
-- `data` contient aussi les montants et le total des frais (`amount_order`, `fee_total`, `fee_bearer`, `fee_calculation.total_fee`, `fee_calculation.merchant_receives`…). La répartition interne des frais (part opérateur / part SahelPay) n'est jamais exposée.
 
 ## Headers
 

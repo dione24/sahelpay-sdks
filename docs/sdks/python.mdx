@@ -140,14 +140,13 @@ def webhook(request):
 
 <Note>
   `construct_event()` convertit `data` en objet `Payment` uniquement pour les événements `payment.*`.
-  Les autres (`invoice.*`, `subscription.*`, `secure_order.*`, `webhook.test`) restent des dictionnaires.
+  Les autres (`invoice.*`, `subscription.*`, `webhook.test`) restent des dictionnaires.
 </Note>
 
 ## Fonctions à éviter pour l'instant
 
 | Helper | Raison |
 |--------|--------|
-| `payouts.*` | Payouts automatiques indisponibles |
-| `refunds.*` | Remboursements en ligne désactivés (`503`) |
-| `has_capability()` & co. | Table statique : seul Orange Money, sans payouts automatiques |
+| `payouts.*`, `refunds.*`, `withdrawals.*` | Hors du périmètre de l'API documentée : ne pas utiliser |
+| `has_capability()` & co. | Table statique non fiable : seul Orange Money est disponible |
 | `gateway_stream` | Flux réservé à l'administration SahelPay |

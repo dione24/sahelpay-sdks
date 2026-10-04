@@ -11,8 +11,8 @@ Ce guide détaille le flow complet d'intégration SahelPay pour une application 
 
 <Warning>
   **Règles non négociables :**
-  - Votre app est un **marchand** SahelPay, pas un PSP : vous n'encaissez pas pour le compte de tiers
-  - Votre app **ne calcule aucun frais** : SahelPay les calcule et les renvoie
+  - Votre app utilise l'API SahelPay pour son propre usage : elle n'agit pas pour le compte de tiers
+  - Les montants font foi tels que renvoyés par l'API : ne les recalculez pas côté client
   - Le **webhook est la seule source de vérité** pour le statut d'un paiement
 </Warning>
 
@@ -69,7 +69,7 @@ const { data } = await response.json();
 window.location.href = redirectUrl;
 ```
 
-Le client valide sur Orange Money (libellé `SPAY-<nom du marchand>`). Si la page est rechargée ou si le client clique deux fois sur « Payer », le checkout reprend la même session Orange au lieu d'en créer une nouvelle.
+Le client valide sur Orange Money. Si la page est rechargée ou si le client clique deux fois sur « Payer », le checkout reprend la même session Orange au lieu d'en créer une nouvelle.
 
 ### 3. Recevoir le webhook
 
@@ -135,11 +135,11 @@ Dédupliquez sur `id` du payload (identique au header `X-SahelPay-Event-ID`), pu
   <Card title="❌ Appeler Orange Money directement" icon="xmark">
     Passez toujours par SahelPay
   </Card>
-  <Card title="❌ Calculer des frais" icon="xmark">
-    SahelPay calcule et renvoie les frais
+  <Card title="❌ Recalculer les montants" icon="xmark">
+    Utilisez les montants renvoyés par l'API
   </Card>
-  <Card title="❌ Encaisser pour des tiers" icon="xmark">
-    Pas de reversement entre vendeurs (les splits ne sont pas proposés)
+  <Card title="❌ Agir pour des tiers" icon="xmark">
+    L'API n'est pas un service de collecte pour d'autres vendeurs
   </Card>
   <Card title="❌ Marquer PAID sans webhook" icon="xmark">
     Le return_url est pour l'UX uniquement
