@@ -14,7 +14,7 @@ L'API SahelPay est une API REST qui utilise JSON pour les requêtes et réponses
 | **Sandbox** | `https://api.sahelpay.ml` |
 | **Production** | `https://api.sahelpay.ml` |
 
-Le mode est déterminé par la clé (`sk_test_...` ou `sk_live_...`). Pour le simulateur SahelPay sans appel opérateur, ajoutez `metadata.sahelpay_mock: true` à la création du paiement ; `metadata.sandbox: true` appelle l'environnement de test d'Orange.
+Le mode est déterminé par la clé (`sk_test_...` ou `sk_live_...`). Pour le simulateur SahelPay sans appel opérateur, ajoutez `metadata.sahelpay_mock: true` à la création du paiement ; `metadata.sandbox: true` appelle l'environnement de test de l'opérateur.
 
 ## Authentification
 
@@ -80,7 +80,7 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
-| `/v1/payments` | `POST` | Créer un paiement Orange Money |
+| `/v1/payments` | `POST` | Créer un paiement mobile money |
 | `/v1/payments/{id}/status` | `GET` | Statut d'un paiement (clé secrète) |
 | `/v1/payments/{id}` | `GET` | Statut public (sans clé, utilisé par les pages de paiement) |
 | `/v1/payments/{id}/details` | `GET` | Détails complets (montants, client, URLs) |
@@ -137,7 +137,7 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
-| `/v1/providers/enabled` | `GET` | Disponibilité d'Orange Money (public) |
+| `/v1/providers/enabled` | `GET` | Disponibilité du moyen de paiement (public) |
 
 <Note>
   Le flux OPR n'est pas disponible en production.

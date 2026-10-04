@@ -5,7 +5,7 @@ description: "Facturer vos clients de manière récurrente avec des plans"
 
 # Abonnements clients
 
-Les **abonnements clients** permettent de facturer vos propres clients chaque semaine ou chaque mois via Orange Money. À chaque échéance, SahelPay crée une facture et un lien de paiement que vous transmettez au client.
+Les **abonnements clients** permettent de facturer vos propres clients chaque semaine ou chaque mois par mobile money. À chaque échéance, SahelPay crée une facture et un lien de paiement que vous transmettez au client.
 
 <Warning>
   Les routes sont sous `/v1/billing/...`. Les helpers `plans.*`, `subscriptions.*` et `customers.*` des SDKs
@@ -100,7 +100,7 @@ sequenceDiagram
     Merchant->>SahelPay: POST /v1/billing/subscriptions/with-payment
     SahelPay-->>Merchant: payment_link.url
     Merchant->>Customer: Envoie le lien
-    Customer->>SahelPay: Paie (Orange Money)
+    Customer->>SahelPay: Paie (mobile money)
     SahelPay->>Merchant: Webhooks invoice.paid / subscription.renewed
 
     Note over SahelPay: À chaque échéance

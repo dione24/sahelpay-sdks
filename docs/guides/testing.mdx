@@ -14,7 +14,7 @@ La sandbox est **gratuite** et ne demande aucun abonnement. Testez toute votre i
 | **URL** | `https://api.sahelpay.ml` | `https://api.sahelpay.ml` |
 | **Clés** | `sk_test_xxx` | `sk_live_xxx` |
 | **Accès** | Gratuit | Sur demande, après validation et contrat distinct |
-| **Transactions** | Sandbox Orange ou simulateur SahelPay | Réelles, dans le périmètre du contrat |
+| **Transactions** | Sandbox de l'opérateur ou simulateur SahelPay | Réelles, dans le périmètre du contrat |
 
 Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas de base URL différente pour les SDK. Un compte sans accès production fonctionne entièrement en sandbox.
 
@@ -22,7 +22,7 @@ Le sandbox est un mode logique porté par la clé `sk_test_...`. N'utilisez pas 
 
 | Metadata | Option SDK | Effet |
 |----------|------------|-------|
-| `sandbox: true` | `sandbox` | Appelle l'**environnement de test d'Orange**. Valide l'intégration de bout en bout. |
+| `sandbox: true` | `sandbox` | Appelle l'**environnement de test de l'opérateur**. Valide l'intégration de bout en bout. |
 | `sahelpay_mock: true` | `mock` | Utilise le **simulateur SahelPay**. Aucun appel opérateur. |
 
 Ces métadonnées sont réservées aux clés de test : en production, elles sont refusées avec une erreur `400`.

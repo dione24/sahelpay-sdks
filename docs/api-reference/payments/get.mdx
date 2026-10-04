@@ -55,13 +55,13 @@ SDKs : `sahelpay.payments.retrieve(id)` / `checkStatus(id)` (JS), `client.paymen
 GET /v1/payments/{id}
 ```
 
-Sans clé API (20 requêtes par minute) : utilisé par les pages de paiement SahelPay. Il renvoie `id`, `status`, les montants, `currency`, `reference` (votre `client_reference` ou un code court), `return_url`, `created_at` et `updated_at`. Si un paiement est `PENDING` depuis plus de quelques secondes, l'appel déclenche une revérification auprès d'Orange Money.
+Sans clé API (20 requêtes par minute) : utilisé par les pages de paiement SahelPay. Il renvoie `id`, `status`, les montants, `currency`, `reference` (votre `client_reference` ou un code court), `return_url`, `created_at` et `updated_at`. Si un paiement est `PENDING` depuis plus de quelques secondes, l'appel déclenche une revérification auprès de l'opérateur.
 
 ## Statuts
 
 | Statut | Description |
 |--------|-------------|
-| `INITIATED` | Créé, pas encore initié auprès d'Orange |
+| `INITIATED` | Créé, pas encore initié auprès de l'opérateur |
 | `PENDING` | En attente de validation du client |
 | `SUCCESS` | Paiement confirmé |
 | `FAILED` | Paiement échoué |

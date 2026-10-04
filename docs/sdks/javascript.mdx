@@ -59,7 +59,7 @@ return { url: payment.redirect_url };
 L'option `mock` active le simulateur SahelPay : aucun appel opérateur, et le
 statut final est piloté par le montant (`4000` réussi, `4001` échoué, `4002` en
 attente, `4003` erreur opérateur). À ne pas confondre avec `sandbox`, qui appelle
-l'environnement de test d'Orange. Les deux sont refusées avec une clé live.
+l'environnement de test de l'opérateur. Les deux sont refusées avec une clé live.
 
 ```typescript
 const payment = await sahelpay.payments.create({
@@ -137,5 +137,5 @@ Voir [Codes d'erreur](/resources/error-codes).
 | Helper | Raison |
 |--------|--------|
 | `payouts.*`, `refunds.*`, `withdrawals.*` | Hors du périmètre de l'API documentée : ne pas utiliser |
-| `hasCapability()` & co. | Table statique non fiable : seul Orange Money est disponible |
+| `hasCapability()` & co. | Table statique non fiable : seul `ORANGE_MONEY` est disponible |
 | `GatewayEventSource` / `useGatewayStream()` | Retiré de l'export public (flux admin SahelPay) |

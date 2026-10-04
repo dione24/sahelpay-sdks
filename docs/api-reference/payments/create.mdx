@@ -1,12 +1,12 @@
 ---
 title: Créer un paiement
 api: POST /v1/payments
-description: "Créer une intention de paiement Orange Money"
+description: "Créer une intention de paiement mobile money"
 ---
 
 # Créer un paiement
 
-Crée une intention de paiement Orange Money et retourne l'URL vers laquelle rediriger le client.
+Crée une intention de paiement mobile money et retourne l'URL vers laquelle rediriger le client.
 
 ## Endpoint
 
@@ -28,8 +28,8 @@ POST /v1/payments
 |-----------|------|--------|-------------|
 | `amount` | integer | ✅ | Montant en FCFA, entier entre 100 et 5 000 000 |
 | `currency` | string | | Code ISO-4217 (défaut : `XOF`) |
-| `payment_method` | string | | `MOBILE_MONEY` (défaut). Alias acceptés : `ORANGE_MONEY`, `ORANGE`. Toute autre valeur : `400` |
-| `provider` | string | | Ancien champ : `ORANGE_MONEY`, `ORANGE` ou `MOBILE_MONEY`. Toute autre valeur : `400` |
+| `payment_method` | string | | `MOBILE_MONEY` (défaut). Alias accepté : `ORANGE_MONEY`. Toute autre valeur : `400` |
+| `provider` | string | | Ancien champ : `ORANGE_MONEY` ou `MOBILE_MONEY`. Toute autre valeur : `400` |
 | `country` | string | | Code ISO-2 (défaut : `ML`) |
 | `customer_phone` | string | | Numéro au format international (`+223...`) |
 | `customer_name` | string | | Nom du client |
@@ -39,8 +39,8 @@ POST /v1/payments
 | `client_reference` | string | | Votre référence de commande (120 caractères max), renvoyée dans les webhooks |
 | `return_url` | string | | URL HTTPS de votre site, hors domaines SahelPay. Le client y est renvoyé automatiquement après un paiement confirmé |
 | `success_url` / `cancel_url` | string | | URLs complémentaires conservées sur le paiement |
-| `hosted_checkout` | boolean | | `true` : `redirect_url` = checkout hébergé SahelPay. `false` (défaut API) : initiation immédiate, `redirect_url` = page Orange Money. Les SDKs envoient `true` par défaut |
-| `metadata` | object | | Données libres. `sahelpay_mock: true` (simulateur) ou `sandbox: true` (sandbox Orange) en test uniquement ; `marketplace` (objet, champs filtrés) |
+| `hosted_checkout` | boolean | | `true` : `redirect_url` = checkout hébergé SahelPay. `false` (défaut API) : initiation immédiate, `redirect_url` = page de l’opérateur. Les SDKs envoient `true` par défaut |
+| `metadata` | object | | Données libres. `sahelpay_mock: true` (simulateur) ou `sandbox: true` (sandbox de l'opérateur) en test uniquement ; `marketplace` (objet, champs filtrés) |
 | `items` | array | | Partenaires SPAY : `[{ "product_id": "...", "quantity": 1 }]` (1 à 50 lignes). Obligatoire en production pour un partenaire validé ; `amount` doit égaler le total du catalogue |
 
 Les champs inconnus sont refusés (`400`).
@@ -135,13 +135,13 @@ $payment = $sahelpay->payments->initiate([
 ```
 
 - Avec `hosted_checkout: true`, le statut est `INITIATED` jusqu'à ce que le client ouvre le checkout.
-- Avec `hosted_checkout: false`, la réponse contient aussi `provider_ref` et `redirect_url` pointe vers Orange Money ; le statut passe à `PENDING`.
+- Avec `hosted_checkout: false`, la réponse contient aussi `provider_ref` et `redirect_url` pointe vers la page de l'opérateur ; le statut passe à `PENDING`.
 
 ## Statuts
 
 | Statut | Description |
 |--------|-------------|
-| `INITIATED` | Créé, pas encore initié auprès d'Orange |
+| `INITIATED` | Créé, pas encore initié auprès de l'opérateur |
 | `PENDING` | En attente de validation du client |
 | `SUCCESS` | Paiement confirmé |
 | `FAILED` | Paiement échoué |
@@ -152,7 +152,7 @@ $payment = $sahelpay->payments->initiate([
 | HTTP | Code | Cause |
 |------|------|-------|
 | `400` | `IDEMPOTENCY_KEY_REQUIRED` | Header `X-Idempotency-Key` absent |
-| `400` | `BAD_REQUEST` | Champ invalide, provider autre qu'Orange Money, métadonnées de test en production, Orange Money indisponible |
+| `400` | `BAD_REQUEST` | Champ invalide, provider autre que `ORANGE_MONEY`, métadonnées de test en production, moyen de paiement indisponible |
 | `400` | `PARTNER_*` | Règles du [Programme Partenaires SPAY](/guides/partners) |
 | `401` | `PRODUCTION_KEY_DISABLED` | Clé live sans accès production |
 | `403` | `PAID_SUBSCRIPTION_REQUIRED` | Pas d'accès production en cours |

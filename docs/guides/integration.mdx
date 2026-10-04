@@ -23,7 +23,7 @@ flowchart LR
     A[Votre App] -->|POST /v1/payments| B[SahelPay API]
     B -->|redirect_url| A
     A -->|Redirection| C[Client]
-    C -->|Paiement Orange Money| D[SahelPay Checkout]
+    C -->|Paiement mobile money| D[SahelPay Checkout]
     D -->|Webhook signé| A
     D -->|Retour après SUCCESS| A
 ```
@@ -69,7 +69,7 @@ const { data } = await response.json();
 window.location.href = redirectUrl;
 ```
 
-Le client valide sur Orange Money. Si la page est rechargée ou si le client clique deux fois sur « Payer », le checkout reprend la même session Orange au lieu d'en créer une nouvelle.
+Le client valide auprès de l'opérateur. Si la page est rechargée ou si le client clique deux fois sur « Payer », le checkout reprend la même session de paiement au lieu d'en créer une nouvelle.
 
 ### 3. Recevoir le webhook
 
@@ -132,7 +132,7 @@ Dédupliquez sur `id` du payload (identique au header `X-SahelPay-Event-ID`), pu
 ## Ce que votre app NE DOIT PAS faire
 
 <CardGroup cols={2}>
-  <Card title="❌ Appeler Orange Money directement" icon="xmark">
+  <Card title="❌ Appeler l’opérateur directement" icon="xmark">
     Passez toujours par SahelPay
   </Card>
   <Card title="❌ Recalculer les montants" icon="xmark">

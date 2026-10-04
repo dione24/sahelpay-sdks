@@ -5,7 +5,7 @@ description: "Intégrez SahelPay en 5 minutes"
 
 # Démarrage rapide
 
-Ce guide vous montre comment accepter votre premier paiement Orange Money avec SahelPay, en sandbox.
+Ce guide vous montre comment accepter votre premier paiement mobile money avec SahelPay, en sandbox.
 
 ## Prérequis
 
@@ -104,19 +104,19 @@ redirect(payment.redirect_url)
 </CodeGroup>
 
 <Note>
-  Les SDKs demandent `hosted_checkout: true` par défaut : `redirect_url` pointe alors vers le checkout hébergé SahelPay. Avec `hosted_checkout: false` (défaut de l'API brute), SahelPay initie directement le paiement Orange Money et `redirect_url` pointe vers la page Orange.
+  Les SDKs demandent `hosted_checkout: true` par défaut : `redirect_url` pointe alors vers le checkout hébergé SahelPay. Avec `hosted_checkout: false` (défaut de l'API brute), SahelPay initie directement le paiement mobile money et `redirect_url` pointe vers la page de l’opérateur.
 </Note>
 
 ## 2. Rediriger le client
 
-Redirigez le client vers `redirect_url`. Il valide le paiement sur la page Orange Money.
+Redirigez le client vers `redirect_url`. Il valide le paiement sur la page de l'opérateur.
 
 ```javascript
 window.location.href = payment.redirect_url;
 ```
 
 <Note>
-  Deux modes de test : `metadata.sahelpay_mock: true` (option SDK `mock`) utilise le simulateur SahelPay et n'appelle pas l'opérateur, tandis que `metadata.sandbox: true` (option SDK `sandbox`) appelle l'environnement de test d'Orange. Voir le [guide de test](/guides/testing).
+  Deux modes de test : `metadata.sahelpay_mock: true` (option SDK `mock`) utilise le simulateur SahelPay et n'appelle pas l'opérateur, tandis que `metadata.sandbox: true` (option SDK `sandbox`) appelle l'environnement de test de l'opérateur. Voir le [guide de test](/guides/testing).
 </Note>
 
 ## 3. Recevoir le webhook
@@ -185,12 +185,12 @@ if (payment?.status === 'SUCCESS') {
 
 | Méthode | Type | Description |
 |---------|------|-------------|
-| `ORANGE_MONEY` | Mobile Money | Orange Money (Mali) |
+| `ORANGE_MONEY` | Mobile money | Mali |
 
-Les alias `ORANGE` et `MOBILE_MONEY` sont acceptés et résolus vers Orange Money.
+L’alias `MOBILE_MONEY` est également accepté.
 
 <Warning>
-  Orange Money est le seul moyen de paiement. Une autre valeur de `provider` ou de `payment_method` renvoie `400`.
+  C’est le seul moyen de paiement disponible. Une autre valeur de `provider` ou de `payment_method` renvoie `400`.
 </Warning>
 
 ## Prochaines étapes

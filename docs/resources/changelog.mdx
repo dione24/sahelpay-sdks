@@ -7,11 +7,11 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 
 ## Octobre 2026
 
-### Orange Money uniquement
+### Un seul moyen de paiement
 
-- Orange Money (Mali) est le **seul** moyen de paiement. Wave, Moov, les cartes (Visa, Mastercard, GIM-UEMOA) et les autres fournisseurs ont été retirés.
+- Le mobile money au Mali est le **seul** moyen de paiement ; les autres fournisseurs ont été retirés.
 - Toute autre valeur de `provider` / `payment_method` est rejetée avec `400`, jamais routée ailleurs.
-- `GET /v1/payments/providers` et `GET /v1/payments/recommend` ne renvoient plus qu'Orange Money Mali.
+- `GET /v1/payments/providers` et `GET /v1/payments/recommend` ne renvoient plus que le moyen de paiement disponible.
 
 ### Production sur demande, sandbox gratuite
 
@@ -22,9 +22,9 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 ### Paiements
 
 - `X-Idempotency-Key` est **obligatoire** sur `POST /v1/payments`. Rejouer la même clé renvoie le même paiement ; une demande différente sous la même clé renvoie `409`.
-- Le checkout hébergé reprend la même session Orange Money après un rechargement ou un double clic.
+- Le checkout hébergé reprend la même session de paiement après un rechargement ou un double clic.
 - Après un paiement **confirmé**, la page de paiement redirige automatiquement le client vers votre `return_url` (HTTPS, hors domaines SahelPay). Aucune redirection automatique pour un paiement en attente ou échoué.
-- Option de test explicite : `metadata.sahelpay_mock` (simulateur, option SDK `mock`) est distincte de `metadata.sandbox` (sandbox Orange). Les deux sont refusées en production.
+- Option de test explicite : `metadata.sahelpay_mock` (simulateur, option SDK `mock`) est distincte de `metadata.sandbox` (sandbox de l'opérateur). Les deux sont refusées en production.
 - `payment.expired` est émis à toute expiration (délai écoulé, `POST /v1/payments/{id}/expire`, réconciliation). Aucun événement `payment.cancelled` n'est émis.
 
 ### Fonctions retirées ou restreintes

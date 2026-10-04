@@ -1,14 +1,13 @@
 ---
 title: Méthode de paiement
-description: "Orange Money, seul moyen de paiement disponible, et comment vérifier sa disponibilité"
+description: "Le moyen de paiement disponible et comment vérifier sa disponibilité"
 ---
 
 # Méthode de paiement
 
 <Warning>
-  **Orange Money (Mali) est le seul moyen de paiement.** Wave, Moov, les cartes
-  bancaires (Visa, Mastercard, GIM-UEMOA) et les autres fournisseurs ont été
-  retirés : toute autre valeur de `provider` ou de `payment_method` est rejetée
+  **Le mobile money au Mali (`ORANGE_MONEY`) est le seul moyen de paiement.**
+  Toute autre valeur de `provider` ou de `payment_method` est rejetée
   avec une erreur `400`, jamais routée ailleurs en silence.
 </Warning>
 
@@ -16,14 +15,14 @@ description: "Orange Money, seul moyen de paiement disponible, et comment vérif
 
 | Champ | Valeurs acceptées |
 |-------|-------------------|
-| `payment_method` | `MOBILE_MONEY`, ou les alias `ORANGE_MONEY` / `ORANGE` |
-| `provider` (ancien champ) | `ORANGE_MONEY`, `ORANGE`, `MOBILE_MONEY` |
+| `payment_method` | `MOBILE_MONEY`, ou l’alias `ORANGE_MONEY` |
+| `provider` (ancien champ) | `ORANGE_MONEY`, `MOBILE_MONEY` |
 | `country` | `ML` (défaut) |
 | `currency` | `XOF` (défaut) |
 
 ## Vérifier la disponibilité
 
-Orange Money peut être mis en maintenance ou désactivé côté SahelPay. Dans ce cas, la création de paiement échoue avec un `400` explicite. Pour l'afficher à vos clients avant le paiement, interrogez l'endpoint public :
+Le moyen de paiement peut être mis en maintenance ou désactivé côté SahelPay. Dans ce cas, la création de paiement échoue avec un `400` explicite. Pour l'afficher à vos clients avant le paiement, interrogez l'endpoint public :
 
 ```bash
 curl https://api.sahelpay.ml/v1/providers/enabled
@@ -45,8 +44,8 @@ curl https://api.sahelpay.ml/v1/providers/enabled
 }
 ```
 
-Une liste vide signifie qu'Orange Money est momentanément indisponible. Paramètre optionnel : `country` (`ML` par défaut).
+Une liste vide signifie que le moyen de paiement est momentanément indisponible. Paramètre optionnel : `country` (`ML` par défaut).
 
 ## Endpoints historiques
 
-`GET /v1/payments/providers` et `GET /v1/payments/recommend?phone=...` existent toujours mais ne renvoient plus qu'Orange Money Mali (`ORANGE_MONEY_ML`). `recommend` indique seulement, via `confidence`, si le numéro ressemble à un numéro Orange Mali.
+`GET /v1/payments/providers` et `GET /v1/payments/recommend?phone=...` existent toujours mais ne renvoient plus que le moyen de paiement disponible (`ORANGE_MONEY_ML`). `recommend` indique seulement, via `confidence`, si le numéro ressemble à un numéro Orange Mali.
