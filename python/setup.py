@@ -5,18 +5,19 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sahelpay",
-    version="1.0.0",
+    version="1.1.0",
     author="SahelPay",
     author_email="dev@sahelpay.ml",
     description="SDK officiel SahelPay pour Python - Paiements Mobile Money en Afrique de l'Ouest",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sahelpay/sahelpay-python",
+    url="https://github.com/dione24/sahelpay-sdks",
     project_urls={
         "Documentation": "https://docs.sahelpay.ml",
-        "Bug Tracker": "https://github.com/sahelpay/sahelpay-python/issues",
+        "Bug Tracker": "https://github.com/dione24/sahelpay-sdks/issues",
     },
-    packages=find_packages(),
+    license="MIT",
+    packages=find_packages(exclude=("tests", "tests.*")),
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

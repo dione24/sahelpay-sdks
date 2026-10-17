@@ -118,13 +118,13 @@ $sahelpay->webhooks->test(); // envoie webhook.test vers l'URL configurée
 
 ```php
 $link = $sahelpay->paymentLinks->create([
-    'title' => 'Formation DevOps',
-    'price' => 25000,
+    'name' => 'Formation DevOps',
+    'fixed_amount' => 25000, // prix imposé (amount_mode FIXED)
     'description' => 'Cours complet DevOps',
     'max_uses' => 50,
 ]);
 
-echo $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.ml/<slug>
+echo $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.africa/<slug>
 
 $qr = $sahelpay->paymentLinks->qrCode($link->slug);
 echo $qr->qr_code;

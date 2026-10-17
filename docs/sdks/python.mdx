@@ -31,7 +31,7 @@ sahelpay = Client(secret_key='sk_test_xxx')  # base URL https://api.sahelpay.ml 
 payment = sahelpay.payments.create(
     amount=5000,
     provider='ORANGE_MONEY',  # seul moyen de paiement
-    customer_phone='+22370123456',
+    customer_phone='+22370123456',  # facultatif avec le checkout hébergé
     description='Commande #123',
     client_reference='order-123',
     return_url='https://votre-site.com/checkout/return?order=order-123',
@@ -43,8 +43,8 @@ redirect(payment.redirect_url)
 
 <Warning>
   Sans `idempotency_key`, le SDK génère une clé aléatoire à chaque appel : un retry créerait un second
-  paiement. Fournissez une clé stable liée à votre commande. Le SDK n'expose pas encore `items`
-  (Partenaires SPAY) : utilisez l'API HTTP pour ces paiements.
+  paiement. Fournissez une clé stable liée à votre commande. Partenaires SPAY : passez
+  `items=[{'product_id': ..., 'quantity': 1}]`.
 </Warning>
 
 `hosted_checkout=True` par défaut : `redirect_url` pointe vers le checkout SahelPay. Après un paiement confirmé, le client est renvoyé automatiquement vers `return_url`.
@@ -53,13 +53,34 @@ redirect(payment.redirect_url)
 
 ```python
 link = sahelpay.payment_links.create(
-    title='Commande #123',
-    price=5000,
-    redirect_url='https://votre-site.com/merci',
+    name='Commande #123',
+    fixed_amount=5000,  # prix imposé : le SDK envoie amount_mode FIXED
+    success_redirect_url='https://votre-site.com/merci',
 )
 
-redirect(link.url)  # https://pay.sahelpay.ml/<slug>
+redirect(link.url)  # https://pay.sahelpay.africa/<slug>
+
+sahelpay.payment_links.update(link.id, name='Commande #123 (bis)')
+sahelpay.payment_links.delete(link.id)  # archivage définitif
 ```
+
+`title`, `price` et `redirect_url` restent acceptés. Sans montant, le lien est à montant libre (`OPEN`).
+
+## Livraisons webhook et paiement sécurisé
+
+```python
+failed = sahelpay.webhooks.list_logs(status='FAILED', limit=20)
+for log in failed['logs']:
+    sahelpay.webhooks.retry(log['id'])
+
+order = sahelpay.secure_orders.create(
+    amount=15000, description='Robe wax taille M',
+    customer_phone='+22370000000', idempotency_key='order-9',
+)
+sahelpay.secure_orders.confirm_delivery(order['id'], '482913')
+```
+
+Voir [Livraisons et relances](/api-reference/webhooks/deliveries) et [Paiement sécurisé](/api-reference/secure-orders).
 
 ## Vérifier le statut
 
@@ -108,7 +129,7 @@ def webhook():
     except Exception:
         return jsonify({'error': 'Invalid signature'}), 401
 
-    if event.event == 'payment.success':
+    if event.event == 'payment.success':  # dédupliquez sur event.id
         order_id = event.data.client_reference
         # Mettre à jour la commande
 
@@ -147,6 +168,8 @@ def webhook(request):
 
 | Helper | Raison |
 |--------|--------|
-| `payouts.*`, `refunds.*`, `withdrawals.*` | Hors du périmètre de l'API documentée : ne pas utiliser |
+| `payouts.*` | Refusé par l'API : les transferts automatiques Orange Money ne sont pas disponibles |
+| `refunds.*` | `POST /v1/refunds` répond `503 REFUNDS_UNAVAILABLE` : contactez SahelPay pour rembourser |
+| `withdrawals.*` | Retraits traités manuellement : demandez-les depuis le dashboard |
 | `has_capability()` & co. | Table statique non fiable : seul `ORANGE_MONEY` est disponible |
 | `gateway_stream` | Flux réservé à l'administration SahelPay |

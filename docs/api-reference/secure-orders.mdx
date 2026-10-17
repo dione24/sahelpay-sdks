@@ -1,0 +1,55 @@
+---
+title: Paiement sécurisé
+api: POST /v1/secure-orders
+description: "Paiement à la livraison : fonds en séquestre jusqu'au code de l'acheteur"
+---
+
+# Paiement sécurisé
+
+L'acheteur paie à la commande ; les fonds restent en séquestre jusqu'à ce que le livreur saisisse le code à 6 chiffres remis à l'acheteur. Fonction activée par marchand, sur demande : sans activation, l’API répond `404 SECURE_ORDERS_DISABLED`.
+
+## Créer une commande
+
+```
+POST /v1/secure-orders
+```
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `amount` | integer | ✅ | Montant en XOF, 100 à 10 000 000 |
+| `description` | string | ✅ | Visible par l'acheteur, 2 à 200 caractères |
+| `customer_phone` | string | ✅ | Téléphone de l'acheteur (8 à 15 chiffres) |
+| `customer_name` | string | | Nom de l'acheteur |
+| `delivery_deadline_hours` | integer | | Délai de livraison après paiement, 1 à 720 h (défaut 72) |
+| `client_reference` | string | | Votre référence de commande (64 caractères max) |
+
+En-tête facultatif `X-Idempotency-Key` : rejouer la même clé renvoie la même commande. Limite : 20 créations par minute.
+
+```bash
+curl -X POST https://api.sahelpay.ml/v1/secure-orders \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "X-Idempotency-Key: order-9" \
+  -H "Content-Type: application/json" \
+  -d '{ "amount": 15000, "description": "Robe wax taille M", "customer_phone": "+22370000000" }'
+```
+
+La réponse contient la commande et ses liens `buyer_url` (page de paiement de l'acheteur) et `delivery_url` (page du livreur).
+
+## Autres routes
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/secure-orders` | `GET` | Lister (`status`, `search`, `page`, `limit`) |
+| `/v1/secure-orders/{id}` | `GET` | Détail |
+| `/v1/secure-orders/{id}/cancel` | `POST` | Annuler avant paiement (`reason` facultatif) |
+| `/v1/secure-orders/{id}/confirm-delivery` | `POST` | `{ "code": "482913" }` : confirme la livraison et libère les fonds |
+
+Statuts : `CREATED` → `PAID_HELD` → `RELEASED`, ou `REFUNDED` / `DISPUTED` / `CANCELLED`. Après 5 codes erronés, la confirmation est bloquée (`429`).
+
+## Webhooks
+
+`secure_order.paid`, `secure_order.released`, `secure_order.refunded`, `secure_order.disputed`, `secure_order.cancelled`.
+
+## SDKs
+
+`secureOrders.create()` / `list()` / `retrieve()` / `cancel()` / `confirmDelivery()` (JS), `secureOrders->create()` / `all()` / `get()` / `cancel()` / `confirmDelivery()` (PHP), `secure_orders.create()` / `list()` / `retrieve()` / `cancel()` / `confirm_delivery()` (Python).

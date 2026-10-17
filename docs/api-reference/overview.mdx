@@ -14,7 +14,7 @@ L'API SahelPay est une API REST qui utilise JSON pour les requêtes et réponses
 | **Sandbox** | `https://api.sahelpay.ml` |
 | **Production** | `https://api.sahelpay.ml` |
 
-Le mode est déterminé par la clé (`sk_test_...` ou `sk_live_...`). Pour le simulateur SahelPay sans appel opérateur, ajoutez `metadata.sahelpay_mock: true` à la création du paiement ; `metadata.sandbox: true` appelle l'environnement de test de l'opérateur.
+Le mode est déterminé par la clé (`sk_test_...` ou `sk_live_...`). Une clé ne voit que les objets de son mode et de son application : une clé de test ne lit pas un paiement live, et inversement (`404`). Pour le simulateur SahelPay sans appel opérateur, ajoutez `metadata.sahelpay_mock: true` à la création du paiement ; `metadata.sandbox: true` appelle l'environnement de test de l'opérateur.
 
 ## Authentification
 
@@ -95,10 +95,35 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 |----------|---------|-------------|
 | `/v1/payment-links` | `POST` | Créer un lien de paiement |
 | `/v1/payment-links` | `GET` | Lister vos liens |
+| `/v1/payment-links/by-id/{id}` | `GET` | Un de vos liens par id |
 | `/v1/payment-links/{slug}` | `GET` | Lien public par slug |
+| `/v1/payment-links/{id}` | `PATCH` | Modifier un lien |
+| `/v1/payment-links/{id}` | `DELETE` | Supprimer (archiver) un lien |
 | `/v1/payment-links/{id}/activate` | `PATCH` | Activer un lien |
 | `/v1/payment-links/{id}/deactivate` | `PATCH` | Désactiver un lien |
 | `/v1/payment-links/{slug}/qr` | `GET` | QR code du lien |
+
+### Paiement sécurisé (séquestre)
+
+Fonction activée par marchand, sur demande. Voir [Paiement sécurisé](/api-reference/secure-orders).
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/secure-orders` | `POST` / `GET` | Créer / lister les commandes |
+| `/v1/secure-orders/{id}` | `GET` | Détail d'une commande |
+| `/v1/secure-orders/{id}/cancel` | `POST` | Annuler avant paiement |
+| `/v1/secure-orders/{id}/confirm-delivery` | `POST` | Confirmer la livraison (code acheteur), libère les fonds |
+
+### Remboursements et reçus
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/v1/refunds` | `POST` | Rembourser un paiement. Répond `503 REFUNDS_UNAVAILABLE` tant que les remboursements en ligne ne sont pas ouverts : contactez SahelPay |
+| `/v1/transactions/{id}/receipt` | `GET` | Reçu d'une transaction |
+
+<Note>
+  Les retraits se demandent depuis le dashboard. `POST /v1/payouts` (transfert automatique) est refusé : les transferts automatiques Orange Money ne sont pas disponibles.
+</Note>
 
 ### Abonnements clients
 
@@ -131,7 +156,14 @@ Limite par défaut : **100 requêtes par minute**. Certaines routes sont plus st
 |----------|---------|-------------|
 | `/v1/webhooks/test` | `POST` | Envoyer `webhook.test` vers l'URL configurée |
 | `/v1/webhooks/logs` | `GET` | Historique des livraisons |
+| `/v1/webhooks/logs/{id}` | `GET` | Détail d'une livraison |
 | `/v1/webhooks/logs/{id}/retry` | `POST` | Relancer une livraison |
+| `/v1/webhooks/stats` | `GET` | Statistiques de livraison |
+| `/v1/webhooks/events` | `GET` | Derniers événements émis (clé de test uniquement) |
+| `/v1/webhooks/events/{event_id}` | `GET` | Un événement par id |
+| `/v1/webhook-event-types` | `GET` | Catalogue des types d'événements |
+
+Voir [Livraisons](/api-reference/webhooks/deliveries).
 
 ### Utilitaires
 

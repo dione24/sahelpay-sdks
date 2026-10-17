@@ -16,6 +16,7 @@ use SahelPay\Resources\Customer;
 use SahelPay\Resources\Portal;
 use SahelPay\Resources\Refund;
 use SahelPay\Resources\Withdrawal;
+use SahelPay\Resources\SecureOrder;
 
 /**
  * Client principal SahelPay
@@ -49,6 +50,7 @@ class SahelPay
     public Portal $portal;
     public Refund $refunds;
     public Withdrawal $withdrawals;
+    public SecureOrder $secureOrders;
 
     /**
      * Créer une nouvelle instance SahelPay
@@ -98,6 +100,7 @@ class SahelPay
         $this->portal = new Portal($this->client);
         $this->refunds = new Refund($this->client);
         $this->withdrawals = new Withdrawal($this->client);
+        $this->secureOrders = new SecureOrder($this->client);
     }
 
     // Accesseurs (utilisables via la façade Laravel : SahelPay::payments()->initiate(...))
@@ -113,6 +116,7 @@ class SahelPay
     public function portal(): Portal { return $this->portal; }
     public function refunds(): Refund { return $this->refunds; }
     public function withdrawals(): Withdrawal { return $this->withdrawals; }
+    public function secureOrders(): SecureOrder { return $this->secureOrders; }
 
     /**
      * Obtenir la configuration

@@ -1,0 +1,65 @@
+{
+  "description": "Vecteurs de signature des webhooks SahelPay (X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, '<t>.<corps brut>')>). Générés par l'algorithme serveur (src/webhook/webhook-signature.ts) ; vérifiés par la suite jest du serveur, chaque SDK et le CLI. Les horodatages sont fixes : vérifier avec une tolérance large, ou attendre un refus avec la tolérance par défaut (300 s).",
+  "algorithm": "HMAC-SHA256",
+  "header": "X-SahelPay-Signature",
+  "valid": [
+    {
+      "name": "payment.success",
+      "timestamp": 1727136000,
+      "raw_body": "{\"id\":\"evt_1727136000000_0a1b2c3d4e5f6a7b\",\"event\":\"payment.success\",\"version\":\"v1\",\"timestamp\":\"2024-09-24T00:00:00.000Z\",\"data\":{\"id\":\"pi_1\",\"amount\":4000,\"currency\":\"XOF\",\"status\":\"SUCCESS\"}}",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "header": "t=1727136000,v1=410132c32477a74c1fd9c17d759d4989022fb7bc1a795c4726da65049bfac892"
+    },
+    {
+      "name": "unicode",
+      "timestamp": 1727136001,
+      "raw_body": "{\"id\":\"evt_2\",\"event\":\"payment.failed\",\"data\":{\"customer_name\":\"Aïssata Traoré\",\"note\":\"Paiement refusé — solde insuffisant\",\"emoji\":\"✅\"}}",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "header": "t=1727136001,v1=01a39498344caa55644cefe27618b671c9423a85d20c74cdb884b7df1c1f1692"
+    },
+    {
+      "name": "whitespace-preserved",
+      "timestamp": 1727136002,
+      "raw_body": "{ \"id\": \"evt_3\",\n  \"event\": \"webhook.test\" }\n",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "header": "t=1727136002,v1=c8c59aaa3c12510c458b0de1b9a9131610cd21a45ad3ea7fafc65ca105d07c5c"
+    },
+    {
+      "name": "empty-object",
+      "timestamp": 1727136003,
+      "raw_body": "{}",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "header": "t=1727136003,v1=be2c71dabd4256cfdecd09f26adcab9f150c34479158b8ce9528d9c393aa9fa8"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "tampered-body",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "timestamp": 1727136000,
+      "raw_body": "{\"id\":\"evt_1727136000000_0a1b2c3d4e5f6a7b\",\"event\":\"payment.success\",\"version\":\"v1\",\"timestamp\":\"2024-09-24T00:00:00.000Z\",\"data\":{\"id\":\"pi_1\",\"amount\":4001,\"currency\":\"XOF\",\"status\":\"SUCCESS\"}}",
+      "header": "t=1727136000,v1=410132c32477a74c1fd9c17d759d4989022fb7bc1a795c4726da65049bfac892"
+    },
+    {
+      "name": "wrong-secret",
+      "secret": "whsec_other",
+      "timestamp": 1727136000,
+      "raw_body": "{\"id\":\"evt_1727136000000_0a1b2c3d4e5f6a7b\",\"event\":\"payment.success\",\"version\":\"v1\",\"timestamp\":\"2024-09-24T00:00:00.000Z\",\"data\":{\"id\":\"pi_1\",\"amount\":4000,\"currency\":\"XOF\",\"status\":\"SUCCESS\"}}",
+      "header": "t=1727136000,v1=410132c32477a74c1fd9c17d759d4989022fb7bc1a795c4726da65049bfac892"
+    },
+    {
+      "name": "wrong-timestamp",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "timestamp": 1727136000,
+      "raw_body": "{\"id\":\"evt_1727136000000_0a1b2c3d4e5f6a7b\",\"event\":\"payment.success\",\"version\":\"v1\",\"timestamp\":\"2024-09-24T00:00:00.000Z\",\"data\":{\"id\":\"pi_1\",\"amount\":4000,\"currency\":\"XOF\",\"status\":\"SUCCESS\"}}",
+      "header": "t=1727136001,v1=410132c32477a74c1fd9c17d759d4989022fb7bc1a795c4726da65049bfac892"
+    },
+    {
+      "name": "truncated-signature",
+      "secret": "whsec_parity_Q2hhbmdlTWVJbkNJT25seQ",
+      "timestamp": 1727136000,
+      "raw_body": "{\"id\":\"evt_1727136000000_0a1b2c3d4e5f6a7b\",\"event\":\"payment.success\",\"version\":\"v1\",\"timestamp\":\"2024-09-24T00:00:00.000Z\",\"data\":{\"id\":\"pi_1\",\"amount\":4000,\"currency\":\"XOF\",\"status\":\"SUCCESS\"}}",
+      "header": "t=1727136000,v1=410132c32477a74c1fd9c17d759d4989022fb7bc1a795c4726da65049bfac8"
+    }
+  ]
+}

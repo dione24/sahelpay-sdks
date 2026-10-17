@@ -90,11 +90,11 @@ final = client.payments.poll(payment.id)
 
 ```python
 link = client.payment_links.create(
-    title="Formation Python",
-    price=25000,
-    redirect_url="https://votre-site.com/merci",
+    name="Formation Python",
+    fixed_amount=25000,  # prix imposé (amount_mode FIXED)
+    success_redirect_url="https://votre-site.com/merci",
 )
-print(link.url)  # https://pay.sahelpay.ml/<slug>
+print(link.url)  # https://pay.sahelpay.africa/<slug>
 
 links = client.payment_links.list()
 client.payment_links.deactivate(link.id)

@@ -24,7 +24,8 @@
     "homepage": "https://sahelpay.ml",
     "require": {
         "php": "^8.0",
-        "guzzlehttp/guzzle": "^7.0"
+        "guzzlehttp/guzzle": "^7.0",
+        "ext-json": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
@@ -51,5 +52,17 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "support": {
+        "email": "dev@sahelpay.ml",
+        "docs": "https://docs.sahelpay.ml",
+        "issues": "https://github.com/dione24/sahelpay-sdks/issues",
+        "source": "https://github.com/dione24/sahelpay-sdks"
+    },
+    "scripts": {
+        "test": "phpunit --testsuite Unit --no-coverage"
+    },
+    "config": {
+        "sort-packages": true
+    }
 }

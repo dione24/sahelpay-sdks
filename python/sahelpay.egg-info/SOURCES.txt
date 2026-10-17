@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+setup.py
+sahelpay/__init__.py
+sahelpay/capabilities.py
+sahelpay/client.py
+sahelpay/exceptions.py
+sahelpay/gateway_stream.py
+sahelpay/resources.py
+sahelpay.egg-info/PKG-INFO
+sahelpay.egg-info/SOURCES.txt
+sahelpay.egg-info/dependency_links.txt
+sahelpay.egg-info/top_level.txt
+tests/test_api_surface.py
+tests/test_contracts.py
+tests/test_webhook_signature.py

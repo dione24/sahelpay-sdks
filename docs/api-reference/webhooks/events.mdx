@@ -18,25 +18,35 @@ description: "Liste des événements webhook SahelPay"
 | `subscription.payment_due` | Échéance d'abonnement (compatibilité, avec `payment_url`) |
 | `invoice.paid` | Facture réglée |
 | `subscription.renewed` | Abonnement prolongé après paiement |
+| `refund.pending` | Remboursement demandé, en cours de traitement |
+| `secure_order.paid` | Commande sécurisée payée, fonds en séquestre |
+| `secure_order.released` | Livraison confirmée, fonds libérés |
+| `secure_order.refunded` | Commande remboursée à l'acheteur |
+| `secure_order.disputed` | Litige ouvert par l'acheteur |
+| `secure_order.cancelled` | Commande annulée avant paiement |
 | `webhook.test` | Test de connectivité |
 
+Le catalogue à jour est renvoyé par `GET /v1/webhook-event-types`. Un endpoint sans type choisi reçoit tous les événements ; ignorez ceux que vous ne gérez pas.
+
 <Note>
-  `payment.cancelled` n'est pas émis : une expiration produit toujours `payment.expired`.
+  `payment.cancelled` figure au catalogue mais un paiement n'a pas de statut « annulé » : un abandon finit en `payment.expired`.
 </Note>
 
 ## Enveloppe
 
 ```json
 {
-  "id": "evt_1759480000000_9f2c4e1a7b3d5c60",
+  "id": "evt_4b1d9c0e7f2a6b3c5d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c",
   "event": "payment.success",
   "version": "v1",
   "timestamp": "2026-10-03T10:05:00.000Z",
+  "livemode": false,
+  "application": "2f6c1e9a-...",
   "data": { }
 }
 ```
 
-Le contenu de `data` pour les paiements est détaillé dans le [guide webhooks](/guides/webhooks#format-du-payload-paiement).
+`id` est stable pour un même événement : dédupliquez dessus. `livemode` indique le mode (test ou live) de l'objet. Le contenu de `data` pour les paiements est détaillé dans le [guide webhooks](/guides/webhooks#format-du-payload-paiement).
 
 ## Headers
 

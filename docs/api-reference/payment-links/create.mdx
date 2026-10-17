@@ -51,9 +51,12 @@ curl -X POST https://api.sahelpay.ml/v1/payment-links \
 
 ## Utilisation
 
-L'URL publique du lien est `https://pay.sahelpay.ml/<slug>`. Le client y paie par mobile money sur une page hébergée par SahelPay. Le SDK JavaScript renvoie cette URL dans le champ `url`.
+L'URL publique du lien est `https://pay.sahelpay.africa/<slug>` (les anciennes adresses `pay.sahelpay.ml` restent servies). Le client y paie par mobile money sur une page hébergée par SahelPay. Les SDKs renvoient cette URL dans le champ `url`.
 
-<Note>
-  Les helpers `paymentLinks.create()` des SDKs envoient `title` / `price` / `redirect_url`, alias toujours
-  acceptés par l'API.
-</Note>
+<Warning>
+  Sans `amount_mode`, l'API crée un lien **à montant libre** (`OPEN`), même si `fixed_amount` ou `price` est fourni :
+  le client peut alors payer n'importe quel montant entre `min_amount` et `max_amount`. Envoyez `"amount_mode": "FIXED"`
+  pour un prix imposé. Depuis la version 1.1.0, les SDKs envoient `FIXED` dès qu'un montant est fourni.
+</Warning>
+
+Modifier, désactiver ou supprimer un lien : voir [Modifier un lien](/api-reference/payment-links/update).

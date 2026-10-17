@@ -70,13 +70,37 @@ exit;
 
 ```php
 $link = $sahelpay->paymentLinks->create([
-    'title' => 'Commande #123',
-    'price' => 5000,
-    'redirect_url' => 'https://votre-site.com/merci',
+    'name' => 'Commande #123',
+    'fixed_amount' => 5000, // prix imposé : le SDK envoie amount_mode FIXED
+    'success_redirect_url' => 'https://votre-site.com/merci',
 ]);
 
-$url = $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.ml/<slug>
+$url = $sahelpay->paymentLinks->getUrl($link->slug); // https://pay.sahelpay.africa/<slug>
+
+$sahelpay->paymentLinks->update($link->id, ['name' => 'Commande #123 (bis)']);
+$sahelpay->paymentLinks->delete($link->id); // archivage définitif
 ```
+
+`title`, `price` (ou `amount`) et `redirect_url` restent acceptés. Sans montant, le lien est à montant libre (`OPEN`).
+
+## Livraisons webhook et paiement sécurisé
+
+```php
+$failed = $sahelpay->webhooks->logs(['status' => 'FAILED', 'limit' => 20]);
+foreach ($failed->logs as $log) {
+    $sahelpay->webhooks->retry($log['id']);
+}
+
+$order = $sahelpay->secureOrders->create([
+    'amount' => 15000,
+    'description' => 'Robe wax taille M',
+    'customer_phone' => '+22370000000',
+    'idempotency_key' => 'order-9',
+]);
+$sahelpay->secureOrders->confirmDelivery($order->id, '482913');
+```
+
+Voir [Livraisons et relances](/api-reference/webhooks/deliveries) et [Paiement sécurisé](/api-reference/secure-orders).
 
 ## Tester sans appel opérateur
 
@@ -158,7 +182,9 @@ public function handle(Request $request, SahelPay $sahelpay)
 
 | Ressource | Raison |
 |-----------|--------|
-| `payouts`, `refunds`, `withdrawals` | Hors du périmètre de l'API documentée : ne pas utiliser |
+| `payouts` | Refusé par l'API : les transferts automatiques Orange Money ne sont pas disponibles |
+| `refunds` | `POST /v1/refunds` répond `503 REFUNDS_UNAVAILABLE` : contactez SahelPay pour rembourser |
+| `withdrawals` | Retraits traités manuellement : demandez-les depuis le dashboard |
 | `transactions->get()` | Appelle l'endpoint public de statut ; préférez `payments->verify()` |
 
 Les plans, abonnements et clients passent par `/v1/billing/*`.
