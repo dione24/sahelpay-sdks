@@ -45,7 +45,7 @@ La base URL est `https://api.sahelpay.ml` en sandbox comme en production : la cl
 ## Sandbox et production
 
 - **Sandbox** (`sk_test_...`) : gratuite, sans abonnement.
-- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay et **abonnement SahelPay payé en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon). Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro, `403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
+- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro, `403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
 
 ## Paiements Orange Money
 
@@ -218,7 +218,7 @@ try {
     // 400 / 422 : getErrorCode() = error.code (BAD_REQUEST, VALIDATION_ERROR, …)
     print_r($e->getErrors()); // error.details
 } catch (ApiException $e) {
-    // 403 (abonnement, plafond), 409, 503…
+    // 403 (accès production, plafond), 409, 503…
     echo $e->getErrorCode() . ' - ' . $e->getMessage();
     echo $e->getHttpStatus();
 }

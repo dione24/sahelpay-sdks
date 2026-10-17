@@ -44,7 +44,7 @@ Points clés :
 ## Sandbox et production
 
 - **Sandbox** (`sk_test_...`) : gratuite, sans abonnement.
-- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay et **abonnement SahelPay payé en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon). Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro).
+- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro).
 
 ## Tests
 
@@ -175,7 +175,7 @@ except sahelpay.AuthenticationError as e:   # 401
     print(f"Clé API invalide: {e.code}")
 except sahelpay.ValidationError as e:       # 400
     print(f"Paramètres invalides: {e.code} - {e.message}")
-except sahelpay.APIError as e:              # autres statuts (403 plafond/abonnement, 409, 503…)
+except sahelpay.APIError as e:              # autres statuts (403 plafond/accès production, 409, 503…)
     print(f"Erreur API: {e.code} - {e.message}")
 except sahelpay.SahelPayError as e:
     print(f"Erreur: {e}")

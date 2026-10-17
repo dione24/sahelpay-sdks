@@ -7,6 +7,12 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 
 ## Octobre 2026
 
+### Inscription ouverte, sans abonnement (17 octobre)
+
+- L'inscription est ouverte à tous, sans invitation. Le compte démarre dans la sandbox gratuite.
+- Plus d'abonnement SahelPay : le passage en live dépend uniquement du KYC approuvé et de l'accès production. SahelPay facture une commission de service par transaction réussie.
+- Les paiements portent désormais `settlement_mode` (`platform` : fonds encaissés via SahelPay ; `direct` : fonds arrivés sur votre propre compte marchand), y compris dans les webhooks (`funds_held_by_sahelpay`, `commission_collection`). Un paiement `direct` n'est pas remboursable via SahelPay.
+
 ### SDKs 1.1.0 (17 octobre)
 
 - **Corrigé** : `payments.create()` envoie `description` au niveau racine. Les versions 1.0.0 JavaScript et Python la plaçaient dans `metadata`, où l'API l'écrasait : la description n'apparaissait ni dans le dashboard ni dans les webhooks.
@@ -15,7 +21,7 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 - **Changé** : la vérification de signature n'accepte plus qu'`X-SahelPay-Signature: t=...,v1=...`. L'ancien repli (HMAC du corps seul, sans horodatage) est retiré : SahelPay ne l'émet pas et il n'offrait aucune protection contre le rejeu.
 - **Changé** : `customer_phone` est facultatif avec le checkout hébergé (la page le demande au payeur). `callback_url` est ignoré (avertissement en Python) : les webhooks partent vers les endpoints de l'application.
 - **Ajouté** : `payments.expire()`, `paymentLinks.update()` / `delete()` / `retrieveById()`, livraisons webhook (`listLogs`, `retrieveLog`, `retry`, `stats`, `listEvents`, `retrieveEvent`), paiement sécurisé (`secureOrders.*`), types `refund.pending` et `payment.cancelled`, `id` sur l'événement webhook Python.
-- Les SDKs ne sont pas encore publiés sur npm, Packagist ou PyPI.
+- Le SDK JavaScript `@sahelpay/sdk` 1.1.0 est publié sur npm. PHP et Python : installation depuis le dépôt en attendant Packagist et PyPI.
 
 ### Isolation test / live et webhooks fiables
 

@@ -28,7 +28,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l'API SahelPay (p
 ## Ce qui est disponible côté API
 
 - **Orange Money (Mali) est le seul moyen de paiement.** Wave, Moov, les cartes et les autres agrégateurs ont été retirés : tout autre `provider` est rejeté (`400`).
-- **Sandbox gratuite** avec les clés `sk_test_...`. **Encaisser en live exige un abonnement SahelPay payé et en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon), un KYC approuvé et un accès production ouvert par SahelPay.
+- **Sandbox gratuite** avec les clés `sk_test_...`. **Sans abonnement** : encaisser en live exige un KYC approuvé et un accès production ouvert par SahelPay.
 - **Plafond mensuel live** selon le forfait : 200 000 FCFA pour Starter et Pro (`403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
 - `X-Idempotency-Key` **obligatoire** sur `POST /v1/payments`.
 - **Retraits** : demandes traitées manuellement par SahelPay (`POST /v1/withdrawals`, minimum 50 000 FCFA). **Payouts automatiques indisponibles.**
@@ -260,7 +260,7 @@ Envoyez exactement `Authorization: Bearer sk_test_...` (jamais une clé `pk_...`
 
 ### `401 PRODUCTION_KEY_DISABLED` ou `403 PAID_SUBSCRIPTION_REQUIRED`
 
-La clé live n'est acceptée qu'avec un KYC approuvé, un accès production ouvert par SahelPay et un abonnement payé en cours. Sans abonnement, le compte fonctionne en sandbox. Voir [Passer en production](https://docs.sahelpay.ml/guides/going-live).
+La clé live n'est acceptée qu'avec un KYC approuvé et un accès production ouvert par SahelPay. Aucun abonnement n'est requis ; `PAID_SUBSCRIPTION_REQUIRED` n'est renvoyé que si SahelPay réactive un jour l'abonnement plateforme. Voir [Passer en production](https://docs.sahelpay.ml/guides/going-live).
 
 ### `400 IDEMPOTENCY_KEY_REQUIRED`
 
