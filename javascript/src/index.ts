@@ -39,6 +39,8 @@ export {
   type ProviderCapabilities,
 } from './capabilities';
 
+export const SDK_VERSION = '1.1.0';
+
 async function generateIdempotencyKey(explicit?: string): Promise<string> {
   if (explicit) return explicit;
   const uuid =
@@ -48,6 +50,15 @@ async function generateIdempotencyKey(explicit?: string): Promise<string> {
 }
 
 declare const require: any;
+
+function toQuery(params: Record<string, unknown>): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
 
 export interface SahelPayConfig {
   secretKey: string;
@@ -81,7 +92,11 @@ export interface CreatePaymentParams {
    */
   payment_method?: 'ORANGE_MONEY' | 'MOBILE_MONEY';
   country?: string;
-  customer_phone: string;
+  /**
+   * Numéro du payeur au format international (+223...). Facultatif avec le
+   * checkout hébergé : la page SahelPay le demande au client.
+   */
+  customer_phone?: string;
   customer_name?: string;
   customer_email?: string;
   description?: string;
@@ -103,6 +118,10 @@ export interface CreatePaymentParams {
    */
   mock?: boolean;
   metadata?: Record<string, any>;
+  /**
+   * @deprecated Ignoré : l'API n'a pas d'URL de callback par paiement. Les
+   * webhooks partent vers les endpoints configurés pour l'application.
+   */
   callback_url?: string;
   return_url?: string;
   success_url?: string;
@@ -123,11 +142,15 @@ export interface Payment {
   id: string;
   reference_id: string;
   client_reference?: string;
+  /** Application de la clé API qui a créé le paiement. */
+  application_id?: string;
+  /** Instructions de paiement à afficher au client (transfert Orange Money), si l'API en renvoie. */
+  instructions?: any;
   amount: number;
   currency: string;
   provider: string;
   status: 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
-  customer_phone: string;
+  customer_phone?: string;
   description?: string;
   payment_method?: string;
   country?: string;
@@ -163,12 +186,73 @@ export interface Payment {
 
 export interface PaymentLink {
   id: string;
-  title: string;
-  price: number;
-  currency: string;
   slug: string;
+  /** URL publique à partager : https://pay.sahelpay.africa/<slug> */
   url: string;
-  is_active: boolean;
+  name?: string;
+  description?: string | null;
+  /** FIXED = prix imposé ; OPEN = montant libre entre min_amount et max_amount. */
+  amount_mode?: 'FIXED' | 'OPEN';
+  fixed_amount?: number | null;
+  min_amount?: number;
+  max_amount?: number;
+  currency: string;
+  success_redirect_url?: string | null;
+  image_url?: string | null;
+  expires_at?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  /** @deprecated Utilisez `name`. */
+  title?: string;
+  /** @deprecated Utilisez `fixed_amount`. */
+  price?: number | null;
+}
+
+export interface CreatePaymentLinkParams {
+  /** Nom affiché au client. `title` (ancien nom) reste accepté. */
+  name?: string;
+  description?: string;
+  /**
+   * FIXED (prix imposé) ou OPEN (montant libre). Par défaut : FIXED si un
+   * montant (`fixed_amount` ou `price`) est fourni, sinon OPEN.
+   */
+  amount_mode?: 'FIXED' | 'OPEN';
+  /** Prix en XOF, requis en mode FIXED. `price` (ancien nom) reste accepté. */
+  fixed_amount?: number;
+  /** Bornes du mode OPEN (défaut 100 et 500 000 XOF). */
+  min_amount?: number;
+  max_amount?: number;
+  currency?: string;
+  /** URL de retour après paiement. `redirect_url` (ancien nom) reste accepté. */
+  success_redirect_url?: string;
+  image_url?: string;
+  /** Date ISO 8601 d'expiration (absent = jamais). */
+  expires_at?: string;
+  /** Nombre maximum de paiements (absent = illimité). */
+  max_uses?: number;
+  /** Partenaires SPAY : produit du catalogue validé (le prix est imposé). */
+  product_id?: string;
+  /** @deprecated Utilisez `name`. */
+  title?: string;
+  /** @deprecated Utilisez `fixed_amount`. */
+  price?: number;
+  /** @deprecated Utilisez `success_redirect_url`. */
+  redirect_url?: string;
+}
+
+export interface UpdatePaymentLinkParams {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+  min_amount?: number;
+  max_amount?: number;
+  success_redirect_url?: string;
+}
+
+const PAYMENT_PAGE_BASE_URL = 'https://pay.sahelpay.africa';
+
+function withLinkUrl(link: any): PaymentLink {
+  return { ...link, url: `${PAYMENT_PAGE_BASE_URL}/${link.slug}` };
 }
 
 export interface CreatePayoutParams {
@@ -216,7 +300,9 @@ export type WebhookEventType =
   | 'payment.failed'
   | 'payment.pending'
   | 'payment.expired'
+  | 'payment.cancelled'
   | 'payment.updated'
+  | 'refund.pending'
   | 'secure_order.paid'
   | 'secure_order.released'
   | 'secure_order.refunded'
@@ -432,11 +518,13 @@ class PaymentsAPI {
     const inferredPaymentMethod: CreatePaymentParams['payment_method'] =
       params.payment_method;
 
-    const customer = {
-      phone: params.customer_phone,
-      name: params.customer_name,
-      email: params.customer_email,
-    };
+    const customer = Object.fromEntries(
+      Object.entries({
+        phone: params.customer_phone,
+        name: params.customer_name,
+        email: params.customer_email,
+      }).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+    );
 
     const response = await this.client.request('POST', '/v1/payments', {
       amount: params.amount,
@@ -444,16 +532,17 @@ class PaymentsAPI {
       provider,
       payment_method: inferredPaymentMethod,
       country: params.country,
-      customer,
+      ...(Object.keys(customer).length ? { customer } : {}),
       customer_phone: params.customer_phone,
       customer_name: params.customer_name,
       customer_email: params.customer_email,
       client_reference: params.client_reference,
+      // Champ racine : l'API écrase metadata.description par cette valeur.
+      description: params.description,
       metadata: {
         ...(params.metadata || {}),
         ...(params.sandbox ? { sandbox: true } : {}),
         ...(params.mock ? { sahelpay_mock: true } : {}),
-        ...(params.description ? { description: params.description } : {}),
         ...(params.marketplace ? { marketplace: params.marketplace } : {}),
       },
       return_url: params.return_url,
@@ -471,7 +560,10 @@ class PaymentsAPI {
     return {
       id: data.id,
       reference_id: data.id,
-      client_reference: data.client_reference,
+      // La réponse de création ne renvoie pas client_reference : on garde la valeur envoyée.
+      client_reference: data.client_reference ?? params.client_reference,
+      application_id: data.application_id,
+      instructions: data.instructions,
       amount: data.amount,
       currency: data.currency,
       provider: provider || data.payment_method,
@@ -498,6 +590,14 @@ class PaymentsAPI {
   async providers(): Promise<any[]> {
     const response = await this.client.request('GET', '/v1/payments/providers');
     return response.data;
+  }
+
+  /**
+   * Expirer un paiement non terminal dont `expires_at` est dépassé.
+   * Émet `payment.expired`. Sans effet sur un paiement encore valide.
+   */
+  async expire(id: string): Promise<{ success: boolean; status?: string; message: string }> {
+    return this.client.request('POST', `/v1/payments/${encodeURIComponent(id)}/expire`);
   }
 
   /**
@@ -720,15 +820,19 @@ class PaymentLinksAPI {
   constructor(private client: SahelPayClient) {}
 
   /**
-   * Créer un lien de paiement
+   * Créer un lien de paiement.
+   *
+   * Un montant (`fixed_amount` ou `price`) sans `amount_mode` crée un lien à
+   * prix fixe : l'API, elle, retombe sur OPEN (montant libre) si le mode manque.
    */
-  async create(params: { title: string; price: number; currency?: string; redirect_url?: string }): Promise<PaymentLink> {
-    const response = await this.client.request('POST', '/v1/payment-links', params);
-    const link = response.data;
-    return {
-      ...link,
-      url: `https://pay.sahelpay.ml/${link.slug}`,
+  async create(params: CreatePaymentLinkParams): Promise<PaymentLink> {
+    const amount = params.fixed_amount ?? params.price;
+    const body: Record<string, unknown> = {
+      ...params,
+      amount_mode: params.amount_mode ?? (amount != null ? 'FIXED' : 'OPEN'),
     };
+    const response = await this.client.request('POST', '/v1/payment-links', body);
+    return withLinkUrl(response.data);
   }
 
   /**
@@ -737,43 +841,53 @@ class PaymentLinksAPI {
   async list(): Promise<PaymentLink[]> {
     const response = await this.client.request('GET', '/v1/payment-links');
     const links = response.data || [];
-    return links.map((link: any) => ({
-      ...link,
-      url: `https://pay.sahelpay.ml/${link.slug}`,
-    }));
+    return links.map(withLinkUrl);
   }
 
   /**
-   * Récupérer un lien par slug
+   * Récupérer un lien public par slug (sans clé côté API).
    */
   async retrieve(slug: string): Promise<PaymentLink> {
-    const response = await this.client.request('GET', `/v1/payment-links/${slug}`);
-    const link = response.data;
-    return {
-      ...link,
-      url: `https://pay.sahelpay.ml/${link.slug}`,
-    };
+    const response = await this.client.request('GET', `/v1/payment-links/${encodeURIComponent(slug)}`);
+    return withLinkUrl(response.data);
+  }
+
+  /**
+   * Récupérer un de vos liens par son id (authentifié).
+   */
+  async retrieveById(id: string): Promise<PaymentLink> {
+    const response = await this.client.request('GET', `/v1/payment-links/by-id/${encodeURIComponent(id)}`);
+    return withLinkUrl(response.data);
+  }
+
+  /**
+   * Modifier un lien (nom, description, bornes du montant libre, URL de retour, activation).
+   */
+  async update(id: string, params: UpdatePaymentLinkParams): Promise<PaymentLink> {
+    const response = await this.client.request('PATCH', `/v1/payment-links/${encodeURIComponent(id)}`, params);
+    return withLinkUrl(response.data);
+  }
+
+  /**
+   * Supprimer un lien : archivage définitif (paiements et reçus conservés,
+   * l'URL publique répond 410).
+   */
+  async delete(id: string): Promise<any> {
+    const response = await this.client.request('DELETE', `/v1/payment-links/${encodeURIComponent(id)}`);
+    return response.data;
   }
 
   /**
    * Désactiver un lien
    */
   async deactivate(id: string): Promise<PaymentLink> {
-    const response = await this.client.request('PATCH', `/v1/payment-links/${id}/deactivate`);
-    const link = response.data;
-    return {
-      ...link,
-      url: `https://pay.sahelpay.ml/${link.slug}`,
-    };
+    const response = await this.client.request('PATCH', `/v1/payment-links/${encodeURIComponent(id)}/deactivate`);
+    return withLinkUrl(response.data);
   }
 
   async activate(id: string): Promise<PaymentLink> {
-    const response = await this.client.request('PATCH', `/v1/payment-links/${id}/activate`);
-    const link = response.data;
-    return {
-      ...link,
-      url: `https://pay.sahelpay.ml/${link.slug}`,
-    };
+    const response = await this.client.request('PATCH', `/v1/payment-links/${encodeURIComponent(id)}/activate`);
+    return withLinkUrl(response.data);
   }
 
   /**
@@ -1297,6 +1411,53 @@ class WebhooksAPI {
   }
 
   /**
+   * Historique des livraisons (paginé).
+   */
+  async listLogs(params: {
+    page?: number;
+    limit?: number;
+    status?: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
+    event_type?: string;
+    application_id?: string;
+    endpoint_id?: string;
+  } = {}): Promise<any> {
+    const response = await this.client.request('GET', `/v1/webhooks/logs${toQuery(params)}`);
+    return response.data;
+  }
+
+  /** Détail d'une livraison. */
+  async retrieveLog(id: string): Promise<any> {
+    const response = await this.client.request('GET', `/v1/webhooks/logs/${encodeURIComponent(id)}`);
+    return response.data;
+  }
+
+  /** Relancer une livraison échouée (10 par minute). */
+  async retry(logId: string): Promise<any> {
+    const response = await this.client.request('POST', `/v1/webhooks/logs/${encodeURIComponent(logId)}/retry`);
+    return response.data;
+  }
+
+  /** Statistiques de livraison. */
+  async stats(params: { application_id?: string } = {}): Promise<any> {
+    const response = await this.client.request('GET', `/v1/webhooks/stats${toQuery(params)}`);
+    return response.data;
+  }
+
+  /**
+   * Derniers événements émis (clé de test uniquement : 403 en live).
+   */
+  async listEvents(params: { after?: string; limit?: number; application_id?: string } = {}): Promise<any> {
+    const response = await this.client.request('GET', `/v1/webhooks/events${toQuery(params)}`);
+    return response.data;
+  }
+
+  /** Un événement par son id (`evt_...`). */
+  async retrieveEvent(eventId: string): Promise<any> {
+    const response = await this.client.request('GET', `/v1/webhooks/events/${encodeURIComponent(eventId)}`);
+    return response.data;
+  }
+
+  /**
    * Parser le header de signature (format: t=...,v1=...)
    */
   private parseSignatureHeader(header: string): { timestamp: string | null; signature: string | null } {
@@ -1363,12 +1524,8 @@ class WebhooksAPI {
       return safeEqual(signature, expectedSignature);
     }
 
-    // Compatibilité legacy : header = hash direct du body
-    if (signatureHeader.length === 64) {
-      const expectedLegacy = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-      return safeEqual(signatureHeader, expectedLegacy);
-    }
-
+    // Seul le format t=...,v1=... est émis par SahelPay. Un HMAC nu du corps
+    // (ancien format, sans horodatage) n'offre aucune protection contre le rejeu.
     return false;
   }
 
@@ -1418,6 +1575,71 @@ class WebhooksAPI {
   }
 }
 
+// ==================== SECURE ORDERS (paiement à la livraison) ====================
+
+export type SecureOrderStatus =
+  | 'CREATED'
+  | 'PAID_HELD'
+  | 'RELEASED'
+  | 'REFUNDED'
+  | 'DISPUTED'
+  | 'CANCELLED';
+
+export interface CreateSecureOrderParams {
+  /** Montant en XOF (entier). */
+  amount: number;
+  /** Description visible par l'acheteur (2 à 200 caractères). */
+  description: string;
+  /** Téléphone de l'acheteur (8 à 15 chiffres, + facultatif). */
+  customer_phone: string;
+  customer_name?: string;
+  /** Délai de livraison après paiement, en heures (défaut 72). */
+  delivery_deadline_hours?: number;
+  /** Votre référence de commande (64 caractères max). */
+  client_reference?: string;
+  /** Rejeu sûr de la création (en-tête X-Idempotency-Key). */
+  idempotency_key?: string;
+}
+
+/**
+ * Paiement sécurisé : les fonds restent en séquestre jusqu'à la confirmation
+ * de livraison par le code à 6 chiffres de l'acheteur. Fonction activée par
+ * marchand : sans activation, l'API répond 404 SECURE_ORDERS_DISABLED.
+ */
+class SecureOrdersAPI {
+  constructor(private client: SahelPayClient) {}
+
+  async create(params: CreateSecureOrderParams): Promise<any> {
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', '/v1/secure-orders', body, {
+      headers: { 'X-Idempotency-Key': await generateIdempotencyKey(idempotency_key) },
+    });
+    return response.data;
+  }
+
+  async list(params: { status?: SecureOrderStatus; search?: string; page?: number; limit?: number } = {}): Promise<any> {
+    const response = await this.client.request('GET', `/v1/secure-orders${toQuery(params)}`);
+    return response.data;
+  }
+
+  async retrieve(id: string): Promise<any> {
+    const response = await this.client.request('GET', `/v1/secure-orders/${encodeURIComponent(id)}`);
+    return response.data;
+  }
+
+  /** Annuler une commande avant paiement. */
+  async cancel(id: string, params: { reason?: string } = {}): Promise<any> {
+    const response = await this.client.request('POST', `/v1/secure-orders/${encodeURIComponent(id)}/cancel`, params);
+    return response.data;
+  }
+
+  /** Confirmer la livraison avec le code communiqué par l'acheteur : libère les fonds. */
+  async confirmDelivery(id: string, code: string): Promise<any> {
+    const response = await this.client.request('POST', `/v1/secure-orders/${encodeURIComponent(id)}/confirm-delivery`, { code });
+    return response.data;
+  }
+}
+
 class SahelPayClient {
   private baseUrl: string;
   private secretKey: string;
@@ -1449,7 +1671,7 @@ class SahelPayClient {
       headers: {
         'Authorization': `Bearer ${this.secretKey}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'SahelPay-SDK/1.0.0',
+        'User-Agent': `SahelPay-SDK/${SDK_VERSION}`,
         ...(requestOptions?.headers || {}),
       },
     };
@@ -1524,13 +1746,14 @@ export interface RegisterMerchantResponse {
     id: string;
     name: string;
     email: string;
-    phone?: string;
-    business_type?: string;
   };
-  api_keys: {
-    public_key: string;
-    secret_key: string;
-  };
+  /**
+   * Toujours true : le compte s'active par le lien envoyé par e-mail. Aucune
+   * clé API n'est renvoyée ici ; elles se lisent ensuite dans le dashboard.
+   */
+  email_verification_required: boolean;
+  email_sent?: boolean;
+  email_verification_expires_at?: string;
 }
 
 /**
@@ -1543,10 +1766,17 @@ export interface LoginMerchantResponse {
     name: string;
     email: string;
   };
+  /**
+   * La clé secrète n'est jamais renvoyée en clair : seulement un aperçu
+   * (`sk_test_****ABCD`). Révélez-la depuis le dashboard.
+   */
   api_keys: {
     public_key: string;
-    secret_key: string;
+    secret_key_preview: string | null;
   };
+  onboarding_required?: boolean;
+  onboarding_complete?: boolean;
+  onboarding_step?: number;
 }
 
 /**
@@ -1566,16 +1796,9 @@ export interface LoginMerchantResponse {
  *   business_type: 'e-commerce'
  * });
  * 
- * // Connexion d'un marchand existant
- * const login = await SahelPay.merchants.login({
- *   email: 'contact@maboutique.ml',
- *   password: 'motdepasse123'
- * });
- * 
- * // Maintenant vous pouvez initialiser le SDK avec les clés obtenues
- * const sahelpay = new SahelPay({
- *   secretKey: result.api_keys.secret_key
- * });
+ * // Le compte s'active par le lien reçu par e-mail. Aucune clé secrète
+ * // n'est renvoyée par l'API : copiez-la depuis le dashboard, puis
+ * const sahelpay = new SahelPay({ secretKey: process.env.SAHELPAY_SECRET_KEY! });
  * ```
  */
 class MerchantsAPI {
@@ -1598,7 +1821,7 @@ class MerchantsAPI {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'SahelPay-SDK/1.0.0',
+        'User-Agent': `SahelPay-SDK/${SDK_VERSION}`,
       },
       body: JSON.stringify(params),
     });
@@ -1635,7 +1858,7 @@ class MerchantsAPI {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'SahelPay-SDK/1.0.0',
+        'User-Agent': `SahelPay-SDK/${SDK_VERSION}`,
       },
       body: JSON.stringify({ email, password }),
     });
@@ -1738,6 +1961,7 @@ export class SahelPay {
   public subscriptions: SubscriptionsAPI;
   public customers: CustomersAPI;
   public portal: PortalAPI;
+  public secureOrders: SecureOrdersAPI;
 
   constructor(config: SahelPayConfig) {
     if (!config.secretKey) {
@@ -1755,6 +1979,7 @@ export class SahelPay {
     this.subscriptions = new SubscriptionsAPI(this.client);
     this.customers = new CustomersAPI(this.client);
     this.portal = new PortalAPI(this.client);
+    this.secureOrders = new SecureOrdersAPI(this.client);
   }
 
   /**
@@ -1797,10 +2022,8 @@ export class SahelPay {
    *   phone: '+22370123456'
    * });
    * 
-   * console.log('Clé API:', result.api_keys.secret_key);
-   * 
-   * // Connexion
-   * const login = await SahelPay.merchants.login('email', 'password');
+   * // result.email_verification_required === true : activez le compte par
+   * // e-mail, puis copiez la clé secrète depuis le dashboard.
    * ```
    */
   static merchants = MerchantsAPI;

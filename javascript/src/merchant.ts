@@ -327,20 +327,8 @@ export class SahelPayMerchant {
       const timestamp = parts['t'];
       const signature = parts['v1'];
 
-      // Fallback: ancien format (signature simple)
-      if (!timestamp && !signature && signatureHeader.length === 64) {
-        const expected = crypto
-          .createHmac('sha256', this.webhookSecret)
-          .update(rawBody)
-          .digest('hex');
-
-        if (!crypto.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(expected))) {
-          return { valid: false, error: 'Invalid signature (legacy)' };
-        }
-
-        return { valid: true, payload: JSON.parse(rawBody) };
-      }
-
+      // Seul le format t=...,v1=... est émis : un HMAC nu du corps (sans
+      // horodatage) n'offre aucune protection contre le rejeu et est refusé.
       if (!timestamp || !signature) {
         return { valid: false, error: 'Invalid signature header format' };
       }
@@ -387,7 +375,7 @@ export class SahelPayMerchant {
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.secretKey}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'SahelPay-Merchant-SDK/1.0.0',
+      'User-Agent': 'SahelPay-Merchant-SDK/1.1.0',
       ...extraHeaders,
     };
 

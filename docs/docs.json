@@ -89,7 +89,14 @@
                         "group": "Liens de paiement",
                         "pages": [
                             "api-reference/payment-links/create",
-                            "api-reference/payment-links/get"
+                            "api-reference/payment-links/get",
+                            "api-reference/payment-links/update"
+                        ]
+                    },
+                    {
+                        "group": "Paiement sécurisé",
+                        "pages": [
+                            "api-reference/secure-orders"
                         ]
                     },
                     {
@@ -117,7 +124,8 @@
                         "group": "Webhooks",
                         "pages": [
                             "api-reference/webhooks/events",
-                            "api-reference/webhooks/verify"
+                            "api-reference/webhooks/verify",
+                            "api-reference/webhooks/deliveries"
                         ]
                     }
                 ]

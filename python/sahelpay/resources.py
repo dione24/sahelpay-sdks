@@ -19,6 +19,8 @@ class Payment:
     status: str
     customer_phone: str
     client_reference: Optional[str] = None
+    application_id: Optional[str] = None
+    instructions: Optional[Any] = None
     description: Optional[str] = None
     payment_method: Optional[str] = None
     country: Optional[str] = None
@@ -49,6 +51,8 @@ class Payment:
             status=data.get("status", "PENDING"),
             customer_phone=data.get("customer_phone") or (data.get("metadata") or {}).get("customer", {}).get("phone") or "",
             client_reference=data.get("client_reference"),
+            application_id=data.get("application_id"),
+            instructions=data.get("instructions"),
             description=data.get("description") or (data.get("metadata") or {}).get("description"),
             payment_method=data.get("payment_method"),
             country=data.get("country"),
@@ -77,34 +81,64 @@ class Payment:
         return self.status == "FAILED"
 
 
+PAYMENT_PAGE_BASE_URL = "https://pay.sahelpay.africa"
+
+
+def _optional_number(value: Any) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    return float(value)
+
+
 @dataclass
 class PaymentLink:
     """Représente un lien de paiement"""
 
     id: str
-    title: str
-    price: float
-    currency: str
     slug: str
     url: str
-    is_active: bool
-    redirect_url: Optional[str] = None
+    currency: str
+    name: str = ""
+    description: Optional[str] = None
+    # FIXED = prix imposé ; OPEN = montant libre entre min_amount et max_amount.
+    amount_mode: Optional[str] = None
+    fixed_amount: Optional[float] = None
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+    success_redirect_url: Optional[str] = None
+    image_url: Optional[str] = None
+    expires_at: Optional[str] = None
+    is_active: bool = True
     created_at: Optional[str] = None
+    # Anciens noms, conservés pour compatibilité.
+    title: str = ""
+    price: Optional[float] = None
+    redirect_url: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PaymentLink":
         slug = data.get("slug", "")
-        url = data.get("url") or (f"https://pay.sahelpay.ml/{slug}" if slug else "")
+        url = data.get("url") or (f"{PAYMENT_PAGE_BASE_URL}/{slug}" if slug else "")
+        name = data.get("name") or data.get("title") or ""
         return cls(
             id=data.get("id", ""),
-            title=data.get("title", ""),
-            price=float(data.get("price", 0)),
-            currency=data.get("currency", "XOF"),
             slug=slug,
             url=url,
+            currency=data.get("currency", "XOF"),
+            name=name,
+            description=data.get("description"),
+            amount_mode=data.get("amount_mode"),
+            fixed_amount=_optional_number(data.get("fixed_amount")),
+            min_amount=_optional_number(data.get("min_amount")),
+            max_amount=_optional_number(data.get("max_amount")),
+            success_redirect_url=data.get("success_redirect_url") or data.get("redirect_url"),
+            image_url=data.get("image_url"),
+            expires_at=data.get("expires_at"),
             is_active=data.get("is_active", True),
-            redirect_url=data.get("redirect_url"),
             created_at=data.get("created_at"),
+            title=data.get("title") or name,
+            price=_optional_number(data.get("price")),
+            redirect_url=data.get("redirect_url"),
         )
 
 
@@ -217,6 +251,9 @@ class WebhookEvent:
     event: str
     data: Any  # Can be Payment, Payout, Refund, or test payload
     timestamp: str
+    # Identifiant unique de l'événement : dédupliquez sur ce champ.
+    id: str = ""
+    version: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "WebhookEvent":
@@ -234,4 +271,6 @@ class WebhookEvent:
             event=event_type,
             data=parsed_data,
             timestamp=data.get("timestamp", ""),
+            id=data.get("id") or data.get("event_id") or "",
+            version=data.get("version"),
         )

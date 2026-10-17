@@ -5,7 +5,7 @@ description: "Recevoir et traiter les notifications de paiement"
 
 # Webhooks
 
-Les webhooks vous notifient en temps réel des changements de statut. Configurez l'URL (HTTPS, publique) et récupérez le secret `whsec_...` dans le dashboard. Sans secret configuré, SahelPay n'envoie aucun webhook.
+Les webhooks vous notifient en temps réel des changements de statut. Configurez l'URL (HTTPS, publique) et récupérez le secret `whsec_...` dans le dashboard, par application (**Développeurs → Webhooks**, jusqu'à 16 endpoints). Chaque endpoint a un mode : `test`, `live` ou les deux. Un événement de test n'est livré qu'aux endpoints `test`, un événement live qu'aux endpoints `live`. Sans secret configuré, SahelPay n'envoie aucun webhook.
 
 <Warning>
   **Le webhook est la source de vérité.** Ne marquez jamais une commande comme "payée" sans avoir reçu et vérifié un webhook `payment.success`.
@@ -25,8 +25,19 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
 | `webhook.test` | Test de connectivité envoyé par `POST /v1/webhooks/test` |
 
 <Note>
-  Aucun événement `payment.cancelled` n'est émis aujourd'hui.
+  `payment.cancelled` figure au catalogue mais un paiement n'a pas de statut « annulé » : un abandon finit en `payment.expired`.
 </Note>
+
+### Remboursements et paiement sécurisé
+
+| Événement | Description |
+|-----------|-------------|
+| `refund.pending` | Remboursement demandé, en cours de traitement |
+| `secure_order.paid` | Commande sécurisée payée, fonds en séquestre |
+| `secure_order.released` | Livraison confirmée, fonds libérés |
+| `secure_order.refunded` | Commande remboursée à l'acheteur |
+| `secure_order.disputed` | Litige ouvert par l'acheteur |
+| `secure_order.cancelled` | Commande annulée avant paiement |
 
 ### Autres
 
@@ -39,10 +50,12 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
 
 ```json
 {
-  "id": "evt_1759480000000_9f2c4e1a7b3d5c60",
+  "id": "evt_4b1d9c0e7f2a6b3c5d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c",
   "event": "payment.success",
   "version": "v1",
   "timestamp": "2026-10-03T10:05:00.000Z",
+  "livemode": false,
+  "application": "2f6c1e9a-...",
   "data": {
     "id": "8d6f1c2e-...",
     "reference_id": "order-123",
@@ -174,7 +187,9 @@ En cas d'échec (réponse non 2xx ou timeout), SahelPay retente avec un backoff 
 | 4 | 4 minutes |
 | 5 | 8 minutes |
 
-Après 5 tentatives, le webhook est marqué comme `FAILED`. Vous pouvez consulter les livraisons et relancer depuis le dashboard ou via `GET /v1/webhooks/logs` et `POST /v1/webhooks/logs/{id}/retry`.
+Après 5 tentatives, le webhook est marqué comme `FAILED`. Vous pouvez consulter les livraisons et relancer depuis le dashboard ou via l'API ([Livraisons](/api-reference/webhooks/deliveries)).
+
+Un même événement peut arriver plus d'une fois (relance, rejeu) : son `id` est stable, dédupliquez dessus.
 
 ## Tester les webhooks
 

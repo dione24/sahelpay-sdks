@@ -18,7 +18,7 @@ cd sahelpay-sdks/javascript && npm install && npm run build
 npm install /chemin/vers/sahelpay-sdks/javascript
 ```
 
-Le SDK utilise `fetch` global : Node.js 18 ou plus récent.
+Le SDK utilise `fetch` global : Node.js 18 ou plus récent. Version actuelle du dépôt : **1.1.0** ([changements](/resources/changelog)).
 
 ## Configuration
 
@@ -38,7 +38,7 @@ const payment = await sahelpay.payments.create({
   amount: 5000,
   currency: 'XOF',
   payment_method: 'ORANGE_MONEY', // seul moyen de paiement
-  customer_phone: '+22370123456',
+  customer_phone: '+22370123456', // facultatif avec le checkout hébergé
   description: 'Commande #123',
   client_reference: 'order-123',
   return_url: 'https://votre-site.com/checkout/return?order=order-123',
@@ -83,7 +83,50 @@ const result = await sahelpay.payments.checkStatus(payment.id);
 console.log(result.status); // 'INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
 
 const byOrder = await sahelpay.payments.search('order-123'); // null si introuvable
+
+await sahelpay.payments.expire(payment.id); // paiement non terminal dont expires_at est dépassé
 ```
+
+## Liens de paiement
+
+```typescript
+const link = await sahelpay.paymentLinks.create({
+  name: 'Abonnement Premium',
+  fixed_amount: 10000, // prix imposé : le SDK envoie amount_mode FIXED
+  success_redirect_url: 'https://votre-site.com/merci',
+});
+console.log(link.url); // https://pay.sahelpay.africa/<slug>
+
+await sahelpay.paymentLinks.update(link.id, { name: 'Premium (octobre)' });
+await sahelpay.paymentLinks.deactivate(link.id);
+await sahelpay.paymentLinks.delete(link.id); // archivage définitif
+```
+
+Sans montant, le lien est à montant libre (`OPEN`, bornes `min_amount` / `max_amount`).
+
+## Livraisons webhook
+
+```typescript
+const { logs } = await sahelpay.webhooks.listLogs({ status: 'FAILED', limit: 20 });
+for (const log of logs) await sahelpay.webhooks.retry(log.id);
+```
+
+Voir [Livraisons et relances](/api-reference/webhooks/deliveries).
+
+## Paiement sécurisé
+
+```typescript
+const order = await sahelpay.secureOrders.create({
+  amount: 15000,
+  description: 'Robe wax taille M',
+  customer_phone: '+22370000000',
+  idempotency_key: 'order-9',
+});
+// Le livreur saisit le code de l'acheteur :
+await sahelpay.secureOrders.confirmDelivery(order.id, '482913');
+```
+
+Fonction activée sur demande : voir [Paiement sécurisé](/api-reference/secure-orders).
 
 ## Vérifier un webhook
 
@@ -136,6 +179,8 @@ Voir [Codes d'erreur](/resources/error-codes).
 
 | Helper | Raison |
 |--------|--------|
-| `payouts.*`, `refunds.*`, `withdrawals.*` | Hors du périmètre de l'API documentée : ne pas utiliser |
+| `payouts.*` | Refusé par l'API : les transferts automatiques Orange Money ne sont pas disponibles |
+| `refunds.*` | `POST /v1/refunds` répond `503 REFUNDS_UNAVAILABLE` : contactez SahelPay pour rembourser |
+| `withdrawals.*` | Retraits traités manuellement : demandez-les depuis le dashboard |
 | `hasCapability()` & co. | Table statique non fiable : seul `ORANGE_MONEY` est disponible |
 | `GatewayEventSource` / `useGatewayStream()` | Retiré de l'export public (flux admin SahelPay) |

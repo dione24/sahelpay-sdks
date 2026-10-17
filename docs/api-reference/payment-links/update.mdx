@@ -1,0 +1,61 @@
+---
+title: Modifier, désactiver, supprimer
+api: PATCH /v1/payment-links/{id}
+description: "Modifier un lien de paiement, le désactiver ou le supprimer"
+---
+
+# Modifier un lien de paiement
+
+## Lire un lien par id
+
+```
+GET /v1/payment-links/by-id/{id}
+```
+
+Renvoie un de vos liens (authentifié). `GET /v1/payment-links/{slug}` reste la lecture publique par slug.
+
+## Modifier
+
+```
+PATCH /v1/payment-links/{id}
+```
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `name` | string | Nom affiché au client |
+| `description` | string | Description |
+| `is_active` | boolean | Activer / désactiver |
+| `min_amount` / `max_amount` | integer | Bornes du montant libre (`OPEN`) |
+| `success_redirect_url` | string | URL de retour après paiement |
+
+Le mode (`FIXED` / `OPEN`) et le prix fixe ne se modifient pas : créez un nouveau lien.
+
+```bash
+curl -X PATCH https://api.sahelpay.ml/v1/payment-links/2f6c1e9a-... \
+  -H "Authorization: Bearer sk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Abonnement Premium (octobre)", "max_amount": 200000 }'
+```
+
+## Désactiver / réactiver
+
+```
+PATCH /v1/payment-links/{id}/deactivate
+PATCH /v1/payment-links/{id}/activate
+```
+
+## Supprimer
+
+```
+DELETE /v1/payment-links/{id}
+```
+
+La suppression est un archivage définitif : les paiements, reçus et relevés sont conservés, l'URL publique répond `410`.
+
+## SDKs
+
+| Action | JS | PHP | Python |
+|--------|----|-----|--------|
+| Lire par id | `paymentLinks.retrieveById(id)` | `paymentLinks->retrieveById($id)` | `payment_links.retrieve_by_id(id)` |
+| Modifier | `paymentLinks.update(id, {...})` | `paymentLinks->update($id, [...])` | `payment_links.update(id, **fields)` |
+| Supprimer | `paymentLinks.delete(id)` | `paymentLinks->delete($id)` | `payment_links.delete(id)` |

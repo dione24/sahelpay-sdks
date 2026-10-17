@@ -1,0 +1,4 @@
+# Construction PEP 517 (python -m build). Les métadonnées restent dans setup.py.
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

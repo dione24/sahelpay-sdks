@@ -1,0 +1,63 @@
+---
+title: Livraisons et relances
+api: GET /v1/webhooks/logs
+description: "Consulter les livraisons de webhooks, les relancer et lire les événements émis"
+---
+
+# Livraisons et relances
+
+Chaque envoi vers un de vos endpoints est journalisé. Une clé ne voit que les livraisons de son application.
+
+## Historique des livraisons
+
+```
+GET /v1/webhooks/logs
+```
+
+| Query | Description |
+|-------|-------------|
+| `page`, `limit` | Pagination |
+| `status` | `PENDING`, `SUCCESS` ou `FAILED` |
+| `event_type` | Par exemple `payment.success` |
+| `application_id`, `endpoint_id` | Filtrer par application / endpoint |
+
+`GET /v1/webhooks/logs/{id}` renvoie le détail d'une livraison (code HTTP reçu, extrait de la réponse, tentatives).
+
+## Relancer une livraison
+
+```
+POST /v1/webhooks/logs/{id}/retry
+```
+
+Limite : 10 par minute. L'événement est renvoyé avec le même `id` : votre traitement doit être idempotent.
+
+## Statistiques
+
+```
+GET /v1/webhooks/stats?application_id=
+```
+
+## Événements émis (test)
+
+```
+GET /v1/webhooks/events?after=evt_...&limit=50
+GET /v1/webhooks/events/{event_id}
+```
+
+`GET /v1/webhooks/events` n'accepte qu'une clé de test (`403` en live) ; il sert à rejouer localement les derniers événements, par exemple avec la CLI de test.
+
+## Catalogue des événements
+
+```
+GET /v1/webhook-event-types
+```
+
+## SDKs
+
+| Action | JS | PHP | Python |
+|--------|----|-----|--------|
+| Livraisons | `webhooks.listLogs({...})` | `webhooks->logs([...])` | `webhooks.list_logs(...)` |
+| Détail | `webhooks.retrieveLog(id)` | `webhooks->log($id)` | `webhooks.retrieve_log(id)` |
+| Relancer | `webhooks.retry(id)` | `webhooks->retry($id)` | `webhooks.retry(id)` |
+| Statistiques | `webhooks.stats()` | `webhooks->stats()` | `webhooks.stats()` |
+| Événements (test) | `webhooks.listEvents({...})` | `webhooks->events([...])` | `webhooks.list_events(...)` |

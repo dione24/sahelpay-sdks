@@ -283,7 +283,7 @@ export default async function handler(
       description: \`Commande #\${order_id}\`,
       metadata: { order_id },
       return_url: \`\${process.env.NEXT_PUBLIC_URL}/orders/\${order_id}/success\`,
-      callback_url: \`\${process.env.NEXT_PUBLIC_URL}/api/webhook\`,
+      // Les webhooks partent vers l'endpoint configuré dans le dashboard (pas de callback_url).
     });
 
     // Sauvegarder la référence dans votre base de données

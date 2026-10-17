@@ -98,12 +98,12 @@ const final = await sahelpay.payments.poll(payment.id);       // attendre un sta
 
 ```typescript
 const link = await sahelpay.paymentLinks.create({
-  title: "Formation React",
-  price: 25000,
-  redirect_url: "https://votre-site.com/merci",
+  name: "Formation React",
+  fixed_amount: 25000, // prix imposé (amount_mode FIXED)
+  success_redirect_url: "https://votre-site.com/merci",
 });
 
-console.log(link.url); // https://pay.sahelpay.ml/<slug>
+console.log(link.url); // https://pay.sahelpay.africa/<slug>
 
 const links = await sahelpay.paymentLinks.list();
 await sahelpay.paymentLinks.deactivate(link.id);

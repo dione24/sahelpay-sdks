@@ -117,7 +117,6 @@ def create_payment(request, booking_id):
                 'user_id': str(booking.user.id),
                 'service_id': str(booking.service.id),
             },
-            callback_url=f"{settings.SITE_URL}/api/webhooks/sahelpay/",
             return_url=f"{settings.SITE_URL}/bookings/{booking.id}/confirmation/",
         )
 

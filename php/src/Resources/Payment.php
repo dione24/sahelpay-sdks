@@ -193,6 +193,15 @@ class Payment
     }
 
     /**
+     * Expirer un paiement non terminal dont `expires_at` est dépassé (émet `payment.expired`).
+     * Réponse : {success, message, status?}.
+     */
+    public function expire(string $id): Response
+    {
+        return $this->client->post('/payments/' . rawurlencode($id) . '/expire');
+    }
+
+    /**
      * Vérifier le statut d'un paiement
      */
     public function verify(string $referenceId): Response

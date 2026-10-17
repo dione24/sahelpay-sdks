@@ -7,6 +7,25 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 
 ## Octobre 2026
 
+### SDKs 1.1.0 (17 octobre)
+
+- **Corrigé** : `payments.create()` envoie `description` au niveau racine. Les versions 1.0.0 JavaScript et Python la plaçaient dans `metadata`, où l'API l'écrasait : la description n'apparaissait ni dans le dashboard ni dans les webhooks.
+- **Corrigé** : `paymentLinks.create()` avec un montant (`price` ou `fixed_amount`) crée un lien à prix fixe (`amount_mode: FIXED`). En 1.0.0 les trois SDKs créaient un lien à montant libre (`OPEN`) : vérifiez les liens créés par SDK.
+- **Corrigé** (Python) : `payments.search()` et `payments.recommend()` encodent leurs paramètres (le `+` d'un numéro était lu comme un espace). `PaymentLink` accepte un lien à montant libre (`price: null`).
+- **Changé** : la vérification de signature n'accepte plus qu'`X-SahelPay-Signature: t=...,v1=...`. L'ancien repli (HMAC du corps seul, sans horodatage) est retiré : SahelPay ne l'émet pas et il n'offrait aucune protection contre le rejeu.
+- **Changé** : `customer_phone` est facultatif avec le checkout hébergé (la page le demande au payeur). `callback_url` est ignoré (avertissement en Python) : les webhooks partent vers les endpoints de l'application.
+- **Ajouté** : `payments.expire()`, `paymentLinks.update()` / `delete()` / `retrieveById()`, livraisons webhook (`listLogs`, `retrieveLog`, `retry`, `stats`, `listEvents`, `retrieveEvent`), paiement sécurisé (`secureOrders.*`), types `refund.pending` et `payment.cancelled`, `id` sur l'événement webhook Python.
+- Les SDKs ne sont pas encore publiés sur npm, Packagist ou PyPI.
+
+### Isolation test / live et webhooks fiables
+
+- Une clé ne lit que les objets de son mode : une clé `sk_test_...` ne voit pas les paiements live, et inversement. Même règle pour les remboursements, liens, abonnements et le portail client.
+- Endpoints webhook par application, avec un mode (`test`, `live` ou les deux) : un événement de test ne part plus vers un endpoint live.
+- Les webhooks de paiement sont écrits dans la même transaction que le changement de statut, puis relayés : aucun événement perdu. Un même événement garde le même `id` d'une relance à l'autre : dédupliquez dessus.
+- `refund.pending` est émis à chaque demande de remboursement.
+- `client_reference` est renvoyé par `GET /v1/payments/{id}/status`, `/details` et `/search`.
+- Le checkout hébergé demande le numéro Orange Money du payeur avant le transfert s'il n'a pas été fourni. Les paiements par transfert ajoutent à `data.metadata` du webhook `amount_to_pay`, `amount_received`, `surplus` et `manual_merchant_confirmation`.
+
 ### Un seul moyen de paiement
 
 - Le mobile money au Mali est le **seul** moyen de paiement ; les autres fournisseurs ont été retirés.
@@ -25,7 +44,7 @@ description: "Ce qui a changé côté API pour les intégrateurs"
 - Le checkout hébergé reprend la même session de paiement après un rechargement ou un double clic.
 - Après un paiement **confirmé**, la page de paiement redirige automatiquement le client vers votre `return_url` (HTTPS, hors domaines SahelPay). Aucune redirection automatique pour un paiement en attente ou échoué.
 - Option de test explicite : `metadata.sahelpay_mock` (simulateur, option SDK `mock`) est distincte de `metadata.sandbox` (sandbox de l'opérateur). Les deux sont refusées en production.
-- `payment.expired` est émis à toute expiration (délai écoulé, `POST /v1/payments/{id}/expire`, réconciliation). Aucun événement `payment.cancelled` n'est émis.
+- `payment.expired` est émis à toute expiration (délai écoulé, `POST /v1/payments/{id}/expire`, réconciliation). Un paiement n'a pas de statut « annulé » : un abandon finit en `payment.expired`.
 
 ### Fonctions retirées ou restreintes
 

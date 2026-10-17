@@ -11,7 +11,19 @@ import warnings
 from typing import Optional, Dict, Any, List
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
+
+__sdk_version__ = "1.1.0"
+
+
+def _path(value: str) -> str:
+    """Encoder un identifiant pour un segment d'URL."""
+    return quote(str(value), safe="")
+
+
+def _query(params: Dict[str, Any]) -> str:
+    clean = {k: v for k, v in params.items() if v is not None and v != ""}
+    return f"?{urlencode(clean)}" if clean else ""
 
 from .exceptions import SahelPayError, APIError, AuthenticationError, ValidationError
 from .resources import Payment, PaymentLink, WebhookEvent
@@ -26,8 +38,8 @@ class PaymentsAPI:
     def create(
         self,
         amount: float,
-        provider: str,
-        customer_phone: str,
+        provider: str = "ORANGE_MONEY",
+        customer_phone: Optional[str] = None,
         currency: str = "XOF",
         description: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
@@ -52,12 +64,14 @@ class PaymentsAPI:
 
         Args:
             amount: Montant en FCFA
-            provider: ORANGE_MONEY (seul rail intégré)
-            customer_phone: Numéro de téléphone du client
+            provider: ORANGE_MONEY (seul rail intégré, défaut)
+            customer_phone: Numéro du payeur (+223...). Facultatif avec le
+                            checkout hébergé : la page SahelPay le demande.
             currency: Devise (défaut: XOF)
-            description: Description du paiement
+            description: Description du paiement (255 caractères max)
             metadata: Données personnalisées
-            callback_url: URL de callback webhook
+            callback_url: Obsolète et ignoré : les webhooks partent vers les
+                          endpoints configurés pour l'application.
             return_url: URL de redirection après paiement
             sandbox: Envoie metadata.sandbox=true — le paiement part vers
                      l'environnement de test de l'opérateur.
@@ -76,13 +90,16 @@ class PaymentsAPI:
         # valeur avec un 400, inutile de deviner une méthode carte ici.
         inferred_payment_method = payment_method
 
+        if callback_url:
+            warnings.warn(
+                "callback_url est ignoré : configurez vos endpoints webhook dans le dashboard.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         final_metadata: Dict[str, Any] = {}
         if metadata:
             final_metadata.update(metadata)
-        if description:
-            final_metadata.setdefault("description", description)
-        if callback_url:
-            final_metadata.setdefault("callback_url", callback_url)
         if marketplace:
             final_metadata["marketplace"] = marketplace
         if sandbox:
@@ -90,26 +107,32 @@ class PaymentsAPI:
         if mock:
             final_metadata["sahelpay_mock"] = True
 
+        customer = {
+            k: v for k, v in {
+                "phone": customer_phone,
+                "name": customer_name,
+                "email": customer_email,
+            }.items() if v
+        }
         data: Dict[str, Any] = {
             "amount": amount,
             "currency": currency,
             "provider": provider,
             "payment_method": inferred_payment_method,
             "country": country,
-            "customer": {
-                "phone": customer_phone,
-                "name": customer_name,
-                "email": customer_email,
-            },
+            "customer": customer or None,
             "customer_phone": customer_phone,
             "customer_name": customer_name,
             "customer_email": customer_email,
+            # Champ racine : l'API écrase metadata.description par cette valeur.
+            "description": description,
             "return_url": return_url,
             "success_url": success_url,
             "cancel_url": cancel_url,
             "client_reference": client_reference,
             "hosted_checkout": hosted_checkout,
         }
+        data = {k: v for k, v in data.items() if v is not None}
         if items:
             data["items"] = items
 
@@ -125,6 +148,11 @@ class PaymentsAPI:
         payload = response.get("data", {})
         payload["customer_phone"] = customer_phone
         payload["provider"] = provider
+        # La réponse de création ne renvoie pas client_reference : on garde la valeur envoyée.
+        if client_reference and not payload.get("client_reference"):
+            payload["client_reference"] = client_reference
+        if description and not payload.get("description"):
+            payload["description"] = description
         if inferred_payment_method:
             payload["payment_method"] = inferred_payment_method
         if country:
@@ -136,7 +164,7 @@ class PaymentsAPI:
     def search(self, client_reference: str) -> Optional[Payment]:
         """Rechercher un paiement par référence client"""
         response = self._client._request(
-            "GET", f"/v1/payments/search?client_reference={client_reference}")
+            "GET", f"/v1/payments/search{_query({'client_reference': client_reference})}")
         data = response.get("data")
         if not data:
             return None
@@ -145,12 +173,19 @@ class PaymentsAPI:
     def details(self, payment_id: str) -> Payment:
         """Obtenir les détails financiers complets"""
         response = self._client._request(
-            "GET", f"/v1/payments/{payment_id}/details")
+            "GET", f"/v1/payments/{_path(payment_id)}/details")
         return Payment.from_dict(response.get("data", {}))
 
     def reconcile(self, payment_id: str) -> Dict[str, Any]:
         """Réconcilier manuellement un paiement"""
-        return self._client._request("POST", f"/v1/payments/{payment_id}/reconcile")
+        return self._client._request("POST", f"/v1/payments/{_path(payment_id)}/reconcile")
+
+    def expire(self, payment_id: str) -> Dict[str, Any]:
+        """
+        Expirer un paiement non terminal dont ``expires_at`` est dépassé
+        (émet ``payment.expired``). Renvoie ``{success, message, status?}``.
+        """
+        return self._client._request("POST", f"/v1/payments/{_path(payment_id)}/expire")
 
     def providers(self) -> List[Any]:
         """Obtenir les providers disponibles"""
@@ -171,7 +206,7 @@ class PaymentsAPI:
             Dict avec provider et confidence
         """
         response = self._client._request(
-            "GET", f"/v1/payments/recommend?phone={phone}")
+            "GET", f"/v1/payments/recommend{_query({'phone': phone})}")
         return response.get("data", {})
 
     def poll(
@@ -220,13 +255,13 @@ class PaymentsAPI:
     def retrieve(self, reference_id: str) -> Payment:
         """Récupérer un paiement par référence"""
         response = self._client._request(
-            "GET", f"/v1/payments/{reference_id}/status")
+            "GET", f"/v1/payments/{_path(reference_id)}/status")
         return Payment.from_dict(response.get("data", {}))
 
     def check_status(self, reference_id: str) -> Dict[str, Any]:
         """Vérifier le statut d'un paiement"""
         response = self._client._request(
-            "GET", f"/v1/payments/{reference_id}/status")
+            "GET", f"/v1/payments/{_path(reference_id)}/status")
         return {
             "status": response.get("data", {}).get("status"),
             "payment": Payment.from_dict(response.get("data", {})),
@@ -266,22 +301,69 @@ class PaymentLinksAPI:
 
     def create(
         self,
-        title: str,
-        price: float,
+        title: Optional[str] = None,
+        price: Optional[float] = None,
         currency: str = "XOF",
         redirect_url: Optional[str] = None,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        amount_mode: Optional[str] = None,
+        fixed_amount: Optional[float] = None,
+        min_amount: Optional[float] = None,
+        max_amount: Optional[float] = None,
+        success_redirect_url: Optional[str] = None,
+        image_url: Optional[str] = None,
+        expires_at: Optional[str] = None,
+        max_uses: Optional[int] = None,
+        product_id: Optional[str] = None,
     ) -> PaymentLink:
-        """Créer un lien de paiement"""
-        data = {
+        """
+        Créer un lien de paiement.
+
+        ``name``/``fixed_amount``/``success_redirect_url`` sont les noms actuels ;
+        ``title``/``price``/``redirect_url`` restent acceptés. Un montant sans
+        ``amount_mode`` crée un lien à prix fixe (FIXED) : l'API, elle, retombe
+        sur OPEN (montant libre) si le mode manque.
+        """
+        amount = fixed_amount if fixed_amount is not None else price
+        data: Dict[str, Any] = {
+            "name": name or title,
             "title": title,
-            "price": price,
+            "description": description,
+            "amount_mode": amount_mode or ("FIXED" if amount is not None else "OPEN"),
+            "fixed_amount": amount,
+            "min_amount": min_amount,
+            "max_amount": max_amount,
             "currency": currency,
+            "success_redirect_url": success_redirect_url or redirect_url,
+            "image_url": image_url,
+            "expires_at": expires_at,
+            "max_uses": max_uses,
+            "product_id": product_id,
         }
-        if redirect_url:
-            data["redirect_url"] = redirect_url
+        data = {k: v for k, v in data.items() if v is not None}
 
         response = self._client._request("POST", "/v1/payment-links", data)
         return PaymentLink.from_dict(response.get("data", {}))
+
+    def retrieve_by_id(self, link_id: str) -> PaymentLink:
+        """Récupérer un de vos liens par son id (authentifié)."""
+        response = self._client._request("GET", f"/v1/payment-links/by-id/{_path(link_id)}")
+        return PaymentLink.from_dict(response.get("data", {}))
+
+    def update(self, link_id: str, **fields: Any) -> PaymentLink:
+        """
+        Modifier un lien : name, description, is_active, min_amount,
+        max_amount, success_redirect_url.
+        """
+        response = self._client._request("PATCH", f"/v1/payment-links/{_path(link_id)}", fields)
+        return PaymentLink.from_dict(response.get("data", {}))
+
+    def delete(self, link_id: str) -> Dict[str, Any]:
+        """Supprimer (archiver) un lien : paiements et reçus conservés, l'URL publique répond 410."""
+        response = self._client._request("DELETE", f"/v1/payment-links/{_path(link_id)}")
+        return response.get("data", {})
 
     def list(self) -> List[PaymentLink]:
         """Lister les liens de paiement"""
@@ -290,19 +372,19 @@ class PaymentLinksAPI:
 
     def retrieve(self, slug: str) -> PaymentLink:
         """Récupérer un lien par slug"""
-        response = self._client._request("GET", f"/v1/payment-links/{slug}")
+        response = self._client._request("GET", f"/v1/payment-links/{_path(slug)}")
         return PaymentLink.from_dict(response.get("data", {}))
 
     def deactivate(self, link_id: str) -> PaymentLink:
         """Désactiver un lien"""
         response = self._client._request(
-            "PATCH", f"/v1/payment-links/{link_id}/deactivate", {})
+            "PATCH", f"/v1/payment-links/{_path(link_id)}/deactivate", {})
         return PaymentLink.from_dict(response.get("data", {}))
 
     def activate(self, link_id: str) -> PaymentLink:
         """Activer un lien"""
         response = self._client._request(
-            "PATCH", f"/v1/payment-links/{link_id}/activate", {})
+            "PATCH", f"/v1/payment-links/{_path(link_id)}/activate", {})
         return PaymentLink.from_dict(response.get("data", {}))
 
 
@@ -330,6 +412,49 @@ class WebhooksAPI:
         response = self._client._request("POST", "/v1/webhooks/test")
         return response.get("data", {})
 
+    def list_logs(
+        self,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        status: Optional[str] = None,
+        event_type: Optional[str] = None,
+        application_id: Optional[str] = None,
+        endpoint_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Historique des livraisons (paginé)."""
+        query = _query({
+            "page": page, "limit": limit, "status": status, "event_type": event_type,
+            "application_id": application_id, "endpoint_id": endpoint_id,
+        })
+        return self._client._request("GET", f"/v1/webhooks/logs{query}").get("data", {})
+
+    def retrieve_log(self, log_id: str) -> Dict[str, Any]:
+        """Détail d'une livraison."""
+        return self._client._request("GET", f"/v1/webhooks/logs/{_path(log_id)}").get("data", {})
+
+    def retry(self, log_id: str) -> Dict[str, Any]:
+        """Relancer une livraison échouée (10 par minute)."""
+        return self._client._request("POST", f"/v1/webhooks/logs/{_path(log_id)}/retry").get("data", {})
+
+    def stats(self, application_id: Optional[str] = None) -> Dict[str, Any]:
+        """Statistiques de livraison."""
+        query = _query({"application_id": application_id})
+        return self._client._request("GET", f"/v1/webhooks/stats{query}").get("data", {})
+
+    def list_events(
+        self,
+        after: Optional[str] = None,
+        limit: Optional[int] = None,
+        application_id: Optional[str] = None,
+    ) -> Any:
+        """Derniers événements émis (clé de test uniquement : 403 en live)."""
+        query = _query({"after": after, "limit": limit, "application_id": application_id})
+        return self._client._request("GET", f"/v1/webhooks/events{query}").get("data", [])
+
+    def retrieve_event(self, event_id: str) -> Dict[str, Any]:
+        """Un événement par son id (``evt_...``)."""
+        return self._client._request("GET", f"/v1/webhooks/events/{_path(event_id)}").get("data", {})
+
     def _parse_signature_header(self, header: str) -> Dict[str, str]:
         """Parser le header de signature (format: t=...,v1=...)"""
         parts = {}
@@ -349,8 +474,9 @@ class WebhooksAPI:
         """
         Vérifier la signature d'un webhook.
 
-        Format actuel : ``X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>``.
-        Repli legacy : header = HMAC-SHA256 hex du body seul.
+        Format : ``X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>``.
+        Seul ce format est accepté : un HMAC nu du corps (ancien format, sans
+        horodatage) n'offre aucune protection contre le rejeu.
 
         Returns:
             bool: True si la signature est valide, False sinon (y compris replay hors tolérance).
@@ -376,12 +502,7 @@ class WebhooksAPI:
             ).hexdigest()
             return hmac.compare_digest(signature, expected)
 
-        expected_legacy = hmac.new(
-            secret.encode("utf-8"),
-            payload.encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
-        return hmac.compare_digest(signature_header, expected_legacy)
+        return False
 
     def construct_event(
         self,
@@ -906,6 +1027,63 @@ class RefundsAPI:
         return Refund.from_dict(response.get("data", {}))
 
 
+class SecureOrdersAPI:
+    """
+    Paiement sécurisé : fonds en séquestre jusqu'à la confirmation de livraison
+    par le code à 6 chiffres de l'acheteur. Fonction activée par marchand :
+    sans activation, l'API répond 404 SECURE_ORDERS_DISABLED.
+    """
+
+    def __init__(self, client: "Client"):
+        self._client = client
+
+    def create(
+        self,
+        amount: int,
+        description: str,
+        customer_phone: str,
+        customer_name: Optional[str] = None,
+        delivery_deadline_hours: Optional[int] = None,
+        client_reference: Optional[str] = None,
+        idempotency_key: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        data = {
+            "amount": amount,
+            "description": description,
+            "customer_phone": customer_phone,
+            "customer_name": customer_name,
+            "delivery_deadline_hours": delivery_deadline_hours,
+            "client_reference": client_reference,
+        }
+        data = {k: v for k, v in data.items() if v is not None}
+        headers = {"X-Idempotency-Key": idempotency_key or f"sdk_{uuid.uuid4()}"}
+        return self._client._request("POST", "/v1/secure-orders", data, headers=headers).get("data", {})
+
+    def list(
+        self,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+    ) -> Any:
+        query = _query({"status": status, "search": search, "page": page, "limit": limit})
+        return self._client._request("GET", f"/v1/secure-orders{query}").get("data", [])
+
+    def retrieve(self, order_id: str) -> Dict[str, Any]:
+        return self._client._request("GET", f"/v1/secure-orders/{_path(order_id)}").get("data", {})
+
+    def cancel(self, order_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
+        """Annuler une commande avant paiement."""
+        data = {"reason": reason} if reason else {}
+        return self._client._request("POST", f"/v1/secure-orders/{_path(order_id)}/cancel", data).get("data", {})
+
+    def confirm_delivery(self, order_id: str, code: str) -> Dict[str, Any]:
+        """Confirmer la livraison avec le code de l'acheteur : libère les fonds."""
+        return self._client._request(
+            "POST", f"/v1/secure-orders/{_path(order_id)}/confirm-delivery", {"code": code}
+        ).get("data", {})
+
+
 class Client:
     """
     Client principal SahelPay
@@ -965,6 +1143,7 @@ class Client:
         self.subscriptions = SubscriptionsAPI(self)
         self.customers = CustomersAPI(self)
         self.portal = PortalAPI(self)
+        self.secure_orders = SecureOrdersAPI(self)
 
     def _request(
         self,
@@ -979,7 +1158,7 @@ class Client:
         request_headers = {
             "Authorization": f"Bearer {self._secret_key}",
             "Content-Type": "application/json",
-            "User-Agent": "SahelPay-Python/1.0.0",
+            "User-Agent": f"SahelPay-Python/{__sdk_version__}",
         }
         if headers:
             request_headers.update(headers)

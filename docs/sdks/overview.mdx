@@ -35,9 +35,12 @@ SahelPay fournit des SDKs pour JavaScript/TypeScript, PHP et Python.
 | Réconcilier | `payments.reconcile()` | `payments->reconcile()` | `payments.reconcile()` | ✅ |
 | Polling | `payments.poll()` | — | `payments.poll()` | ✅ |
 | Historique | `payments.list()` | `payments->all()` | `payments.list()` | ⚠️ ancien flux uniquement ([détails](/api-reference/payments/list)) |
-| Liens de paiement | `paymentLinks.*` | `paymentLinks->*` | `payment_links.*` | ✅ |
-| Webhooks : vérification | `webhooks.constructEvent()` | `webhooks->constructEvent()` | `webhooks.construct_event()` | ✅ |
+| Expirer | `payments.expire()` | `payments->expire()` | `payments.expire()` | ✅ |
+| Liens de paiement | `paymentLinks.*` (dont `update`, `delete`, `retrieveById`) | `paymentLinks->*` | `payment_links.*` | ✅ |
+| Webhooks : vérification | `webhooks.constructEvent()` | `webhooks->constructEvent()` | `webhooks.construct_event()` | ✅ `t=...,v1=...` uniquement |
 | Webhooks : test | `webhooks.test()` | `webhooks->test()` | `webhooks.test()` | ✅ |
+| Webhooks : livraisons, relances | `webhooks.listLogs()` / `retry()` | `webhooks->logs()` / `retry()` | `webhooks.list_logs()` / `retry()` | ✅ |
+| Paiement sécurisé | `secureOrders.*` | `secureOrders->*` | `secure_orders.*` | ✅ sur activation |
 | Customer Portal | `portal.createSession()` | `portal->createSession()` | `portal.create_session()` | ✅ |
 | Plans, abonnements, clients | `plans.*`, `subscriptions.*`, `customers.list()` | idem | idem | ✅ `/v1/billing/*` ([guide](/guides/subscriptions)) |
 

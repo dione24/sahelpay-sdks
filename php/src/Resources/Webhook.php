@@ -46,10 +46,69 @@ class Webhook
     }
 
     /**
+     * Historique des livraisons (paginé).
+     *
+     * @param array{page?: int, limit?: int, status?: string, event_type?: string, application_id?: string, endpoint_id?: string} $query
+     */
+    public function logs(array $query = []): Response
+    {
+        return $this->http()->get('/webhooks/logs', $query);
+    }
+
+    /**
+     * Détail d'une livraison.
+     */
+    public function log(string $logId): Response
+    {
+        return $this->http()->get('/webhooks/logs/' . rawurlencode($logId));
+    }
+
+    /**
+     * Relancer une livraison échouée (10 par minute).
+     */
+    public function retry(string $logId): Response
+    {
+        return $this->http()->post('/webhooks/logs/' . rawurlencode($logId) . '/retry');
+    }
+
+    /**
+     * Statistiques de livraison.
+     */
+    public function stats(array $query = []): Response
+    {
+        return $this->http()->get('/webhooks/stats', $query);
+    }
+
+    /**
+     * Derniers événements émis (clé de test uniquement : 403 en live).
+     *
+     * @param array{after?: string, limit?: int, application_id?: string} $query
+     */
+    public function events(array $query = []): Response
+    {
+        return $this->http()->get('/webhooks/events', $query);
+    }
+
+    /**
+     * Un événement par son id (evt_...).
+     */
+    public function event(string $eventId): Response
+    {
+        return $this->http()->get('/webhooks/events/' . rawurlencode($eventId));
+    }
+
+    private function http(): Client
+    {
+        if (!$this->client) {
+            throw new \RuntimeException("Client HTTP non configuré");
+        }
+        return $this->client;
+    }
+
+    /**
      * Vérifier la signature d'un webhook.
      *
-     * Format actuel : X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>.
-     * Repli legacy : header = HMAC-SHA256 hex du body seul.
+     * Format : X-SahelPay-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>.
      *
      * @return bool True si la signature est valide, false sinon (y compris replay hors tolérance)
      */
@@ -78,8 +137,9 @@ class Webhook
             return hash_equals($expectedSignature, $signature);
         }
 
-        $expectedLegacySignature = hash_hmac('sha256', $payload, $secret);
-        return hash_equals($expectedLegacySignature, $signatureHeader);
+        // Seul le format t=...,v1=... est émis par SahelPay. Un HMAC nu du corps
+        // (ancien format, sans horodatage) n'offre aucune protection contre le rejeu.
+        return false;
     }
 
     /**
