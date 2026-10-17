@@ -67,7 +67,7 @@ components/
 - **Clé secrète côté serveur uniquement**
 - **Toujours vérifier la signature webhook**
 - Orange Money est le seul moyen de paiement ; `X-Idempotency-Key` est obligatoire.
-- En production, il faut un KYC approuvé, l'accès production ouvert par SahelPay (aucun abonnement) ; la sandbox (`sk_test_...`) est gratuite. Plafond mensuel live : 200 000 FCFA (Starter, Pro).
+- En production, il faut un KYC approuvé, l'accès production ouvert par SahelPay (aucun abonnement) ; la sandbox (`sk_test_...`) est gratuite. Pas de plafond de forfait : seuls les plafonds KYC s'appliquent.
 
 ## Contrat webhook / retour
 

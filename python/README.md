@@ -44,7 +44,7 @@ Points clés :
 ## Sandbox et production
 
 - **Sandbox** (`sk_test_...`) : gratuite, sans abonnement.
-- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro).
+- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Pas de plafond de forfait : seuls les plafonds KYC s'appliquent.
 
 ## Tests
 
