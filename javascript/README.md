@@ -53,7 +53,7 @@ Points clés :
 La base URL est `https://api.sahelpay.ml` dans tous les cas ; la clé détermine le mode.
 
 - **Sandbox** (`sk_test_...`) : gratuite, sans abonnement.
-- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay et **abonnement SahelPay payé en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon). Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro, `403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
+- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro, `403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
 
 ## Tests
 
@@ -187,7 +187,7 @@ try {
 
     switch (error.code) {
       case "PAID_SUBSCRIPTION_REQUIRED":
-        // Abonnement SahelPay requis pour le live
+        // Accès production non en cours (aucun abonnement n'est requis aujourd'hui)
         break;
       case "PLAN_MONTHLY_VOLUME_EXCEEDED":
         // Plafond mensuel atteint
