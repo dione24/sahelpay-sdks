@@ -29,7 +29,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l'API SahelPay (p
 
 - **Orange Money (Mali) est le seul moyen de paiement.** Wave, Moov, les cartes et les autres agrégateurs ont été retirés : tout autre `provider` est rejeté (`400`).
 - **Sandbox gratuite** avec les clés `sk_test_...`. **Sans abonnement** : encaisser en live exige un KYC approuvé et un accès production ouvert par SahelPay.
-- **Plafond mensuel live** selon le forfait : 200 000 FCFA pour Starter et Pro (`403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
+- **Pas de plafond de forfait** : seuls les plafonds liés à votre niveau KYC s'appliquent (`403 KYC_PAYMENT_LIMIT_EXCEEDED`).
 - `X-Idempotency-Key` **obligatoire** sur `POST /v1/payments`.
 - **Retraits** : demandes traitées manuellement par SahelPay (`POST /v1/withdrawals`, minimum 50 000 FCFA). **Payouts automatiques indisponibles.**
 - **Remboursements en ligne désactivés** (`POST /v1/refunds` → `503`) : passer par le support.
@@ -268,7 +268,7 @@ Ajoutez `X-Idempotency-Key` (option `idempotency_key` des SDKs).
 
 ### `403 PLAN_MONTHLY_VOLUME_EXCEEDED`
 
-Le plafond mensuel live de votre forfait est atteint (200 000 FCFA pour Starter et Pro).
+Plafond de forfait atteint. Il n'y en a plus par défaut depuis le 17/10/2026 ; ce code ne concerne qu'un compte avec un plafond négocié. Contactez le support.
 
 ### « Invalid webhook signature »
 

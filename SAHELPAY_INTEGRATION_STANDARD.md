@@ -95,7 +95,7 @@ Ce document définit le **contrat d'intégration officiel** pour toutes les appl
 
 - Sandbox (`sk_test_...`) gratuite, sans abonnement.
 - Live (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie.
-- Plafond mensuel live selon le forfait : 200 000 FCFA pour Starter et Pro (`403 PLAN_MONTHLY_VOLUME_EXCEEDED`).
+- Pas de plafond de forfait : seuls les plafonds liés au niveau KYC s'appliquent (`403 KYC_PAYMENT_LIMIT_EXCEEDED`).
 
 ---
 
@@ -379,7 +379,7 @@ if (existing && ["success", "failed", "expired"].includes(existing.status)) {
 | `IDEMPOTENCY_KEY_REQUIRED` (400)     | Header `X-Idempotency-Key` absent                         | Toujours l'envoyer                      |
 | `BAD_REQUEST` (400)                  | Montant hors 100–5 000 000, téléphone non international, provider autre qu'Orange | Corriger la requête |
 | `PAID_SUBSCRIPTION_REQUIRED` (403)   | Accès production non en cours (abonnement plateforme désactivé aujourd'hui) | Contacter le support                    |
-| `PLAN_MONTHLY_VOLUME_EXCEEDED` (403) | Plafond mensuel du forfait atteint                        | Attendre le mois suivant / changer d'offre |
+| `PLAN_MONTHLY_VOLUME_EXCEEDED` (403) | Plafond négocié atteint (aucun plafond par défaut)         | Contacter le support                    |
 | `KYC_PAYMENT_LIMIT_EXCEEDED` (403)   | Plafond KYC dépassé                                       | Compléter le KYC                        |
 | — (409)                              | Même clé d'idempotence, demande différente                | Vérifier la commande avant de réessayer |
 
