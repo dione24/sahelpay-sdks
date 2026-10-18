@@ -1,0 +1,346 @@
+---
+title: Kit développeur et logos
+description: "Logos SahelPay, règles d'usage, bouton « Payer avec SahelPay » et tout ce qu'il faut pour intégrer l'API."
+---
+
+# Kit développeur et logos
+
+Cette page réunit les logos officiels de SahelPay, leurs règles d'usage, un bouton « Payer avec SahelPay » prêt à coller et les liens utiles pour votre intégration.
+
+<CardGroup cols={2}>
+  <Card title="Télécharger les logos (.zip)" icon="download" href="https://github.com/dione24/sahelpay-sdks/raw/main/docs/brand/sahelpay-kit-marque.zip">
+    SVG et PNG officiels, avec un rappel des règles d'usage (300 Ko)
+  </Card>
+  <Card title="Kit développeur" icon="code" href="#kit-développeur">
+    SDKs, sandbox, webhooks, codes d'erreur, template Next.js
+  </Card>
+</CardGroup>
+
+## Logos
+
+Le logo associe l'icône **Échange** (deux flèches sur un carré arrondi Vert Sahel) et le mot-symbole **Sahel**Pay. Les fichiers SVG ont le texte vectorisé : aucune police n'est nécessaire pour les afficher.
+
+### Sur fond clair
+
+<div style={{ background: "#f8f7f2", padding: "32px", borderRadius: "12px", display: "flex", gap: "32px", alignItems: "center", flexWrap: "wrap" }}>
+  <img noZoom src="/brand/logos/svg/sahelpay-logo-clair.svg" alt="Logo SahelPay pour fond clair" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/logos/svg/sahelpay-icone.svg" alt="Icône SahelPay" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/logos/svg/sahelpay-motsymbole-clair.svg" alt="Mot-symbole SahelPay pour fond clair" style={{ height: "48px", margin: 0 }} />
+</div>
+
+### Sur fond sombre
+
+<div style={{ background: "#0f1613", padding: "32px", borderRadius: "12px", display: "flex", gap: "32px", alignItems: "center", flexWrap: "wrap" }}>
+  <img noZoom src="/brand/logos/svg/sahelpay-logo-sombre.svg" alt="Logo SahelPay pour fond sombre" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/logos/svg/sahelpay-icone.svg" alt="Icône SahelPay" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/logos/svg/sahelpay-motsymbole-sombre.svg" alt="Mot-symbole SahelPay pour fond sombre" style={{ height: "48px", margin: 0 }} />
+</div>
+
+### Fichiers
+
+| Version | Usage | SVG | PNG (fond transparent) |
+|---|---|---|---|
+| Logo clair | Logo horizontal sur fond clair (papier, blanc) | [SVG](/brand/logos/svg/sahelpay-logo-clair.svg) | [1000 px](/brand/logos/png/sahelpay-logo-clair-1000px.png) · [2000 px](/brand/logos/png/sahelpay-logo-clair-2000px.png) |
+| Logo sombre | Logo horizontal sur fond sombre ou sur un aplat | [SVG](/brand/logos/svg/sahelpay-logo-sombre.svg) | [1000 px](/brand/logos/png/sahelpay-logo-sombre-1000px.png) · [2000 px](/brand/logos/png/sahelpay-logo-sombre-2000px.png) |
+| Icône | Icône seule : avatar, application, petit format | [SVG](/brand/logos/svg/sahelpay-icone.svg) | [512 px](/brand/logos/png/sahelpay-icone-512px.png) · [1024 px](/brand/logos/png/sahelpay-icone-1024px.png) |
+| Icône mono encre | Une seule couleur, sur fond clair (tampon, gravure) | [SVG](/brand/logos/svg/sahelpay-icone-mono-encre.svg) | dans le .zip |
+| Icône mono papier | Une seule couleur, inversée | [SVG](/brand/logos/svg/sahelpay-icone-mono-papier.svg) | dans le .zip |
+| Mot-symbole clair | Mot-symbole seul, quand l'icône est déjà présente ailleurs | [SVG](/brand/logos/svg/sahelpay-motsymbole-clair.svg) | [2000 px](/brand/logos/png/sahelpay-motsymbole-clair-2000px.png) |
+| Mot-symbole sombre | Mot-symbole seul, sur fond sombre | [SVG](/brand/logos/svg/sahelpay-motsymbole-sombre.svg) | [2000 px](/brand/logos/png/sahelpay-motsymbole-sombre-2000px.png) |
+
+Tous ces fichiers sont dans [l'archive `sahelpay-kit-marque.zip`](https://github.com/dione24/sahelpay-sdks/raw/main/docs/brand/sahelpay-kit-marque.zip). Préférez le SVG à l'écran : il reste net à toutes les tailles.
+
+## Règles d'usage
+
+- **Zone de protection** : laissez autour du logo un vide égal à la moitié de la hauteur de l'icône. Pour un logo de 48 px de haut, au moins 24 px de chaque côté.
+- **Taille minimale** : icône 16 px ; logo horizontal 96 px de large à l'écran, 25 mm à l'impression.
+- **Clair ou sombre** : logo clair sur fond clair, logo sombre sur fond sombre. Les couleurs de l'icône sont fixes dans les deux modes : seul le mot-symbole change.
+- **Sur une photo** : ne posez pas le logo clair sur une image chargée. Utilisez le logo sombre sur un aplat.
+- **Le nom** s'écrit toujours **SahelPay**, en un mot, S et P majuscules.
+
+<Warning>
+  **À ne pas faire**
+
+  - Changer les couleurs des flèches, les inverser ou les faire pivoter.
+  - Étirer ou déformer le logo, ou modifier l'espacement entre l'icône et le texte.
+  - Ajouter une ombre, un dégradé, un contour ou un effet 3D.
+  - Remplacer l'icône par un autre pictogramme (portefeuille, bouclier, éclair) ou un emoji.
+  - Écrire « Sahel Pay », « SAHELPAY » ou « Sahelpay ».
+  - Redessiner le logo ou le recomposer avec une police : utilisez les fichiers fournis.
+</Warning>
+
+### Couleurs et polices
+
+| Nom | Hex | Rôle |
+|---|---|---|
+| Vert Sahel | `#153c32` | Couleur principale : logo, boutons, titres |
+| Olive | `#5b7731` | « Pay » du logo sur fond clair |
+| Tilleul | `#a9d472` | Flèche aller de l'icône, « Pay » sur fond sombre |
+| Papier | `#f8f7f2` | Fond clair, flèche retour de l'icône |
+| Nuit | `#0f1613` | Fond sombre |
+
+Polices : **Manrope** pour les titres et le mot-symbole, **DM Sans** pour le texte (licence OFL).
+
+## Bouton « Payer avec SahelPay »
+
+Le bouton envoie votre client vers une page de paiement hébergée par SahelPay : l'URL d'un [lien de paiement](/api-reference/payment-links/create) (`https://pay.sahelpay.africa/<slug>`) ou le `redirect_url` d'un [paiement](/api-reference/payments/create) créé par votre backend.
+
+<div style={{ background: "#f8f7f2", padding: "24px", borderRadius: "12px", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
+  <img noZoom src="/brand/buttons/bouton-payer-sahelpay-clair-48.svg" alt="Bouton Payer avec SahelPay, version pour fond clair, 48 px" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/buttons/bouton-payer-sahelpay-clair-40.svg" alt="Bouton Payer avec SahelPay, version pour fond clair, 40 px" style={{ height: "40px", margin: 0 }} />
+</div>
+
+<div style={{ background: "#0f1613", padding: "24px", borderRadius: "12px", marginTop: "16px", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
+  <img noZoom src="/brand/buttons/bouton-payer-sahelpay-sombre-48.svg" alt="Bouton Payer avec SahelPay, version pour fond sombre, 48 px" style={{ height: "48px", margin: 0 }} />
+  <img noZoom src="/brand/buttons/bouton-payer-sahelpay-sombre-40.svg" alt="Bouton Payer avec SahelPay, version pour fond sombre, 40 px" style={{ height: "40px", margin: 0 }} />
+</div>
+
+| Version | Pour | 48 px de haut | 40 px de haut |
+|---|---|---|---|
+| Clair (Vert Sahel) | Pages à fond clair | [SVG](/brand/buttons/bouton-payer-sahelpay-clair-48.svg) | [SVG](/brand/buttons/bouton-payer-sahelpay-clair-40.svg) |
+| Sombre (papier) | Pages à fond sombre | [SVG](/brand/buttons/bouton-payer-sahelpay-sombre-48.svg) | [SVG](/brand/buttons/bouton-payer-sahelpay-sombre-40.svg) |
+
+Utilisez le format 48 px sur mobile : c'est une cible tactile confortable. Le format 40 px convient aux pages denses sur ordinateur.
+
+### HTML et CSS
+
+Le bouton est un vrai lien : il fonctionne sans JavaScript, au clavier et avec un lecteur d'écran.
+
+<CodeGroup>
+
+```html HTML
+<!-- Pages à fond clair. Sur fond sombre : class="sahelpay-btn sahelpay-btn--sombre" -->
+<!-- Format compact : ajoutez sahelpay-btn--sm -->
+<a class="sahelpay-btn" href="https://pay.sahelpay.africa/VOTRE-SLUG" aria-label="Payer avec SahelPay">
+  <svg class="sahelpay-btn__icone" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <rect width="64" height="64" rx="15" style="fill: var(--sp-fond)" />
+    <path d="M15 26H45L37 18" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--sp-aller)" />
+    <path d="M49 38H19L27 46" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--sp-retour)" />
+  </svg>
+  <span>Payer avec <span class="sahelpay-btn__sahel">Sahel</span><span class="sahelpay-btn__pay">Pay</span></span>
+</a>
+```
+
+```css CSS
+.sahelpay-btn {
+  /* Icône sur bouton Vert Sahel : version mono papier de la charte */
+  --sp-fond: #f8f7f2;
+  --sp-aller: #153c32;
+  --sp-retour: #153c32;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #153c32; /* Vert Sahel */
+  color: #f8f7f2;      /* Papier, contraste 11,3:1 */
+  font: 500 17px/1.2 "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sahelpay-btn__icone { width: 24px; height: 24px; flex: none; }
+.sahelpay-btn__sahel,
+.sahelpay-btn__pay {
+  font-family: Manrope, "DM Sans", system-ui, sans-serif;
+  letter-spacing: -0.025em;
+}
+.sahelpay-btn__sahel { font-weight: 800; }
+.sahelpay-btn__pay { font-weight: 600; color: #a9d472; } /* Tilleul, 7,2:1 */
+.sahelpay-btn:hover { box-shadow: inset 0 0 0 2px #a9d472; }
+.sahelpay-btn:focus-visible { outline: 3px solid #153c32; outline-offset: 3px; }
+
+/* Pages à fond sombre : bouton papier, icône officielle */
+.sahelpay-btn--sombre {
+  --sp-fond: #153c32;
+  --sp-aller: #a9d472;
+  --sp-retour: #f8f7f2;
+  background: #f8f7f2;
+  color: #153c32;
+}
+.sahelpay-btn--sombre .sahelpay-btn__pay { color: #5b7731; } /* Olive, 4,7:1 */
+.sahelpay-btn--sombre:hover { box-shadow: inset 0 0 0 2px #5b7731; }
+.sahelpay-btn--sombre:focus-visible { outline-color: #a9d472; }
+
+/* Format compact */
+.sahelpay-btn--sm { min-height: 40px; padding: 0 13px; gap: 7px; border-radius: 10px; font-size: 15px; }
+.sahelpay-btn--sm .sahelpay-btn__icone { width: 20px; height: 20px; }
+```
+
+</CodeGroup>
+
+Si Manrope et DM Sans ne sont pas chargées sur votre site, le bouton utilise la police système. Pour un rendu identique aux visuels ci-dessus, auto-hébergez-les (par exemple avec `@fontsource-variable/manrope` et `@fontsource-variable/dm-sans`) ou utilisez les fichiers SVG du bouton dans un lien :
+
+```html
+<a href="https://pay.sahelpay.africa/VOTRE-SLUG">
+  <img src="https://docs.sahelpay.ml/brand/buttons/bouton-payer-sahelpay-clair-48.svg"
+       width="230" height="48" alt="Payer avec SahelPay" />
+</a>
+```
+
+### React
+
+Le composant réutilise la feuille CSS ci-dessus. Avec `href`, il rend un lien (lien de paiement). Sans `href`, il rend un `<button>` : votre `onClick` appelle votre backend, qui crée le paiement et renvoie le `redirect_url` du checkout hébergé.
+
+<CodeGroup>
+
+```tsx PayWithSahelPay.tsx
+import type { MouseEventHandler } from "react";
+
+type Props = {
+  /** Lien de paiement (https://pay.sahelpay.africa/<slug>) ou redirect_url d'un paiement */
+  href?: string;
+  /** Sans href : appelez votre backend puis redirigez vers le redirect_url */
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  /** "clair" pour une page à fond clair, "sombre" pour une page à fond sombre */
+  variant?: "clair" | "sombre";
+  size?: "md" | "sm";
+  loading?: boolean;
+  disabled?: boolean;
+};
+
+export function PayWithSahelPay({ href, onClick, variant = "clair", size = "md", loading = false, disabled = false }: Props) {
+  const className = ["sahelpay-btn", variant === "sombre" && "sahelpay-btn--sombre", size === "sm" && "sahelpay-btn--sm"]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <>
+      <svg className="sahelpay-btn__icone" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="15" style={{ fill: "var(--sp-fond)" }} />
+        <path d="M15 26H45L37 18" fill="none" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--sp-aller)" }} />
+        <path d="M49 38H19L27 46" fill="none" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--sp-retour)" }} />
+      </svg>
+      <span>
+        {loading ? "Redirection…" : <>Payer avec <span className="sahelpay-btn__sahel">Sahel</span><span className="sahelpay-btn__pay">Pay</span></>}
+      </span>
+    </>
+  );
+
+  if (href && !disabled) {
+    return <a className={className} href={href} aria-label="Payer avec SahelPay">{content}</a>;
+  }
+  return (
+    <button type="button" className={className} onClick={onClick} disabled={disabled || loading}
+      aria-label="Payer avec SahelPay" aria-busy={loading}>
+      {content}
+    </button>
+  );
+}
+```
+
+```tsx Utilisation
+// 1. Lien de paiement
+<PayWithSahelPay href="https://pay.sahelpay.africa/VOTRE-SLUG" />
+
+// 2. Checkout hébergé : le backend crée le paiement avec votre clé secrète
+const [loading, setLoading] = useState(false);
+
+<PayWithSahelPay
+  loading={loading}
+  onClick={async () => {
+    setLoading(true);
+    const res = await fetch("/api/payments/create", { method: "POST", body: JSON.stringify({ orderId }) });
+    const { redirect_url } = await res.json();
+    window.location.assign(redirect_url);
+  }}
+/>
+```
+
+</CodeGroup>
+
+<Warning>
+  Ne mettez jamais votre clé secrète (`sk_test_...`, `sk_live_...`) dans le navigateur ou une application mobile. La création du paiement se fait toujours sur votre serveur.
+</Warning>
+
+### Accessibilité
+
+- Contrastes du texte : papier sur Vert Sahel 11,3:1, tilleul sur Vert Sahel 7,2:1, Vert Sahel sur papier 11,3:1, olive sur papier 4,7:1 (niveau AA ou mieux).
+- Choisissez la version selon le fond de la page : le bouton Vert Sahel sur un fond Nuit ne se distingue presque plus (1,5:1).
+- Le libellé accessible est « Payer avec SahelPay » (`aria-label`) ; l'icône est décorative (`aria-hidden`).
+- Le focus clavier est visible (`:focus-visible`, contour de 3 px décalé du bouton).
+- Gardez le libellé « Payer avec SahelPay » : il dit exactement ce qui se passe au clic.
+
+## Kit développeur
+
+Tout ce qu'il faut pour passer du premier appel à une intégration complète.
+
+### SDKs
+
+<CodeGroup>
+
+```bash npm
+npm install @sahelpay/sdk
+```
+
+```bash PHP
+# Pas encore sur Packagist : installation depuis le dépôt
+git clone https://github.com/dione24/sahelpay-sdks.git
+# puis un "path repository" Composer vers sahelpay-sdks/php (voir la page SDK PHP)
+```
+
+```bash Python
+# Pas encore sur PyPI : installation depuis le dépôt
+git clone https://github.com/dione24/sahelpay-sdks.git
+cd sahelpay-sdks/python && pip install -e .
+```
+
+</CodeGroup>
+
+Le SDK JavaScript/TypeScript `@sahelpay/sdk` (version 1.1.0) est publié sur npm. Les SDKs PHP et Python s'installent depuis le [dépôt GitHub](https://github.com/dione24/sahelpay-sdks) en attendant leur publication sur Packagist et PyPI.
+
+<CardGroup cols={3}>
+  <Card title="JavaScript / TypeScript" icon="js" href="/sdks/javascript">
+    `@sahelpay/sdk` sur npm
+  </Card>
+  <Card title="PHP" icon="php" href="/sdks/php">
+    PHP 8+, Laravel
+  </Card>
+  <Card title="Python" icon="python" href="/sdks/python">
+    Django, Flask
+  </Card>
+</CardGroup>
+
+### Guides et références
+
+<CardGroup cols={2}>
+  <Card title="Démarrage rapide" icon="rocket" href="/quickstart">
+    Premier paiement en sandbox
+  </Card>
+  <Card title="Comptes de test" icon="flask" href="/resources/test-accounts">
+    Montants et données pour simuler chaque statut
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Recevoir les notifications signées
+  </Card>
+  <Card title="Vérifier une signature" icon="shield-check" href="/api-reference/webhooks/verify">
+    En-tête `t=...,v1=...` et exemples de code
+  </Card>
+  <Card title="Codes d'erreur" icon="triangle-exclamation" href="/resources/error-codes">
+    Signification et action à mener
+  </Card>
+  <Card title="Référence API" icon="code" href="/api-reference/overview">
+    Tous les endpoints
+  </Card>
+  <Card title="Template Next.js" icon="github" href="https://github.com/dione24/sahelpay-sdks/tree/main/templates/nextjs-merchant">
+    Routes de paiement, webhook et page de retour prêtes à copier
+  </Card>
+  <Card title="Exemples" icon="folder-open" href="https://github.com/dione24/sahelpay-sdks/tree/main/examples">
+    Next.js e-commerce, réservation Django
+  </Card>
+  <Card title="Changelog" icon="clock-rotate-left" href="/resources/changelog">
+    Évolutions de l'API et des SDKs
+  </Card>
+  <Card title="Passer en production" icon="flag-checkered" href="/guides/going-live">
+    Sur demande, après validation
+  </Card>
+</CardGroup>
+
+## Conditions d'utilisation
+
+Les logos et le bouton servent à indiquer que votre site ou votre application propose le paiement via SahelPay. Leur utilisation ne vaut ni partenariat, ni recommandation, ni agrément. Pour tout autre usage (communication, presse), écrivez à [support@sahelpay.africa](mailto:support@sahelpay.africa).
+
+<Note>
+  SAHEL PAY TECHNOLOGIES (SPAY) n'est pas une banque ni un établissement de paiement ou de monnaie électronique agréé par la BCEAO.
+</Note>
