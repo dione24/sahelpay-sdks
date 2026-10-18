@@ -2,7 +2,7 @@
 
 Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l'API SahelPay (paiements Orange Money, liens de paiement, webhooks, retraits) dans vos applications. Documentation complète : [docs.sahelpay.ml](https://docs.sahelpay.ml).
 
-> Statut : **en cours de packaging**. Les SDKs ne sont pas encore publiés sur npm / Packagist / PyPI.
+> Statut : JavaScript publié sur npm (`npm install @sahelpay/sdk`). PHP et Python : installation depuis ce dépôt en attendant Packagist et PyPI.
 > En attendant, **clonez ce dépôt** et installez chaque SDK en local.
 
 ## Table des matières

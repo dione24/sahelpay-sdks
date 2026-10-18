@@ -4,15 +4,8 @@ SDK officiel pour intégrer les paiements SahelPay (Orange Money, Mali) dans vos
 
 ## Installation
 
-Le paquet `@sahelpay/sdk` n'est pas encore publié sur npm. Installez-le depuis ce dépôt :
-
 ```bash
-git clone https://github.com/dione24/sahelpay-sdks.git
-cd sahelpay-sdks/javascript
-npm install
-npm run build
-# puis dans votre projet
-npm install /chemin/vers/sahelpay-sdks/javascript
+npm install @sahelpay/sdk
 ```
 
 Le SDK utilise `fetch` global (Node.js 18+).
