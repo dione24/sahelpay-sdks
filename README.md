@@ -8,6 +8,7 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l'API SahelPay (p
 ## Table des matières
 
 - [Packages](#packages)
+- [Logos et kit développeur](#logos-et-kit-développeur)
 - [Ce qui est disponible côté API](#ce-qui-est-disponible-côté-api)
 - [Compatibilité (features par SDK)](#compatibilité-features-par-sdk)
 - [Concepts communs](#concepts-communs)
@@ -24,6 +25,10 @@ Ce dépôt regroupe les SDKs officiels SahelPay pour intégrer l'API SahelPay (p
 - **Python** : `./python` (package cible : `sahelpay`)
 - **Documentation Mintlify** (docs.sahelpay.ml) : `./docs`
 - **Exemples** : `./examples`, `./templates`
+
+## Logos et kit développeur
+
+Logos officiels (SVG/PNG), règles d'usage, bouton « Payer avec SahelPay » (HTML/CSS et React) et liens vers les SDKs, la sandbox, les webhooks et le template Next.js : [docs.sahelpay.ml/resources/brand-kit](https://docs.sahelpay.ml/resources/brand-kit). Les fichiers sont dans [`docs/brand`](docs/brand), et l'archive des logos dans [`docs/brand/sahelpay-kit-marque.zip`](docs/brand/sahelpay-kit-marque.zip).
 
 ## Ce qui est disponible côté API
 

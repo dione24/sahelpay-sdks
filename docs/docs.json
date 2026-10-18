@@ -60,7 +60,8 @@
                         "pages": [
                             "resources/test-accounts",
                             "resources/error-codes",
-                            "resources/changelog"
+                            "resources/changelog",
+                            "resources/brand-kit"
                         ]
                     }
                 ]
