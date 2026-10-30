@@ -39,7 +39,7 @@ export {
   type ProviderCapabilities,
 } from './capabilities';
 
-export const SDK_VERSION = '1.2.0';
+export const SDK_VERSION = '1.3.0';
 
 async function generateIdempotencyKey(explicit?: string): Promise<string> {
   if (explicit) return explicit;
@@ -366,7 +366,7 @@ import type {
   CreateSubscriptionParams, CreateSubscriptionWithPaymentParams,
   CreateSubscriptionWithPaymentResult, ImportSubscriptionParams,
   Customer, ListCustomersParams, PagePagination, Invoice, CreateInvoiceParams,
-  ListInvoicesParams, InvoicePaymentLinkResult,
+  ListInvoicesParams, InvoicePaymentLinkResult, ListPlansParams, ListSubscriptionsParams, CursorPagination, InvoicePagination,
 } from './billing';
 
 // ==================== PORTAL ====================
@@ -1022,9 +1022,14 @@ class PlansAPI {
    * Lister tous les plans
    * GET /v1/billing/plans
    */
-  async list(): Promise<Plan[]> {
-    const response = await this.client.request('GET', '/v1/billing/plans');
-    return response.data || [];
+  async list(params: ListPlansParams = {}): Promise<Plan[]> {
+    return (await this.listPage(params)).plans;
+  }
+
+  /** Preserve list()'s array return while exposing cursor metadata. */
+  async listPage(params: ListPlansParams = {}): Promise<{ plans: Plan[]; pagination?: CursorPagination }> {
+    const response = await this.client.request('GET', `/v1/billing/plans${toQuery({ ...params })}`);
+    return { plans: response.data || [], pagination: response.pagination };
   }
 
   /**
@@ -1099,7 +1104,7 @@ class PlansAPI {
 // ==================== SUBSCRIPTIONS API ====================
 
 function billingOptions(key?: string): { headers?: Record<string, string> } {
-  return key ? { headers: { 'X-Idempotency-Key': key } } : {};
+  return key !== undefined ? { headers: { 'X-Idempotency-Key': key } } : {};
 }
 
 class SubscriptionsAPI {
@@ -1116,8 +1121,8 @@ class SubscriptionsAPI {
     return (await this.client.request('GET', `/v1/billing/subscriptions/${encodeURIComponent(id)}`)).data;
   }
 
-  async list(params: { status?: SubscriptionStatus } = {}): Promise<{ subscriptions: Subscription[]; pagination: { total: number } }> {
-    return (await this.client.request('GET', `/v1/billing/subscriptions${toQuery(params)}`)).data;
+  async list(params: ListSubscriptionsParams = {}): Promise<{ subscriptions: Subscription[]; pagination: CursorPagination }> {
+    return (await this.client.request('GET', `/v1/billing/subscriptions${toQuery({ ...params })}`)).data;
   }
 
   async cancel(id: string): Promise<{ success: boolean }> {
@@ -1146,7 +1151,7 @@ class InvoicesAPI {
   }
 
   /** Invoice pagination lives outside data in the API response. */
-  async list(params: ListInvoicesParams = {}): Promise<{ invoices: Invoice[]; pagination: { total: number; limit: number; offset: number } }> {
+  async list(params: ListInvoicesParams = {}): Promise<{ invoices: Invoice[]; pagination: InvoicePagination }> {
     const response = await this.client.request('GET', `/v1/billing/invoices${toQuery({ ...params })}`);
     return { invoices: response.data, pagination: response.pagination };
   }
@@ -1181,13 +1186,7 @@ class CustomersAPI {
    * portail) : il n'y a pas d'API de création, mise à jour ou suppression.
    */
   async list(params?: ListCustomersParams): Promise<{ customers: Customer[]; pagination: PagePagination }> {
-    const query = new URLSearchParams();
-    if (params?.search) query.set('search', params.search);
-    if (params?.page) query.set('page', params.page.toString());
-    if (params?.limit) query.set('limit', params.limit.toString());
-
-    const qs = query.toString();
-    const response = await this.client.request('GET', `/v1/billing/customers${qs ? `?${qs}` : ''}`);
+    const response = await this.client.request('GET', `/v1/billing/customers${toQuery({ ...params })}`);
     return response.data;
   }
 }

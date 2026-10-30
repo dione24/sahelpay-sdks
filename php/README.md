@@ -241,7 +241,7 @@ try {
 
 MIT License - voir [LICENSE](LICENSE) pour plus de détails.
 
-## Billing 1.2.0
+## Billing 1.3.0
 
 ```php
 $result = $sahelpay->subscriptions->createWithPayment([
@@ -255,14 +255,16 @@ $page = $sahelpay->invoices->all(['subscription_id' => $current->id, 'limit' => 
 
 Le téléphone est facultatif avec une autre identité client. `trial_end` crée un essai
 avec facture/lien null ; les périodes peuvent être null pour les anciennes lignes.
-ACTIVE ≠ paid : relire abonnement et facture avant les droits payés. Les clés
-`idempotency_key` passent en header ; sur ec4548f, utiliser aussi la référence stable
-`external_ref` + `customer_external_ref` pour un checkout rejouable. Listes clients
-page/limit, factures limit/offset. Guide français/anglais :
+Le statut de création seul ne prouve pas un paiement : le GET canonique distingue
+ACTIVE payé et TRIALING en essai ; relire abonnement/facture avant les droits payés. Les clés
+`idempotency_key` passent en header : les six créations Billing sont dédupliquées
+durablement par clé/corps (409 IDEMPOTENCY_KEY_REUSED si le corps change). Sans clé,
+seuls checkout/import gardent leur référence naturelle. Les listes acceptent take/cursor ;
+page/limit clients et limit/offset factures restent disponibles. Guide français/anglais :
 https://docs.sahelpay.ml/guides/subscriptions
 
 Phone is optional with another identity. Trial checkouts have no invoice/payment
-link. ACTIVE is not proof of payment. Verify signatures, deduplicate event IDs and
+link. A creation status is not payment proof; canonical ACTIVE is a current paid period. Verify signatures, deduplicate event IDs and
 retrieve canonical state. Manual Orange Money renewal only, no automatic debit.
 
 PHP conserve les tableaux et Response ; les types statiques Billing sont fournis dans `SahelPay\BillingTypes` (PHPStan). `getBillingData()` expose les charges utiles Billing vérifiées via `constructEvent()`.

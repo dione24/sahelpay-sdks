@@ -146,7 +146,7 @@ app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
 
 Événements émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated`, `secure_order.*`, `invoice.created`, `invoice.paid`, `subscription.payment_due`, `subscription.renewed`, `subscription.cancelled`, `webhook.test`.
 
-### Billing 1.2.0 — abonnements clients / customer subscriptions
+### Billing 1.3.0 — abonnements clients / customer subscriptions
 
 ```typescript
 const plan = await sahelpay.plans.create({ name: 'Premium TEST', amount: 4000, interval: 'MONTHLY' });
@@ -167,17 +167,18 @@ await sahelpay.subscriptions.cancel(current.id);
 QUARTERLY, YEARLY. `trial_end` explicite crée un essai : `invoice` et `payment_link`
 sont alors **null**. `current_period_start/end`, `trial_end`, `updated_at` et
 `livemode` sont disponibles via GET canonique ; les anciennes périodes peuvent être null.
-**ACTIVE ≠ paid** : vérifiez la facture `PAID`, son solde nul et la période avant
-les droits payés. Un webhook est un signal de relecture, à dédupliquer sur `event.id`.
+**Le statut de création seul ne prouve pas un paiement** : relisez le GET canonique
+(ACTIVE = période payée courante, TRIALING = essai), la facture et la période. Un webhook est un signal de relecture, à dédupliquer sur `event.id`.
 
-`idempotency_key` devient l'en-tête `X-Idempotency-Key`. Sur la base ec4548f, ce header
-seul ne garantit pas tous les rejeux Billing : utilisez aussi `external_ref` stable
-avec `customer_external_ref` pour le checkout. Import d'une période courante :
+`idempotency_key` devient l'en-tête `X-Idempotency-Key` : depuis le backend #215,
+les six créations Billing sont rejouables durablement avec la même clé et le même corps.
+Une clé réutilisée avec un autre corps donne `409 IDEMPOTENCY_KEY_REUSED`.
+Sans clé, `external_ref` conserve sa garantie sur checkout/import seulement. Import d'une période courante :
 `subscriptions.import({plan_id, external_ref, customer_external_ref, current_period_start, current_period_end})`.
 Les méthodes factures sont `create`, `retrieve`, `list`, `open`, `void`, `generatePaymentLink`.
 
 Phone is optional with another customer identity. Explicit trials return null invoice
-and payment link. ACTIVE alone never proves payment. Verify signed raw-body events,
+and payment link. A creation status alone never proves payment; canonical ACTIVE denotes a current paid period. Verify signed raw-body events,
 deduplicate event IDs, then retrieve canonical subscription/invoice state. Billing
 uses manual Orange Money renewal, no automatic debit. See the bilingual guide and
 lifecycle diagram: https://docs.sahelpay.ml/guides/subscriptions
@@ -247,8 +248,8 @@ import SahelPay, {
 
 MIT
 
-La version Billing 1.2.0 est disponible dans les sources taguées `javascript-v1.2.0`.
-Avant d'installer `@sahelpay/sdk@^1.2.0`, vérifiez `npm view @sahelpay/sdk version`.
+La version Billing 1.3.0 est disponible dans les sources taguées `javascript-v1.3.0`.
+Avant d'installer `@sahelpay/sdk@^1.3.0`, vérifiez `npm view @sahelpay/sdk version`.
 Si npm indique encore 1.1.0, clonez ce tag, exécutez `npm ci` puis `npm run build`
 dans `javascript` et installez ce dossier local. La publication npm dépend des accès
 au registre ; une version source taguée n'implique pas sa disponibilité sur npm.

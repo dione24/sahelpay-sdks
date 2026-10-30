@@ -1,8 +1,7 @@
 # Billing contract source
 
-`billing-openapi.json` is the unmodified projection of supported Billing paths and
-referenced schemas in `dione24/sahelPay/openapi.json`. `source.revision` pins the
-backend commit. Update/check it with:
+`billing-openapi.json` is the unmodified projection of the 13 supported Billing
+paths and referenced schemas from backend main. `source.revision` pins its commit.
 
 ```sh
 python3 scripts/sync-billing-contract.py /path/to/sahelPay/openapi.json --revision BACKEND_SHA
@@ -10,23 +9,22 @@ python3 scripts/sync-billing-contract.py /path/to/sahelPay/openapi.json --revisi
 cd javascript && npm test
 ```
 
-The public SDK CI uses this checked-in projection: the private backend need not be
-accessible from a public CI job. Release checks must compare fresh backend main
-with `--check`; editing the snapshot causes the TypeScript contract tests to check
-request fields, optionality, primitives and enum values against the actual exports.
+Release checks compare fresh backend main before merge; CI uses the checked-in
+projection because it cannot access the private backend. Contract tests cover every
+supported operation, all documented creation/query fields, server response assignability
+in public TypeScript types, and schema validation of source-derived synthetic
+fixtures. Fixtures are not customer traffic or proof of real settlement. The three
+SDK test suites replay the same fixtures without network calls.
 
-Backend #213 formalizes canonical GET, import and checkout `external_ref` metadata.
-Backend #214 adds canonical TRIALING, access_status/grace_until/billing_anchor_at,
-the optional import anchor and subscription.cancelled. Existing fields and event
-names remain available. The new SDK snapshot fields are optional so older servers
-remain readable. The guide explains paid grace and the distinction between the
-collectable status and access_status.
+Additive fields stay optional for servers before #214/#215. Existing list return
+shapes remain unchanged; JS `plans.listPage`/Python `plans.list_page` expose the
+new outer pagination. Explicit idempotency keys are never generated silently for
+Billing; a caller must keep its key stable across retries. An empty explicit key
+is sent so the server can reject it, rather than silently creating a new resource.
 
-Plan bodies and invoice schemas remain recorded from the previous contract until
-backend #215 lands. Synthetic responses in test-vectors/billing are API-shaped
-fixtures, never customer traffic or evidence of a real payment. The snapshot pins backend merge `2141bbe2c6274a175e25d2a1e5d3dd1281affd14`.
+The public package is prepared as 1.3.0; immutable 1.2.0 tags remain unchanged.
+Registry publication is blocked; use the source release or main. No backend
+production changes or reminder enablement are performed by the SDK.
 
-REL-01 adds409 `INVOICE_PAYMENT_SETTLEMENT_PENDING` at invoice collection boundaries.
-A confirmed payment is being settled durably: retrieve payment/invoice state, do not
-request another payment. It includes Sarali instructions and public/legacy checkout.
-No SDK call or new status is needed; the SDK error code remains an open string.
+PATCH plan bodies are still absent from backend OpenAPI; the existing update fields
+remain sourced from merchant.controller.ts. All response envelopes are formalized.

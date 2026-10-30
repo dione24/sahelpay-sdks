@@ -60,7 +60,7 @@ Voir [l'historique des changements](https://docs.sahelpay.ml/resources/changelog
 | Customer Portal | ✅ | ✅ | ✅ | ✅ |
 | Payouts | ❌ indisponible | (helpers présents) | (helpers présents) | (helpers présents) |
 | Remboursements | ❌ `503` | (helpers présents) | (helpers présents) | (helpers présents) |
-| Billing : plans / abonnements / clients / factures | ✅ `/v1/billing/*` | ✅ 1.2.0 | ✅ 1.2.0 | ✅ 1.2.0 |
+| Billing : plans / abonnements / clients / factures | ✅ `/v1/billing/*` | ✅ 1.3.0 | ✅ 1.3.0 | ✅ 1.3.0 |
 
 > ⚠️ : le helper existe mais appelle une route ou un payload que l'API n'accepte plus. Utilisez l'appel HTTP documenté en attendant la correction du SDK.
 

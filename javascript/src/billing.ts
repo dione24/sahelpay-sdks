@@ -22,12 +22,13 @@ export interface UpdatePlanParams {
 export interface Plan {
   id: string; name: string; description?: string | null; amount: number;
   currency: string; interval: PlanInterval; is_active: boolean;
-  subscriber_count?: number; created_at: string;
+  subscriber_count?: number; created_at: string; application_id?: string | null; livemode?: boolean | null;
 }
 export interface DeletePlanResult { deleted: boolean; is_active?: boolean; message?: string }
 export interface BillingPaymentLink { id: string; url: string; amount: number }
 export interface SendPlanLinkResult {
-  subscription_id: string; invoice_id: string; payment_link: BillingPaymentLink;
+  subscription_id: string; invoice_id: string; payment_link: BillingPaymentLink | null;
+  invoice_status?: 'PAID' | 'VOIDED';
   sms_sent: boolean; message: string;
 }
 export interface CreateSubscriptionParams extends CustomerIdentity, IdempotencyParams {
@@ -45,6 +46,7 @@ export interface ImportSubscriptionParams extends IdempotencyParams {
 /** Creation/list shape. Some fields are only present in list responses. */
 export interface Subscription {
   id: string; plan_id?: string; plan_name?: string; plan_amount?: number;
+  application_id?: string | null; livemode?: boolean | null; external_ref?: unknown;
   customer_phone?: string | null; customer_id?: string | null;
   customer?: { name?: string | null; email?: string | null; external_ref?: string | null } | null;
   status: SubscriptionStatus; next_billing_date: string;
@@ -66,14 +68,14 @@ export interface SubscriptionSnapshot {
   payment_url: string | null; invoice_id: string | null;
 }
 export interface CheckoutSubscription {
-  id: string; plan_id: string; status: SubscriptionStatus;
+  id: string; plan_id: string; status: SubscriptionStatus | (string & {});
   plan_name?: string; plan_amount?: number; customer_phone?: string | null; customer_id?: string | null;
   next_billing_date?: string; current_period_start?: string | null;
   current_period_end?: string | null; trial_end?: string | null; created_at?: string;
 }
 export interface CreateSubscriptionWithPaymentResult {
   subscription: CheckoutSubscription;
-  invoice: { id: string; status: InvoiceStatus; invoice_number?: string; total?: number; amount_due?: number } | null;
+  invoice: { id: string; status?: InvoiceStatus | (string & {}); invoice_number?: string; total?: number; amount_due?: number } | null;
   payment_link: BillingPaymentLink | null;
 }
 /** Customer profiles are created by subscription/portal flows, not a CRUD API. */
@@ -82,8 +84,13 @@ export interface Customer {
   name?: string | null; email?: string | null; transaction_count: number;
   total_spent: number; last_transaction_at?: string | null; created_at: string;
 }
-export interface ListCustomersParams { search?: string; page?: number; limit?: number }
-export interface PagePagination { total: number; page: number; limit: number; pages: number }
+/** Cursor metadata is optional when reading a server predating #215. */
+export interface CursorMetadata { take?: number; next_cursor?: string | null; has_more?: boolean }
+export interface CursorPagination extends CursorMetadata { total: number }
+export interface ListPlansParams { take?: number; cursor?: string }
+export interface ListSubscriptionsParams extends ListPlansParams { status?: SubscriptionStatus }
+export interface ListCustomersParams extends ListPlansParams { search?: string; page?: number; limit?: number }
+export interface PagePagination extends CursorMetadata { total: number; page: number; limit: number; pages: number }
 export interface InvoiceLineParams {
   id?: string; description: string; quantity?: number; unit_price: number;
   amount: number; line_type?: string; metadata?: Record<string, unknown>;
@@ -95,7 +102,8 @@ export interface CreateInvoiceParams extends IdempotencyParams {
   include_usage?: boolean; usage_period_start?: string; usage_period_end?: string;
   lines: InvoiceLineParams[];
 }
-export interface ListInvoicesParams {
+export interface InvoicePagination extends CursorMetadata { total: number; limit: number; offset: number }
+export interface ListInvoicesParams extends ListPlansParams {
   status?: InvoiceStatus; customer_id?: string; subscription_id?: string; limit?: number; offset?: number;
 }
 export interface Invoice {

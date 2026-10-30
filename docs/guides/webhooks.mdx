@@ -191,6 +191,12 @@ Après 5 tentatives, le webhook est marqué comme `FAILED`. Vous pouvez consulte
 
 Un même événement peut arriver plus d'une fois (relance, rejeu) : son `id` est stable, dédupliquez dessus.
 
+La rotation du secret d'un endpoint est **immédiate**, sans période de grâce pour
+l'ancien secret. Une livraison déjà en transit peut encore porter l'ancien secret ;
+chaque nouvelle tentative utilise le secret courant. Coordonnez le changement avec le récepteur : le SDK vérifie le
+corps brut avec le secret que vous lui fournissez. Les reprises gardent le même
+identifiant d'événement ; dédupliquez-le après vérification de la signature.
+
 ## Tester les webhooks
 
 <CodeGroup>

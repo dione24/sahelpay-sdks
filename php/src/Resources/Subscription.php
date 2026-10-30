@@ -22,7 +22,7 @@ class Subscription
     }
 
     /**
-     * Créer un abonnement ACTIVE (sans premier paiement).
+     * Créer un abonnement INCOMPLETE sans paiement, ou un essai explicite.
      * POST /v1/billing/subscriptions
      *
      * @param array{
@@ -70,11 +70,11 @@ class Subscription
      * Lister les abonnements
      * GET /v1/billing/subscriptions
      *
-     * @param array{status?: string} $options
+     * @param array{status?: string, take?: int, cursor?: string} $options
      */
     public function all(array $options = []): Response
     {
-        $query = array_intersect_key($options, array_flip(['status']));
+        $query = array_intersect_key($options, array_flip(['status', 'take', 'cursor']));
 
         return $this->client->get('/billing/subscriptions', $query);
     }
@@ -105,7 +105,7 @@ class Subscription
     {
         $key = $data['idempotency_key'] ?? null;
         unset($data['idempotency_key']);
-        return $this->client->post($path, $data, $key ? ['X-Idempotency-Key' => $key] : []);
+        return $this->client->post($path, $data, $key !== null ? ['X-Idempotency-Key' => $key] : []);
     }
 
     private function validateRequired(array $data, array $required): void

@@ -15,7 +15,7 @@ Example:
     >>> print(payment.reference_id)
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "SahelPay"
 __email__ = "dev@sahelpay.ml"
 

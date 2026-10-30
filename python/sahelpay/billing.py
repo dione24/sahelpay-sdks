@@ -130,7 +130,7 @@ class BillingResource:
         self._client = client
 
     def _write(self, method, path, data=None, idempotency_key=None):
-        headers = {"X-Idempotency-Key": idempotency_key} if idempotency_key else None
+        headers = {"X-Idempotency-Key": idempotency_key} if idempotency_key is not None else None
         return self._client._request(method, path, data or {}, headers=headers)
 
 class PlansAPI(BillingResource):
@@ -141,8 +141,15 @@ class PlansAPI(BillingResource):
             body["description"] = description
         return self._write("POST", "/v1/billing/plans", body, idempotency_key).get("data", {})
 
-    def list(self) -> List[Plan]:
-        return self._client._request("GET", "/v1/billing/plans").get("data", [])
+    def list(self, *, take: Optional[int] = None, cursor: Optional[str] = None) -> List[Plan]:
+        return self.list_page(take=take, cursor=cursor)["plans"]
+
+    def list_page(self, *, take: Optional[int] = None, cursor: Optional[str] = None) -> PlanList:
+        response = self._client._request("GET", "/v1/billing/plans" + _query(dict(take=take, cursor=cursor)))
+        result: PlanList = {"plans": response.get("data", [])}
+        if "pagination" in response:
+            result["pagination"] = response["pagination"]
+        return result
 
     def update(self, plan_id: str, **fields: Any) -> Dict[str, Any]:
         return self._client._request("PATCH", "/v1/billing/plans/" + quote(plan_id, safe=""), fields)
@@ -156,7 +163,7 @@ class PlansAPI(BillingResource):
     def send_link(self, plan_id: str, customer_phone: Optional[str] = None, *,
                   customer_id: Optional[str] = None, customer_external_ref: Optional[str] = None,
                   customer_email: Optional[str] = None, customer_name: Optional[str] = None,
-                  idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+                  idempotency_key: Optional[str] = None) -> SendPlanLinkResult:
         body = _identity(customer_phone, dict(customer_id=customer_id, customer_external_ref=customer_external_ref,
                          customer_email=customer_email, customer_name=customer_name))
         return self._write("POST", "/v1/billing/plans/" + quote(plan_id, safe="") + "/send-link", body, idempotency_key).get("data", {})
@@ -174,8 +181,8 @@ class SubscriptionsAPI(BillingResource):
     def retrieve(self, subscription_id: str) -> SubscriptionSnapshot:
         return self._client._request("GET", "/v1/billing/subscriptions/" + quote(subscription_id, safe="")).get("data", {})
 
-    def list(self, status: Optional[SubscriptionStatus] = None) -> SubscriptionList:
-        return self._client._request("GET", "/v1/billing/subscriptions" + _query(dict(status=status))).get("data", {})
+    def list(self, status: Optional[SubscriptionStatus] = None, *, take: Optional[int] = None, cursor: Optional[str] = None) -> SubscriptionList:
+        return self._client._request("GET", "/v1/billing/subscriptions" + _query(dict(status=status, take=take, cursor=cursor))).get("data", {})
 
     def cancel(self, subscription_id: str) -> Dict[str, Any]:
         return self._client._request("DELETE", "/v1/billing/subscriptions/" + quote(subscription_id, safe=""))
@@ -201,8 +208,8 @@ class SubscriptionsAPI(BillingResource):
         return self._write("POST", "/v1/billing/subscriptions/import", {k:v for k,v in body.items() if v is not None}, idempotency_key).get("data", {})
 
 class CustomersAPI(BillingResource):
-    def list(self, search: Optional[str] = None, page: int = 1, limit: int = 20) -> CustomerList:
-        return self._client._request("GET", "/v1/billing/customers" + _query(dict(search=search, page=page, limit=limit))).get("data", {})
+    def list(self, search: Optional[str] = None, page: int = 1, limit: int = 20, *, take: Optional[int] = None, cursor: Optional[str] = None) -> CustomerList:
+        return self._client._request("GET", "/v1/billing/customers" + _query(dict(search=search, page=page, limit=limit, take=take, cursor=cursor))).get("data", {})
 
 class InvoicesAPI(BillingResource):
     def create(self, *, subtotal: float, total: float, due_date: str, lines: List[Dict[str, Any]],
@@ -211,9 +218,9 @@ class InvoicesAPI(BillingResource):
         return self._write("POST", "/v1/billing/invoices", body, idempotency_key).get("data", {})
 
     def list(self, *, status: Optional[InvoiceStatus] = None, customer_id: Optional[str] = None,
-             subscription_id: Optional[str] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> InvoiceList:
+             subscription_id: Optional[str] = None, limit: Optional[int] = None, offset: Optional[int] = None, take: Optional[int] = None, cursor: Optional[str] = None) -> InvoiceList:
         response = self._client._request("GET", "/v1/billing/invoices" + _query(dict(status=status, customer_id=customer_id,
-                                        subscription_id=subscription_id, limit=limit, offset=offset)))
+                                        subscription_id=subscription_id, limit=limit, offset=offset, take=take, cursor=cursor)))
         return {"invoices": response.get("data", []), "pagination": response.get("pagination", {})}
 
     def retrieve(self, invoice_id: str) -> Invoice:
@@ -231,6 +238,8 @@ class InvoicesAPI(BillingResource):
 # Importable annotations for consumers that keep the SDK's dictionary interface.
 class _PlanOptional(TypedDict, total=False):
     subscriber_count: int
+    application_id: Optional[str]
+    livemode: Optional[bool]
 
 class Plan(_PlanOptional):
     id: str
@@ -334,6 +343,10 @@ class SubscriptionCustomer(TypedDict):
     external_ref: Optional[str]
 
 class _SubscriptionOptional(_LifecycleSnapshot, total=False):
+    plan_amount: float
+    application_id: Optional[str]
+    livemode: Optional[bool]
+    external_ref: Any
     plan_id: str
     plan_name: str
     plan: SubscriptionPlan
@@ -349,12 +362,40 @@ class Subscription(SubscriptionPeriod, _SubscriptionOptional):
 
 class SubscriptionList(TypedDict):
     subscriptions: List[Subscription]
-    pagination: Dict[str, int]
+    pagination: Pagination
 
 class InvoiceList(TypedDict):
     invoices: List[Invoice]
-    pagination: Dict[str, int]
+    pagination: Pagination
 
 class CustomerList(TypedDict):
     customers: List[Customer]
-    pagination: Dict[str, int]
+    pagination: Pagination
+
+class _CursorMetadata(TypedDict, total=False):
+    take: int
+    next_cursor: Optional[str]
+    has_more: bool
+    page: int
+    limit: int
+    offset: int
+    pages: int
+
+class Pagination(_CursorMetadata):
+    total: int
+
+class _PlanListOptional(TypedDict, total=False):
+    pagination: Pagination
+
+class PlanList(_PlanListOptional):
+    plans: List[Plan]
+
+class _SendLinkOptional(TypedDict, total=False):
+    invoice_status: Literal["PAID", "VOIDED"]
+
+class SendPlanLinkResult(_SendLinkOptional):
+    subscription_id: str
+    invoice_id: str
+    payment_link: Optional[Dict[str, Any]]
+    sms_sent: bool
+    message: str

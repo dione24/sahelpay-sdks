@@ -102,4 +102,25 @@ final class BillingTest extends TestCase
             $this->assertFalse($client->webhooks->verify($raw . ' ', $header));
         }
     }
+    public function testCursorListsAndNullableSendLinkReplay(): void
+    {
+        $f = $this->fixtures();
+        $history = [];
+        $client = $this->client([$f['plans'], $f['subscriptions'], $f['customers'], $f['invoices'], $f['send_link_paid']], $history);
+        foreach (['plans', 'subscriptions', 'customers', 'invoices'] as $index => $resource) {
+            $result = $client->$resource->all(['take' => 1, 'cursor' => 'cursor+fixture/=']);
+            parse_str($history[$index]['request']->getUri()->getQuery(), $query);
+            $this->assertSame(['take' => '1', 'cursor' => 'cursor+fixture/='], $query);
+            $data = $result->getRawData();
+            $pagination = $data['pagination'] ?? $data['data']['pagination'];
+            $this->assertSame('cursor+fixture/=', $pagination['next_cursor']);
+        }
+        $result = $client->plans->sendLink('plan_fixture', ['customer_external_ref' => 'fixture_user', 'idempotency_key' => '']);
+        $this->assertNull($result->payment_link);
+        $this->assertSame('PAID', $result->invoice_status);
+        $this->assertTrue($history[4]['request']->hasHeader('X-Idempotency-Key'));
+        $this->assertSame('', $history[4]['request']->getHeaderLine('X-Idempotency-Key'));
+        $this->assertArrayNotHasKey('idempotency_key', json_decode((string) $history[4]['request']->getBody(), true));
+    }
+
 }
