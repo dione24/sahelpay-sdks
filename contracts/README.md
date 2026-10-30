@@ -32,3 +32,7 @@ remain sourced from merchant.controller.ts. All response envelopes are formalize
 #221 adds the read-only reminder-preview operation, including registered-key-only
 401 behavior and nullable rendering. Both eligible TEST and blocked/null fixtures
 are schema validated. No SDK operation registers keys, enables or sends reminders.
+
+Contract provenance: `48a71072109d36634ed7d0307fd2167842778789`. Its API/OpenAPI
+is identical to the contract reviewed at `d59eacd`; the later commit fixes only the
+dashboard cursor consumer. No SDK behavior changed in this provenance update.
