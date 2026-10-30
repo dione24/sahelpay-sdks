@@ -6,7 +6,7 @@ description: "Clients sans téléphone, essais, périodes, factures et renouvell
 <Tabs>
 <Tab title="Français">
 
-## Contrat Billing 1.2.0
+## Contrat Billing — SDK 1.2.0 et ajout backend #214
 
 Billing facture **vos clients** ; il ne conditionne pas votre accès marchand à SahelPay.
 Tous les SDK 1.2.0 utilisent `/v1/billing/*`. Orange Money Mali/XOF est le seul moyen
@@ -80,24 +80,38 @@ Pour vérifier un paiement sans opérateur ni personne réelle, utilisez le
 signatures, doublons et réponses de reprise. Aucun test clock public n'est promis.
 `webhook.test` vérifie la connectivité, pas le cycle Billing.
 
-## ACTIVE ≠ paid
+## Périodes payées, essais et impayés (backend #214)
+
+Relisez le GET canonique avant d’accorder les droits : ses états sont calculés
+à l’heure de lecture, même lorsque le passage horaire a du retard.
 
 | État / champ | Sens |
 | --- | --- |
-| `INCOMPLETE` | Premier paiement attendu, hors essai |
-| `ACTIVE` | Calendrier actif ; peut être un essai, un import ou une création sans paiement |
-| `PAST_DUE` | Échéance dépassée ; GET canonique expose aussi ce statut à l'expiration |
-| `CANCELLED` | Annulation immédiate ; votre application décide des droits restants |
-| `trial_end` | Fin de l'essai explicite ; `null` signifie aucun essai explicite |
-| `current_period_start/end` | Période canonique, nullable pour les anciennes lignes |
-| `next_billing_date` | Prochaine échéance, pas une preuve de règlement |
+| `INCOMPLETE` | Premier paiement attendu, aucune période payée |
+| `ACTIVE` canonique | Période payée courante, ou période explicitement importée comme payée |
+| `TRIALING` canonique | Essai explicite courant |
+| `PAST_DUE` | Facture encore payable, y compris après expiration des droits |
+| `access_status` | Droits ; `EXPIRED` à la fin de la grâce payée ou de l’essai |
+| `grace_until` | Fin de période payée + trois jours ; null après essai ou sans période payée |
+| `CANCELLED` | Annulation immédiate, aucun accès réactivé par un paiement tardif |
+| `billing_anchor_at` | Ancre UTC conservée au renouvellement dans la grâce |
 
-Avant d'accorder des droits payés, relisez l'abonnement et la facture correspondante :
-mode/application/identité attendus, facture `PAID`, `amount_due === 0` et période
-valide. Un paiement partiel ne prolonge pas l'abonnement. Les bornes peuvent être
-indicatives avant règlement ; un import affirme une période existante, sans créer
-un nouveau paiement. Aucune grâce de trois jours n'est garantie par l'API : la
-politique d'accès appartient à votre application.
+La réponse historique de création d’essai reste `ACTIVE` avec `trial_end` ; son
+GET canonique renvoie `TRIALING`. La création sans essai et sans paiement est
+`INCOMPLETE`. Un paiement partiel ne prolonge pas les droits. Reçu, facture PAID
+et période sont écrits atomiquement ; le rejeu n’accorde pas de seconde période.
+
+Le premier paiement complet et le paiement après la grâce accordent un intervalle
+entier depuis le règlement, sans arriérés. Dans la grâce, le renouvellement garde
+l’échéance et l’ancre UTC : 31 janvier → 28/29 février → 31 mars. Même règle pour
+le trimestre et l’année. L’import accepte une ancre historique `billing_anchor_at`
+antérieure ou égale au début de période ; les deux bornes importées restent exactes.
+
+`status` reste `PAST_DUE` après la grâce pour permettre le règlement de la même
+facture ; utilisez `access_status` et les dates pour les droits. Le passage du temps
+ne change pas `updated_at` : planifiez une relecture à la fin de période/grâce,
+en plus des signaux webhook. Les champs ajoutés sont facultatifs dans les types
+SDK pour permettre la lecture d’une ancienne version du backend.
 
 ## Reprise, idempotence et pagination
 
@@ -170,10 +184,12 @@ sur `event.id`, supportez le désordre et ignorez les événements inconnus.
 | `invoice.created` | `invoice_id`, `subscription_id`, `amount_due`, `payment_url`, `due_date` |
 | `subscription.payment_due` | Même échéance, avec `billing_date` ; compatibilité, éviter un double envoi |
 | `invoice.paid` | `invoice_id`, `subscription_id`, `amount_paid`, `amount_due`, `status` |
-| `subscription.renewed` | `subscription_id`, `next_billing_date`, `invoice_id` |
+| `subscription.renewed` | `subscription_id`, `next_billing_date`, `invoice_id`, `current_period_start/end`, `updated_at`, `billing_anchor_at` |
+| `subscription.cancelled` | Annulation immédiate ; `subscription_id`, `plan_id`, `status`, `updated_at`, `current_period_start/end` ; même event.id au rejeu |
 
-Sur cette révision, `cancel()` n'émet pas de `subscription.cancelled` : relisez
-l'état après votre appel et utilisez le polling pour les annulations externes.
+`cancel()` émet `subscription.cancelled` avec un event.id stable. Si votre
+endpoint filtre les événements, abonnez-le explicitement à ce type, puis relisez
+le GET canonique. La relecture après l’appel et le polling restent disponibles.
 Les relances e-mail restent pilotées par le backend ; le SDK n'active aucun envoi.
 
 ## Erreurs
@@ -193,7 +209,7 @@ et les [types et versions SDK](/sdks/overview).
 </Tab>
 <Tab title="English">
 
-## Billing contract 1.2.0
+## Billing contract — SDK 1.2.0 and backend #214 addition
 
 Billing manages **your customers' subscriptions**, separately from merchant access
 to SahelPay. All three SDKs use `/v1/billing/*`. Orange Money Mali/XOF requires the
@@ -227,13 +243,22 @@ For a trial, add a future ISO UTC `trial_end`: status is `ACTIVE`, while `invoic
 `payment_link` are `null`. The hourly worker prepares the invoice when the trial ends.
 `create()` also supports `start_date` and does not create an immediate checkout.
 
-**ACTIVE ≠ paid.** It can mean a trial, an imported period, or scheduled billing before
-payment. `current_period_start/end` and `trial_end` can be null for legacy records.
-`next_billing_date` is a due date, not proof of settlement. Re-read the canonical
-subscription and invoice, verify identity/application/mode, require `PAID` with
-`amount_due === 0` for a paid invoice and validate the period. Partial payments do not
-extend the subscription. The API guarantees no three-day access grace period.
-`PAST_DUE` indicates expiry; `CANCELLED` is immediate and access policy is yours.
+**Canonical lifecycle (backend #214).** `ACTIVE` means a current paid or explicitly
+imported paid period; `TRIALING` means an explicit trial. The historical trial
+creation response still says `ACTIVE` with `trial_end`: retrieve the canonical
+snapshot before granting access. Unpaid creation is `INCOMPLETE`. Paid access has
+three days of grace anchored to `current_period_end`; a trial has no grace.
+`access_status` becomes `EXPIRED`, while `status` stays collectable `PAST_DUE` so
+the same invoice can still be paid. Cancellation wins over any late payment.
+
+Receipt, invoice and subscription period commit atomically. Partial payment grants
+no paid period; replay never grants a second one. First payment and payment after
+grace start one full interval at settlement, without arrears. During grace, retain
+the UTC calendar anchor: Jan 31 → Feb 28/29 → Mar 31. Imports optionally accept
+`billing_anchor_at` no later than period start. New SDK fields remain optional for
+older servers. Time alone does not change `updated_at`: schedule reads at period
+and grace boundaries. Subscribe explicitly to `subscription.cancelled` if your
+endpoint filters event types; its event ID is stable on cancellation replay.
 
 `idempotency_key` is transmitted as `X-Idempotency-Key`, never JSON. On this revision,
 the header alone does **not** guarantee replay for every Billing creation. Reuse a
@@ -260,7 +285,9 @@ Verify HMAC-SHA256 on `timestamp + '.' + raw_body` using `X-SahelPay-Signature`,
 300-second tolerance. Use `webhooks.constructEvent` (Python `construct_event`, PHP
 `constructEvent`), deduplicate `event.id`, validate `livemode`, re-read canonical state
 and compare `updated_at`. Delivery order is not guaranteed. Ignore unknown event names.
-Cancellation currently emits no lifecycle webhook: re-read or poll. Reminders are
+Cancellation emits subscription.cancelled with a stable event ID. Explicitly
+subscribe to this type when your endpoint filters events, then retrieve canonical
+state. Reads after cancellation and polling remain available. Reminders stay
 backend controlled; no SDK call enables sending.
 
 For offline tests, use the repository's Billing response/signature fixtures. For an

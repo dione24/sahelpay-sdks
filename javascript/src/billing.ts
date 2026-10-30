@@ -1,6 +1,7 @@
 /** Public Billing contract; dates are ISO 8601 UTC. See contracts/README.md. */
 export type PlanInterval = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-export type SubscriptionStatus = 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INCOMPLETE';
+export type SubscriptionStatus = 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'CANCELLED' | 'INCOMPLETE';
+export type SubscriptionAccessStatus = SubscriptionStatus | 'EXPIRED';
 export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'VOIDED' | 'PAST_DUE';
 
 /** At least one identity is required by the server. Phone is optional. */
@@ -39,7 +40,7 @@ export interface CreateSubscriptionWithPaymentParams extends CustomerIdentity, I
 export interface ImportSubscriptionParams extends IdempotencyParams {
   plan_id: string; external_ref: string; customer_external_ref: string;
   customer_email?: string; customer_name?: string;
-  current_period_start: string; current_period_end: string; trial_end?: string;
+  current_period_start: string; current_period_end: string; trial_end?: string; billing_anchor_at?: string;
 }
 /** Creation/list shape. Some fields are only present in list responses. */
 export interface Subscription {
@@ -47,6 +48,7 @@ export interface Subscription {
   customer_phone?: string | null; customer_id?: string | null;
   customer?: { name?: string | null; email?: string | null; external_ref?: string | null } | null;
   status: SubscriptionStatus; next_billing_date: string;
+  access_status?: SubscriptionAccessStatus; grace_until?: string | null;
   current_period_start: string | null; current_period_end: string | null; trial_end: string | null;
   plan?: { id: string; name: string; amount: number; interval: PlanInterval };
   created_at: string;
@@ -57,6 +59,8 @@ export interface SubscriptionSnapshot {
   customer: { id: string; external_ref: string | null; email: string | null } | null;
   plan_id: string; plan: { amount: number; currency: string; interval: PlanInterval };
   status: SubscriptionStatus; updated_at: string;
+  /** Added by backend #214; optional while using a previously deployed backend. */
+  access_status?: SubscriptionAccessStatus; grace_until?: string | null; billing_anchor_at?: string;
   current_period_start: string | null; current_period_end: string | null; trial_end: string | null;
   next_billing_date: string; past_due_since: string | null;
   payment_url: string | null; invoice_id: string | null;
@@ -123,11 +127,17 @@ export interface InvoicePaidData {
   transaction_id: string | null; payment_intent_id: string | null; currency: string;
 }
 export interface SubscriptionRenewedData {
+  current_period_start?: string; current_period_end?: string; updated_at?: string; billing_anchor_at?: string;
   subscription_id: string; next_billing_date: string;
   plan_id: string; plan_name: string; customer_phone: string | null;
   invoice_id: string; invoice_number: string; amount: number; currency: string;
 }
+export interface SubscriptionCancelledData {
+  subscription_id: string; plan_id: string; status: 'CANCELLED'; updated_at: string;
+  current_period_start: string | null; current_period_end: string | null;
+}
 export interface BillingEventPayloads {
+  'subscription.cancelled': SubscriptionCancelledData;
   'invoice.created': InvoiceCreatedData;
   'subscription.payment_due': SubscriptionWebhookData;
   'invoice.paid': InvoicePaidData;

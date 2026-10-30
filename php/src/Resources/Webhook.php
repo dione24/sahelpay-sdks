@@ -201,6 +201,7 @@ class Webhook
 /**
  * Représentation d'un événement webhook
  * @phpstan-import-type InvoicePaidData from \SahelPay\BillingTypes
+ * @phpstan-import-type SubscriptionCancelledData from \SahelPay\BillingTypes
  * @phpstan-import-type SubscriptionRenewedData from \SahelPay\BillingTypes
  * @phpstan-import-type InvoiceCreatedData from \SahelPay\BillingTypes
  * @phpstan-import-type SubscriptionPaymentDueData from \SahelPay\BillingTypes
@@ -219,6 +220,7 @@ class WebhookEvent
         'secure_order.disputed',
         'secure_order.cancelled',
         'subscription.renewed',
+        'subscription.cancelled',
         'subscription.payment_due',
         'invoice.created',
         'invoice.paid',
@@ -258,10 +260,10 @@ class WebhookEvent
         return $this->data['livemode'] ?? null;
     }
 
-    /** @return InvoicePaidData|SubscriptionRenewedData|InvoiceCreatedData|SubscriptionPaymentDueData|null */
+    /** @return InvoicePaidData|SubscriptionRenewedData|SubscriptionCancelledData|InvoiceCreatedData|SubscriptionPaymentDueData|null */
     public function getBillingData(): ?array
     {
-        return in_array($this->getType(), ['invoice.paid', 'invoice.created', 'subscription.renewed', 'subscription.payment_due'], true)
+        return in_array($this->getType(), ['invoice.paid', 'invoice.created', 'subscription.renewed', 'subscription.payment_due', 'subscription.cancelled'], true)
             ? $this->getData() : null;
     }
 

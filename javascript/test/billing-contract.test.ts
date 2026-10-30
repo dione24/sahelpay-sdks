@@ -59,7 +59,7 @@ describe('exported Billing types vs recorded backend OpenAPI', () => {
 it('typechecks recorded responses and discriminated webhook payloads against public exports', () => {
   const fixtures = JSON.parse(readFileSync(resolve('../test-vectors/billing/responses.json'), 'utf8'));
   const declarations = [
-    ['Plan','plan'], ['Subscription','subscription'], ['SubscriptionSnapshot','snapshot'],
+    ['Plan','plan'], ['Subscription','subscription'], ['SubscriptionSnapshot','snapshot'], ['SubscriptionSnapshot','paid_snapshot'],
     ['CreateSubscriptionWithPaymentResult','trial_checkout'], ['CreateSubscriptionWithPaymentResult','paid_checkout_replay'],
     ['Invoice','invoice'],
   ].map(([type, key], i) => `const response${i}: SDK.${type} = ${JSON.stringify(fixtures[key].data)};`).join('\n')
@@ -85,4 +85,16 @@ it('keeps release and HTTP user-agent versions consistent across SDKs', async ()
     expect(source).toContain(SDK_VERSION);
     expect(source).not.toContain('1.1.0');
   }
+});
+
+it('canonical trial fixture has no paid grace and the paid fixture is a distinct period', () => {
+  const fixtures = JSON.parse(readFileSync(resolve('../test-vectors/billing/responses.json'), 'utf8'));
+  const trial = fixtures.snapshot.data;
+  expect(trial.trial_end).toBe(trial.current_period_end);
+  expect(trial).toMatchObject({ status: 'TRIALING', access_status: 'TRIALING', grace_until: null, billing_anchor_at: trial.trial_end });
+  const paid = fixtures.paid_snapshot.data;
+  expect(paid).toMatchObject({ status: 'ACTIVE', access_status: 'ACTIVE' });
+  expect(Date.parse(paid.current_period_start)).toBeGreaterThanOrEqual(Date.parse(paid.trial_end));
+  expect(paid.trial_end).not.toBe(paid.current_period_end);
+  expect(Date.parse(paid.grace_until) - Date.parse(paid.current_period_end)).toBe(3 * 86400000);
 });

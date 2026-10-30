@@ -14,12 +14,14 @@ GET /v1/billing/subscriptions
 
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `status` | string | `INCOMPLETE`, `ACTIVE`, `PAST_DUE` ou `CANCELLED` |
+| `status` | string | `INCOMPLETE`, `ACTIVE`, `TRIALING`, `PAST_DUE` ou `CANCELLED` |
 
 Cette révision renvoie un total sans pagination page/limit. Pour relire un abonnement,
 utilisez [GET par identifiant](/api-reference/subscriptions/get). `customer_phone` peut
 être `null` ; les réponses incluent `customer_id`, `customer.external_ref`,
-`trial_end` et `current_period_start/end`.
+`trial_end`, `current_period_start/end`, `access_status` et `grace_until`.
+Après la grâce payée de trois jours, status reste PAST_DUE pour la collecte et
+access_status devient EXPIRED ; les essais expirent sans grâce.
 
 ## Exemple
 

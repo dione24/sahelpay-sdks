@@ -143,7 +143,7 @@ def webhook():
     return {"received": True}
 ```
 
-Événements émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated`, `secure_order.*`, `invoice.created`, `invoice.paid`, `subscription.payment_due`, `subscription.renewed`, `webhook.test`. `construct_event()` convertit `data` en `Payment` uniquement pour `payment.*` ; le reste reste un dict.
+Événements émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated`, `secure_order.*`, `invoice.created`, `invoice.paid`, `subscription.payment_due`, `subscription.renewed`, `subscription.cancelled`, `webhook.test`. `construct_event()` convertit `data` en `Payment` uniquement pour `payment.*` ; le reste reste un dict.
 
 ### Customer Portal
 
@@ -216,3 +216,20 @@ link. ACTIVE is not proof of payment. Verify signatures, deduplicate event IDs a
 retrieve canonical state. Manual Orange Money renewal only, no automatic debit.
 
 Types importables : `sahelpay.billing` (TypedDict, Literal). Les réponses restent des dictionnaires.
+
+### Cycle Billing après backend #214
+
+Le GET canonique distingue `ACTIVE` (période payée) et `TRIALING` (essai). Une
+création d’essai conserve sa réponse historique ACTIVE avec trial_end : relire
+le GET. Après l’échéance payée, trois jours de grâce puis access_status EXPIRED ;
+status reste PAST_DUE pour le règlement. Aucun jour de grâce après un essai.
+`subscription.cancelled` signale l’annulation immédiate avec un event.id stable.
+Les nouveaux champs SDK sont facultatifs pour les anciens serveurs.
+Voir le guide Billing pour l’ancre UTC et les frontières temporelles.
+
+Canonical GET now distinguishes paid ACTIVE from TRIALING. Paid grace lasts
+three days; access_status becomes EXPIRED while status remains collectable
+PAST_DUE. Trials have no grace. Historical trial creation still returns ACTIVE
+with trial_end; retrieve the canonical snapshot before access decisions. New
+fields remain optional for older servers; subscription.cancelled signals
+immediate cancellation with a stable event ID.

@@ -310,6 +310,7 @@ export type WebhookEventType =
   | 'secure_order.disputed'
   | 'secure_order.cancelled'
   | 'subscription.renewed'
+  | 'subscription.cancelled'
   | 'subscription.payment_due'
   | 'invoice.created'
   | 'invoice.paid'

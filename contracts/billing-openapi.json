@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "ec4548f11b228f9c1f28167536b63990623bd931"
+    "revision": "34c862b0bd42bfc5f6e23fa9cb5dd61664162305"
   },
   "paths": {
     "/v1/billing/invoices": {
@@ -402,7 +402,15 @@
             "name": "status",
             "required": false,
             "in": "query",
+            "description": "État de collecte comme le GET canonique ; access_status indique EXPIRED après la grâce.",
             "schema": {
+              "enum": [
+                "ACTIVE",
+                "TRIALING",
+                "PAST_DUE",
+                "CANCELLED",
+                "INCOMPLETE"
+              ],
               "type": "string"
             }
           }
@@ -423,6 +431,7 @@
         ]
       },
       "post": {
+        "description": "Abonnement de vos clients, distinct de votre accès marchand à SahelPay. Création INCOMPLETE sans paiement, ou essai explicite identifié par trial_end (GET canonique TRIALING). Le worker horaire prépare la facture à start_date, ou à trial_end. ACTIVE canonique signifie une période payée courante ; access_status passe de PAST_DUE à EXPIRED après trois jours de grâce payée. status reste PAST_DUE pour permettre de régler la même facture après expiration des droits. Un essai terminé n’a aucune grâce. Aucun prélèvement automatique. X-Idempotency-Key n’est pas encore garanti par cette route.",
         "operationId": "createSubscription",
         "parameters": [],
         "requestBody": {
@@ -505,8 +514,7 @@
         "summary": "Create a subscription for a customer",
         "tags": [
           "Merchant"
-        ],
-        "description": "Abonnement de vos clients, distinct de votre accès marchand à SahelPay. Une identité client est requise ; le téléphone est facultatif si customer_id, customer_external_ref ou customer_email est fourni. ACTIVE ne prouve pas un paiement : la première facture est préparée par le worker horaire à start_date (maintenant si omis), ou à trial_end pour un essai explicite. Les périodes sont indicatives avant règlement complet. Aucun prélèvement automatique. Cette création ne garantit pas un rejeu idempotent via X-Idempotency-Key."
+        ]
       }
     },
     "/v1/billing/subscriptions/with-payment": {
@@ -572,6 +580,11 @@
                     "type": "string",
                     "format": "date-time"
                   },
+                  "external_ref": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_:-]{1,160}$",
+                    "description": "Référence stable de checkout par application et mode. Nécessite customer_external_ref et une clé API d’application ; reprise identique = même abonnement et première facture, conflit des paramètres = 409."
+                  },
                   "redirect_url": {
                     "type": "string",
                     "format": "uri"
@@ -602,7 +615,222 @@
       }
     },
     "/v1/billing/subscriptions/{id}": {
+      "get": {
+        "operationId": "getSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "external_ref",
+                        "livemode",
+                        "application_id",
+                        "customer",
+                        "plan_id",
+                        "plan",
+                        "status",
+                        "updated_at",
+                        "current_period_start",
+                        "current_period_end",
+                        "trial_end",
+                        "next_billing_date",
+                        "past_due_since",
+                        "payment_url",
+                        "invoice_id",
+                        "grace_until",
+                        "billing_anchor_at",
+                        "access_status"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "external_ref": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "customer": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "external_ref",
+                            "email"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "external_ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "email": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "email"
+                            }
+                          }
+                        },
+                        "plan_id": {
+                          "type": "string"
+                        },
+                        "plan": {
+                          "type": "object",
+                          "required": [
+                            "amount",
+                            "currency",
+                            "interval"
+                          ],
+                          "properties": {
+                            "amount": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "XOF"
+                              ]
+                            },
+                            "interval": {
+                              "type": "string",
+                              "enum": [
+                                "WEEKLY",
+                                "MONTHLY",
+                                "QUARTERLY",
+                                "YEARLY"
+                              ]
+                            }
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Collecte : ACTIVE = période payée courante, TRIALING = essai courant. Une échéance impayée reste PAST_DUE et payable même après fin des droits. CANCELLED prévaut. Lire access_status et les bornes pour les droits.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "access_status": {
+                          "type": "string",
+                          "description": "Droits : EXPIRED à period_end + 3 jours après période payée ; essai terminé = EXPIRED sans grâce. Champ additif ; les consommateurs historiques calculent la même frontière depuis les dates.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "EXPIRED",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Version de l’abonnement, indépendante de la livraison du webhook."
+                        },
+                        "current_period_start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "current_period_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "trial_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "next_billing_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "past_due_since": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "grace_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fin de grâce d’une période payée, ancrée à current_period_end + 3 jours ; null pour essai, INCOMPLETE ou CANCELLED."
+                        },
+                        "billing_anchor_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Ancre UTC conservée pendant les renouvellements à l’heure ; redémarre au paiement initial ou après la grâce."
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri"
+                        },
+                        "invoice_id": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Read the canonical subscription, period and current invoice link",
+        "tags": [
+          "Merchant"
+        ]
+      },
       "delete": {
+        "description": "Annulation immédiate CANCELLED, sans prorata ni remboursement automatique. Émet subscription.cancelled comme signal de GET canonique. Rejeu : même event.id, sans changer updated_at ; un paiement tardif règle la facture sans réactiver un abonnement annulé. Pas d’annulation programmée à fin de période.",
         "operationId": "cancelSubscription",
         "parameters": [
           {
@@ -627,8 +855,7 @@
         "summary": "Cancel a subscription",
         "tags": [
           "Merchant"
-        ],
-        "description": "Passe immédiatement l’abonnement à CANCELLED. Aucune annulation à fin de période ni notification subscription.cancelled n’est émise par cette route. La politique d’accès de votre client reste à gérer dans votre application."
+        ]
       }
     },
     "/v1/billing/customers": {
@@ -667,6 +894,269 @@
           }
         ],
         "summary": "List customers",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/subscriptions/import": {
+      "post": {
+        "operationId": "importSubscription",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "external_ref",
+                  "plan_id",
+                  "customer_external_ref",
+                  "current_period_start",
+                  "current_period_end"
+                ],
+                "properties": {
+                  "external_ref": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_:-]{1,160}$",
+                    "description": "Référence stable de l’unité facturée, propre à l’application et au mode. Rejeu identique = même abonnement ; paramètres différents = 409."
+                  },
+                  "plan_id": {
+                    "type": "string"
+                  },
+                  "customer_external_ref": {
+                    "type": "string",
+                    "description": "Référence externe unique dans cette application"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  },
+                  "current_period_start": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "current_period_end": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "trial_end": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Si fourni, égal à current_period_end. Aucun paiement ni facture créé."
+                  },
+                  "billing_anchor_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Ancre calendaire historique facultative, antérieure ou égale au début de période. Utile après un mois tronqué ; défaut : début de période, ou fin d’essai."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "external_ref",
+                        "livemode",
+                        "application_id",
+                        "customer",
+                        "plan_id",
+                        "plan",
+                        "status",
+                        "updated_at",
+                        "current_period_start",
+                        "current_period_end",
+                        "trial_end",
+                        "next_billing_date",
+                        "past_due_since",
+                        "payment_url",
+                        "invoice_id",
+                        "grace_until",
+                        "billing_anchor_at",
+                        "access_status"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "external_ref": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "customer": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "external_ref",
+                            "email"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "external_ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "email": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "email"
+                            }
+                          }
+                        },
+                        "plan_id": {
+                          "type": "string"
+                        },
+                        "plan": {
+                          "type": "object",
+                          "required": [
+                            "amount",
+                            "currency",
+                            "interval"
+                          ],
+                          "properties": {
+                            "amount": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "XOF"
+                              ]
+                            },
+                            "interval": {
+                              "type": "string",
+                              "enum": [
+                                "WEEKLY",
+                                "MONTHLY",
+                                "QUARTERLY",
+                                "YEARLY"
+                              ]
+                            }
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Collecte : ACTIVE = période payée courante, TRIALING = essai courant. Une échéance impayée reste PAST_DUE et payable même après fin des droits. CANCELLED prévaut. Lire access_status et les bornes pour les droits.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "access_status": {
+                          "type": "string",
+                          "description": "Droits : EXPIRED à period_end + 3 jours après période payée ; essai terminé = EXPIRED sans grâce. Champ additif ; les consommateurs historiques calculent la même frontière depuis les dates.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "EXPIRED",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Version de l’abonnement, indépendante de la livraison du webhook."
+                        },
+                        "current_period_start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "current_period_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "trial_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "next_billing_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "past_due_since": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "grace_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fin de grâce d’une période payée, ancrée à current_period_end + 3 jours ; null pour essai, INCOMPLETE ou CANCELLED."
+                        },
+                        "billing_anchor_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Ancre UTC conservée pendant les renouvellements à l’heure ; redémarre au paiement initial ou après la grâce."
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri"
+                        },
+                        "invoice_id": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Import an existing paid period or explicit trial without creating an invoice",
         "tags": [
           "Merchant"
         ]

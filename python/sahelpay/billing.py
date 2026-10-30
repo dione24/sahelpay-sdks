@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional, Literal, TypedDict
 from urllib.parse import quote, urlencode
 
 PlanInterval = Literal["WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]
-SubscriptionStatus = Literal["ACTIVE", "PAST_DUE", "CANCELLED", "INCOMPLETE"]
+SubscriptionStatus = Literal["ACTIVE", "TRIALING", "PAST_DUE", "CANCELLED", "INCOMPLETE"]
+SubscriptionAccessStatus = Literal["ACTIVE", "TRIALING", "PAST_DUE", "EXPIRED", "CANCELLED", "INCOMPLETE"]
 InvoiceStatus = Literal["DRAFT", "OPEN", "PAID", "VOIDED", "PAST_DUE"]
 
 class CustomerIdentity(TypedDict, total=False):
@@ -20,7 +21,12 @@ class SubscriptionPeriod(TypedDict):
     current_period_end: Optional[str]
     trial_end: Optional[str]
 
-class SubscriptionSnapshot(SubscriptionPeriod):
+class _LifecycleSnapshot(TypedDict, total=False):
+    access_status: SubscriptionAccessStatus
+    grace_until: Optional[str]
+    billing_anchor_at: str
+
+class SubscriptionSnapshot(SubscriptionPeriod, _LifecycleSnapshot):
     id: str
     external_ref: Optional[str]
     livemode: Optional[bool]
@@ -63,7 +69,13 @@ class InvoicePaidData(TypedDict):
     payment_intent_id: Optional[str]
     currency: str
 
-class SubscriptionRenewedData(TypedDict):
+class _RenewedPeriod(TypedDict, total=False):
+    current_period_start: str
+    current_period_end: str
+    updated_at: str
+    billing_anchor_at: str
+
+class SubscriptionRenewedData(_RenewedPeriod):
     subscription_id: str
     next_billing_date: str
     plan_id: str
@@ -182,10 +194,10 @@ class SubscriptionsAPI(BillingResource):
     def import_period(self, plan_id: str, external_ref: str, customer_external_ref: str,
                       current_period_start: str, current_period_end: str, *, trial_end: Optional[str] = None,
                       customer_email: Optional[str] = None, customer_name: Optional[str] = None,
-                      idempotency_key: Optional[str] = None) -> SubscriptionSnapshot:
+                      idempotency_key: Optional[str] = None, billing_anchor_at: Optional[str] = None) -> SubscriptionSnapshot:
         body = dict(plan_id=plan_id, external_ref=external_ref, customer_external_ref=customer_external_ref,
                     current_period_start=current_period_start, current_period_end=current_period_end,
-                    trial_end=trial_end, customer_email=customer_email, customer_name=customer_name)
+                    trial_end=trial_end, billing_anchor_at=billing_anchor_at, customer_email=customer_email, customer_name=customer_name)
         return self._write("POST", "/v1/billing/subscriptions/import", {k:v for k,v in body.items() if v is not None}, idempotency_key).get("data", {})
 
 class CustomersAPI(BillingResource):
@@ -288,6 +300,21 @@ class SubscriptionPaymentDueEvent(TypedDict):
     timestamp: str
     data: SubscriptionPaymentDueData
 
+class SubscriptionCancelledData(TypedDict):
+    subscription_id: str
+    plan_id: str
+    status: Literal['CANCELLED']
+    updated_at: str
+    current_period_start: Optional[str]
+    current_period_end: Optional[str]
+
+class SubscriptionCancelledEvent(TypedDict):
+    id: str
+    event: Literal['subscription.cancelled']
+    livemode: bool
+    timestamp: str
+    data: SubscriptionCancelledData
+
 class SubscriptionRenewedEvent(TypedDict):
     id: str
     event: Literal['subscription.renewed']
@@ -306,7 +333,7 @@ class SubscriptionCustomer(TypedDict):
     email: Optional[str]
     external_ref: Optional[str]
 
-class _SubscriptionOptional(TypedDict, total=False):
+class _SubscriptionOptional(_LifecycleSnapshot, total=False):
     plan_id: str
     plan_name: str
     plan: SubscriptionPlan

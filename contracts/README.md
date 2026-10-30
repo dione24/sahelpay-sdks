@@ -15,9 +15,13 @@ accessible from a public CI job. Release checks must compare fresh backend main
 with `--check`; editing the snapshot causes the TypeScript contract tests to check
 request fields, optionality, primitives and enum values against the actual exports.
 
-At ec4548f the generated OpenAPI omits GET subscription by ID, subscription import,
-`external_ref` on with-payment, plan bodies, invoice DTO properties and response
-schemas. These are implemented from the same revision's controller/service and
-covered with source-derived fixtures in `test-vectors/billing`. Fixtures are
-synthetic recordings of those response shapes, not customer traffic or evidence of
-a live payment. No upstream gaps are silently filled into the OpenAPI snapshot.
+Backend #213 formalizes canonical GET, import and checkout `external_ref` metadata.
+Backend #214 adds canonical TRIALING, access_status/grace_until/billing_anchor_at,
+the optional import anchor and subscription.cancelled. Existing fields and event
+names remain available. The new SDK snapshot fields are optional so older servers
+remain readable. The guide explains paid grace and the distinction between the
+collectable status and access_status.
+
+Plan bodies and invoice schemas remain recorded from the previous contract until
+backend #215 lands. Synthetic responses in test-vectors/billing are API-shaped
+fixtures, never customer traffic or evidence of a real payment. The snapshot pins backend merge `34c862b0bd42bfc5f6e23fa9cb5dd61664162305`.

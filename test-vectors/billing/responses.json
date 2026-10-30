@@ -1,7 +1,7 @@
 {
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "ec4548f",
+    "revision": "34c862b0bd42bfc5f6e23fa9cb5dd61664162305",
     "kind": "source-derived synthetic response recordings; no customer traffic"
   },
   "plan": {
@@ -51,7 +51,7 @@
         "currency": "XOF",
         "interval": "QUARTERLY"
       },
-      "status": "ACTIVE",
+      "status": "TRIALING",
       "updated_at": "2026-10-30T00:00:00.000Z",
       "next_billing_date": "2026-11-30T00:00:00.000Z",
       "past_due_since": null,
@@ -59,7 +59,10 @@
       "invoice_id": null,
       "current_period_start": "2026-10-30T00:00:00.000Z",
       "current_period_end": "2026-11-30T00:00:00.000Z",
-      "trial_end": "2026-11-30T00:00:00.000Z"
+      "trial_end": "2026-11-30T00:00:00.000Z",
+      "access_status": "TRIALING",
+      "grace_until": null,
+      "billing_anchor_at": "2026-11-30T00:00:00.000Z"
     }
   },
   "trial_checkout": {
@@ -282,7 +285,7 @@
       "id": "evt_fixture_subscription_renewed",
       "event": "subscription.renewed",
       "livemode": false,
-      "timestamp": "2026-10-30T00:00:00.000Z",
+      "timestamp": "2026-11-30T00:00:00.000Z",
       "version": "v1",
       "data": {
         "subscription_id": "sub_fixture",
@@ -291,9 +294,27 @@
         "customer_phone": null,
         "invoice_id": "inv_fixture",
         "invoice_number": "INV-FIXTURE",
-        "next_billing_date": "2026-11-30T00:00:00.000Z",
+        "next_billing_date": "2027-02-28T00:00:00.000Z",
         "amount": 4000,
-        "currency": "XOF"
+        "currency": "XOF",
+        "current_period_start": "2026-11-30T00:00:00.000Z",
+        "current_period_end": "2027-02-28T00:00:00.000Z",
+        "updated_at": "2026-11-30T00:00:00.000Z",
+        "billing_anchor_at": "2026-11-30T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "evt_fixture_cancelled",
+      "event": "subscription.cancelled",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "data": {
+        "subscription_id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "status": "CANCELLED",
+        "updated_at": "2026-10-30T00:00:00.000Z",
+        "current_period_start": "2026-10-30T00:00:00.000Z",
+        "current_period_end": "2026-11-30T00:00:00.000Z"
       }
     }
   ],
@@ -343,6 +364,38 @@
       "pagination": {
         "total": 1
       }
+    }
+  },
+  "paid_snapshot": {
+    "success": true,
+    "data": {
+      "id": "sub_fixture",
+      "external_ref": "checkout_fixture",
+      "livemode": false,
+      "application_id": "app_fixture",
+      "customer": {
+        "id": "cus_fixture",
+        "external_ref": "fixture_user",
+        "email": null
+      },
+      "plan_id": "plan_fixture",
+      "plan": {
+        "amount": 4000,
+        "currency": "XOF",
+        "interval": "QUARTERLY"
+      },
+      "status": "ACTIVE",
+      "updated_at": "2026-11-30T00:00:00.000Z",
+      "next_billing_date": "2027-02-28T00:00:00.000Z",
+      "past_due_since": null,
+      "payment_url": null,
+      "invoice_id": null,
+      "current_period_start": "2026-11-30T00:00:00.000Z",
+      "current_period_end": "2027-02-28T00:00:00.000Z",
+      "trial_end": "2026-11-30T00:00:00.000Z",
+      "access_status": "ACTIVE",
+      "grace_until": "2027-03-03T00:00:00.000Z",
+      "billing_anchor_at": "2026-11-30T00:00:00.000Z"
     }
   }
 }
