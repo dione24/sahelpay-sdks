@@ -24,4 +24,9 @@ collectable status and access_status.
 
 Plan bodies and invoice schemas remain recorded from the previous contract until
 backend #215 lands. Synthetic responses in test-vectors/billing are API-shaped
-fixtures, never customer traffic or evidence of a real payment. The snapshot pins backend merge `34c862b0bd42bfc5f6e23fa9cb5dd61664162305`.
+fixtures, never customer traffic or evidence of a real payment. The snapshot pins backend merge `2141bbe2c6274a175e25d2a1e5d3dd1281affd14`.
+
+REL-01 adds409 `INVOICE_PAYMENT_SETTLEMENT_PENDING` at invoice collection boundaries.
+A confirmed payment is being settled durably: retrieve payment/invoice state, do not
+request another payment. It includes Sarali instructions and public/legacy checkout.
+No SDK call or new status is needed; the SDK error code remains an open string.

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "34c862b0bd42bfc5f6e23fa9cb5dd61664162305"
+    "revision": "2141bbe2c6274a175e25d2a1e5d3dd1281affd14"
   },
   "paths": {
     "/v1/billing/invoices": {
@@ -176,6 +176,9 @@
         "responses": {
           "201": {
             "description": ""
+          },
+          "409": {
+            "description": "INVOICE_PAYMENT_SETTLEMENT_PENDING : un paiement a déjà réussi pour cette facture, son reçu est en cours de reprise. Ne pas payer à nouveau ; relire le paiement et la facture."
           }
         },
         "security": [
@@ -601,6 +604,9 @@
         "responses": {
           "201": {
             "description": ""
+          },
+          "409": {
+            "description": "INVOICE_PAYMENT_SETTLEMENT_PENDING : un paiement a déjà réussi pour cette facture, son reçu est en cours de reprise. Ne pas payer à nouveau ; relire le paiement et la facture."
           }
         },
         "security": [

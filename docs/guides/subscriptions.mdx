@@ -200,6 +200,7 @@ Les relances e-mail restent pilotées par le backend ; le SDK n'active aucun env
 | `401` / `INVALID_API_KEY` | Vérifier la clé serveur et son mode |
 | `404` / `NOT_FOUND` | Ressource absente ou hors application/mode ; ne pas réessayer avec une clé d'un autre périmètre |
 | `409` / `CONFLICT` | Référence externe déjà utilisée avec d'autres paramètres |
+| `409` / `INVOICE_PAYMENT_SETTLEMENT_PENDING` | Un paiement a réussi ; le backend reprend son règlement. Ne pas payer à nouveau : relire le paiement et la facture, puis le GET canonique de l’abonnement |
 | `429` | Respecter la limitation et réessayer avec la même référence |
 | Timeout réseau | Relire la ressource ; rejouer seulement avec une garantie d'idempotence applicable |
 
@@ -297,7 +298,10 @@ alone does not settle a Billing invoice. `webhook.test` checks connectivity only
 
 Errors: 400 validation/invalid identity or dates; 401 invalid key; 404 missing or
 out-of-scope resource; 409 conflicting reference; 429 rate limit. On network timeout,
-retrieve the resource or replay only with a supported idempotency guarantee. See
+retrieve the resource or replay only with a supported idempotency guarantee.
+`409 INVOICE_PAYMENT_SETTLEMENT_PENDING` means a payment already succeeded and
+the backend is recovering its settlement. Do not collect again: retrieve payment,
+invoice and canonical subscription state. This also protects Sarali instructions. See
 [error codes](/resources/error-codes) and [SDK installation](/sdks/overview).
 
 </Tab>
