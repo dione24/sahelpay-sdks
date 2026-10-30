@@ -59,6 +59,7 @@ function responseFields(type: ts.Type, input: any, path: string) {
  }
 }
 const mappings: Array<[string,string,string,string]> = [
+ ['get','/v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview','ReminderPreview','reminder_preview'],
  ['post','/v1/billing/plans','Plan','plan'],
  ['get','/v1/billing/plans','Plan[]','plans'],
  ['patch','/v1/billing/plans/{id}','{success:boolean}','plan_update'],
@@ -152,6 +153,8 @@ it('validates all response fixtures against OpenAPI, rejecting invalid mutations
   const validate=ajv.compile(expand(response(path,method)));
   expect(validate(fixtures[key]),`${method} ${path}: ${JSON.stringify(validate.errors)}`).toBe(true);
  }
+ const preview=ajv.compile(expand(response('/v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview')));
+ expect(preview(fixtures.reminder_preview_blocked),JSON.stringify(preview.errors)).toBe(true);
  const sendLink=ajv.compile(expand(response('/v1/billing/plans/{id}/send-link','post')));
  expect(sendLink(fixtures.send_link_open),JSON.stringify(sendLink.errors)).toBe(true);
  const replay=ajv.compile(expand(response('/v1/billing/subscriptions/with-payment','post')));

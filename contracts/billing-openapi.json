@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "44f2a54d18c8214fab692b806c11dbf30e1551c0"
+    "revision": "d59eacdfb2250e7896b0047196a8df9a12c8fb43"
   },
   "paths": {
     "/v1/billing/invoices": {
@@ -3759,6 +3759,168 @@
           }
         ],
         "summary": "Import an existing paid period or explicit trial without creating an invoice",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview": {
+      "get": {
+        "description": "Lecture seule, sans création de lien, contact, consentement, événement ou envoi. Clé API limitée à son application et son mode ; session limitée au marchand et au mode affiché. Aucun WhatsApp disponible. Une configuration explicite du responsable et un CTA sûr sont requis. Relances livrées désactivées. Clé déjà enregistrée requise : une ancienne clé à importer est refusée (401), sans migration automatique.",
+        "operationId": "preview",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscriptionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "application_id",
+                        "subscription_id",
+                        "livemode",
+                        "mode",
+                        "owner",
+                        "eligible",
+                        "would_send",
+                        "step",
+                        "email",
+                        "whatsapp"
+                      ],
+                      "properties": {
+                        "application_id": {
+                          "type": "string"
+                        },
+                        "subscription_id": {
+                          "type": "string"
+                        },
+                        "livemode": {
+                          "type": "boolean"
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "desactive",
+                            "simulation",
+                            "actif"
+                          ]
+                        },
+                        "owner": {
+                          "type": "string",
+                          "enum": [
+                            "sahelpay",
+                            "application",
+                            null
+                          ],
+                          "nullable": true
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Profil, fenêtre J-5/J-1 et CTA valides, indépendamment du mode global ; TEST prévisualisable seulement."
+                        },
+                        "would_send": {
+                          "type": "boolean",
+                          "description": "Exige eligible, LIVE et mode actif. Cet endpoint ne déclenche jamais cet envoi."
+                        },
+                        "step": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            5,
+                            null
+                          ],
+                          "nullable": true
+                        },
+                        "email": {
+                          "type": "object",
+                          "required": [
+                            "subject",
+                            "html",
+                            "text"
+                          ],
+                          "properties": {
+                            "subject": {
+                              "type": "string"
+                            },
+                            "html": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": true,
+                          "nullable": true
+                        },
+                        "whatsapp": {
+                          "type": "object",
+                          "required": [
+                            "enabled",
+                            "consent_required"
+                          ],
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "enum": [
+                                false
+                              ]
+                            },
+                            "consent_required": {
+                              "type": "boolean",
+                              "enum": [
+                                true
+                              ]
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Prévisualiser le rappel e-mail d’un abonnement de cette application",
         "tags": [
           "Merchant"
         ]

@@ -10,6 +10,7 @@ namespace SahelPay;
  *
  * @phpstan-type CursorPagination array{total: int, take?: int, next_cursor?: string|null, has_more?: bool}
  * @phpstan-type SendPlanLinkResult array{subscription_id: string, invoice_id: string, payment_link: array{id: string, url: string, amount: int|float}|null, invoice_status?: 'PAID'|'VOIDED', sms_sent: bool, message: string}
+ * @phpstan-type ReminderPreview array{application_id: string, subscription_id: string, livemode: bool, mode: 'desactive'|'simulation'|'actif', owner: 'sahelpay'|'application'|null, eligible: bool, would_send: bool, step: 1|5|null, email: array{subject: string, html: string, text: string}|null, whatsapp: array{enabled: false, consent_required: true}}
  * @phpstan-type CustomerIdentity array{customer_id?: string, customer_phone?: string, customer_external_ref?: string, customer_email?: string, customer_name?: string}
  * @phpstan-type Plan array{id: string, name: string, amount: int|float, currency: string, interval: 'WEEKLY'|'MONTHLY'|'QUARTERLY'|'YEARLY', is_active: bool, created_at: string}
  * @phpstan-type Subscription array{id: string, customer_phone: string|null, customer_id: string|null, status: string, next_billing_date: string, current_period_start: string|null, current_period_end: string|null, trial_end: string|null, created_at: string}

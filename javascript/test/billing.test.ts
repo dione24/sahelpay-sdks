@@ -119,3 +119,21 @@ describe('persistent replay and cursor compatibility',()=>{
   await expect(new SahelPay({secretKey:'sk_test_PLACEHOLDER'}).plans.create({name:'Premium',amount:4000,interval:'MONTHLY',idempotency_key:'fixture'})).rejects.toMatchObject({code:'IDEMPOTENCY_KEY_REUSED'});
  });
 });
+
+
+describe('read-only reminder preview',()=>{
+ it.each(['reminder_preview','reminder_preview_blocked'])('preserves rendering and nulls: %s',async name=>{
+  const {client,fetch}=setup(fixtures[name]);
+  expect(await client.subscriptions.previewReminder('app/fixture','sub/fixture')).toEqual(fixtures[name].data);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(request(fetch).method).toBe('GET');
+  expect(request(fetch).url.pathname).toBe('/v1/billing/applications/app%2Ffixture/subscriptions/sub%2Ffixture/reminder-preview');
+  expect(request(fetch).body).toBeUndefined();
+ });
+ it('propagates 401 without trying to register/import a key',async()=>{
+  const fetch=vi.fn().mockResolvedValue({ok:false,status:401,text:async()=>JSON.stringify({success:false,error:{code:'INVALID_API_KEY',message:'Registered key required'}})});
+  vi.stubGlobal('fetch',fetch);
+  await expect(new SahelPay({secretKey:'sk_test_PLACEHOLDER'}).subscriptions.previewReminder('app_fixture','sub_fixture')).rejects.toMatchObject({code:'INVALID_API_KEY',statusCode:401});
+  expect(fetch).toHaveBeenCalledTimes(1);
+ });
+});

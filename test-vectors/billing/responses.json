@@ -1,7 +1,7 @@
 {
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "bc2d7f13589c7cc9e2c941e9ebbe17887f557a87",
+    "revision": "d59eacdfb2250e7896b0047196a8df9a12c8fb43",
     "kind": "source-derived synthetic response recordings; no customer traffic"
   },
   "plan": {
@@ -498,6 +498,46 @@
       },
       "sms_sent": false,
       "message": "Lien de paiement créé."
+    }
+  },
+  "reminder_preview": {
+    "success": true,
+    "data": {
+      "application_id": "app_fixture",
+      "subscription_id": "sub_fixture",
+      "livemode": false,
+      "mode": "desactive",
+      "owner": "sahelpay",
+      "eligible": true,
+      "would_send": false,
+      "step": 5,
+      "email": {
+        "subject": "Renouvellement TEST",
+        "html": "<p><a href=\"https://merchant.example/billing\">Renouveler</a></p>",
+        "text": "Renouveler : https://merchant.example/billing"
+      },
+      "whatsapp": {
+        "enabled": false,
+        "consent_required": true
+      }
+    }
+  },
+  "reminder_preview_blocked": {
+    "success": true,
+    "data": {
+      "application_id": "app_fixture",
+      "subscription_id": "sub_fixture",
+      "livemode": false,
+      "mode": "desactive",
+      "owner": null,
+      "eligible": false,
+      "would_send": false,
+      "step": null,
+      "email": null,
+      "whatsapp": {
+        "enabled": false,
+        "consent_required": true
+      }
     }
   }
 }

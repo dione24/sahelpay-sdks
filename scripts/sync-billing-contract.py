@@ -11,7 +11,8 @@ parser.add_argument('--check', action='store_true')
 args = parser.parse_args()
 api = json.loads(args.openapi.read_text())
 prefixes = ('/v1/billing/plans', '/v1/billing/customers', '/v1/billing/subscriptions', '/v1/billing/invoices', '/v1/billing/reminders')
-paths = {p: v for p, v in api['paths'].items() if p.startswith(prefixes)}
+preview_path = '/v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview'
+paths = {p: v for p, v in api['paths'].items() if p.startswith(prefixes) or p == preview_path}
 schemas = {}
 def refs(value):
     if isinstance(value, dict):

@@ -1,0 +1,36 @@
+---
+title: Prévisualiser une relance
+api: GET /v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview
+description: "Rendu e-mail en lecture seule, sans contact, création de lien ou envoi"
+---
+
+```typescript
+const preview = await api.subscriptions.previewReminder('APPLICATION_ID', 'SUBSCRIPTION_ID');
+```
+
+Python : `subscriptions.preview_reminder(application_id, subscription_id)`.
+PHP : `subscriptions->previewReminder($applicationId, $subscriptionId)`.
+
+| Champ | Type |
+| --- | --- |
+| `application_id`, `subscription_id` | string |
+| `livemode` | boolean |
+| `mode` | `desactive`, `simulation`, `actif` |
+| `owner` | `sahelpay`, `application`, null |
+| `eligible`, `would_send` | boolean |
+| `step` | 1, 5, null |
+| `email` | `{subject, html, text}` ou null |
+| `whatsapp` | `{enabled: false, consent_required: true}` |
+
+La clé doit déjà être enregistrée et correspondre au marchand, à l'application et
+au mode de l'abonnement. `401` sinon : aucun import/migration automatique, aucune
+création ni mise à jour de clé/application. Une ressource hors portée est refusée.
+
+`eligible` décrit le profil, la fenêtre J-5/J-1 et un CTA sûr. `would_send` exige
+également LIVE et le mode actif ; cette lecture ne déclenche jamais l'envoi. TEST
+reste uniquement prévisualisable. Aucun destinataire, jeton ou secret n'est retourné.
+
+Le mode livré reste `desactive`, avec un responsable configuré séparément par
+l'opérateur. Une dette au mode inconnu ou un SUCCESS sans reçu bloque le CTA/repli.
+Aucun lien n'est créé ; aucun transport WhatsApp n'existe.
+Voir le [guide bilingue](/guides/subscriptions).

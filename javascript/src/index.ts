@@ -366,7 +366,7 @@ import type {
   CreateSubscriptionParams, CreateSubscriptionWithPaymentParams,
   CreateSubscriptionWithPaymentResult, ImportSubscriptionParams,
   Customer, ListCustomersParams, PagePagination, Invoice, CreateInvoiceParams,
-  ListInvoicesParams, InvoicePaymentLinkResult, ListPlansParams, ListSubscriptionsParams, CursorPagination, InvoicePagination,
+  ListInvoicesParams, InvoicePaymentLinkResult, ListPlansParams, ListSubscriptionsParams, CursorPagination, InvoicePagination, ReminderPreview,
 } from './billing';
 
 // ==================== PORTAL ====================
@@ -1119,6 +1119,11 @@ class SubscriptionsAPI {
 
   async retrieve(id: string): Promise<SubscriptionSnapshot> {
     return (await this.client.request('GET', `/v1/billing/subscriptions/${encodeURIComponent(id)}`)).data;
+  }
+
+  /** Requires an already registered key scoped to this application/mode. No sends or writes. */
+  async previewReminder(applicationId: string, subscriptionId: string): Promise<ReminderPreview> {
+    return (await this.client.request('GET', `/v1/billing/applications/${encodeURIComponent(applicationId)}/subscriptions/${encodeURIComponent(subscriptionId)}/reminder-preview`)).data;
   }
 
   async list(params: ListSubscriptionsParams = {}): Promise<{ subscriptions: Subscription[]; pagination: CursorPagination }> {

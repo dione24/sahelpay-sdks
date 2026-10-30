@@ -272,3 +272,13 @@ PAST_DUE. Trials have no grace. Historical trial creation still returns ACTIVE
 with trial_end; retrieve the canonical snapshot before access decisions. New
 fields remain optional for older servers; subscription.cancelled signals
 immediate cancellation with a stable event ID.
+
+### Preview de relance (backend #221)
+
+Lecture seule : JS `subscriptions.previewReminder(applicationId, subscriptionId)`,
+Python `subscriptions.preview_reminder(application_id, subscription_id)`,
+PHP `subscriptions->previewReminder($applicationId, $subscriptionId)`.
+Clé déjà enregistrée et portée application/mode requises (401 sinon, sans migration
+ou modification de clé). TEST prévisualise sans envoi. `email` peut être null ;
+`would_send` reste une prévision, le GET n'envoie jamais. Mode livré `desactive`,
+WhatsApp désactivé et consentement requis ; aucun lien créé ni activation SDK.

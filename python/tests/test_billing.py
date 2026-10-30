@@ -115,3 +115,16 @@ class BillingTests(unittest.TestCase):
             self.assertEqual(result['invoice_status'],'PAID')
             self.assertEqual(request.call_args.kwargs['headers'],{'X-Idempotency-Key':''})
             self.assertNotIn('idempotency_key',request.call_args.args[2])
+
+    def test_reminder_preview_is_one_get_and_preserves_null_email(self):
+        for key in ['reminder_preview','reminder_preview_blocked']:
+            with self.subTest(key=key), patch.object(self.client, '_request', return_value=FIXTURES[key]) as request:
+                self.assertEqual(self.client.subscriptions.preview_reminder('app/fixture','sub/fixture'),FIXTURES[key]['data'])
+                request.assert_called_once_with('GET','/v1/billing/applications/app%2Ffixture/subscriptions/sub%2Ffixture/reminder-preview')
+
+    def test_reminder_preview_propagates_unregistered_key_error_without_recovery_write(self):
+        from sahelpay.exceptions import AuthenticationError
+        with patch.object(self.client,'_request',side_effect=AuthenticationError('Registered key required','INVALID_API_KEY',401)) as request:
+            with self.assertRaises(AuthenticationError):
+                self.client.subscriptions.preview_reminder('app_fixture','sub_fixture')
+            request.assert_called_once()

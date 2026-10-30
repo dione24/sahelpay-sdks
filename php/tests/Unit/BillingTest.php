@@ -123,4 +123,35 @@ final class BillingTest extends TestCase
         $this->assertArrayNotHasKey('idempotency_key', json_decode((string) $history[4]['request']->getBody(), true));
     }
 
+    public function testReadOnlyPreviewAndNullRendering(): void
+    {
+        $f = $this->fixtures();
+        $history = [];
+        $client = $this->client([$f['reminder_preview'], $f['reminder_preview_blocked']], $history);
+        foreach (['reminder_preview', 'reminder_preview_blocked'] as $index => $key) {
+            $this->assertSame($f[$key]['data'], $client->subscriptions->previewReminder('app/fixture', 'sub/fixture')->getData());
+            $this->assertSame('GET', $history[$index]['request']->getMethod());
+            $this->assertSame('/v1/billing/applications/app%2Ffixture/subscriptions/sub%2Ffixture/reminder-preview', $history[$index]['request']->getUri()->getPath());
+            $this->assertSame('', (string) $history[$index]['request']->getBody());
+        }
+        $this->assertCount(2, $history);
+    }
+
+    public function testPreviewRejects401WithoutAnyRecoveryRequest(): void
+    {
+        $history = [];
+        $stack = HandlerStack::create(new MockHandler([new Response(401, [], json_encode([
+            'success' => false, 'error' => ['code' => 'INVALID_API_KEY', 'message' => 'Registered key required'],
+        ]))]));
+        $stack->push(Middleware::history($history));
+        $client = new SahelPay('sk_test_PLACEHOLDER', null, ['handler' => $stack]);
+        $this->expectException(\SahelPay\Exceptions\AuthenticationException::class);
+        try {
+            $client->subscriptions->previewReminder('app_fixture', 'sub_fixture');
+        } finally {
+            $this->assertCount(1, $history);
+            $this->assertSame('GET', $history[0]['request']->getMethod());
+        }
+    }
+
 }

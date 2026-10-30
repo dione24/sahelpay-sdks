@@ -181,6 +181,11 @@ class SubscriptionsAPI(BillingResource):
     def retrieve(self, subscription_id: str) -> SubscriptionSnapshot:
         return self._client._request("GET", "/v1/billing/subscriptions/" + quote(subscription_id, safe="")).get("data", {})
 
+    def preview_reminder(self, application_id: str, subscription_id: str) -> ReminderPreview:
+        """Read-only preview; requires an already registered application/mode key."""
+        path = "/v1/billing/applications/" + quote(application_id, safe="") + "/subscriptions/" + quote(subscription_id, safe="") + "/reminder-preview"
+        return self._client._request("GET", path).get("data", {})
+
     def list(self, status: Optional[SubscriptionStatus] = None, *, take: Optional[int] = None, cursor: Optional[str] = None) -> SubscriptionList:
         return self._client._request("GET", "/v1/billing/subscriptions" + _query(dict(status=status, take=take, cursor=cursor))).get("data", {})
 
@@ -399,3 +404,24 @@ class SendPlanLinkResult(_SendLinkOptional):
     payment_link: Optional[Dict[str, Any]]
     sms_sent: bool
     message: str
+
+class ReminderEmail(TypedDict):
+    subject: str
+    html: str
+    text: str
+
+class ReminderWhatsApp(TypedDict):
+    enabled: Literal[False]
+    consent_required: Literal[True]
+
+class ReminderPreview(TypedDict):
+    application_id: str
+    subscription_id: str
+    livemode: bool
+    mode: Literal['desactive', 'simulation', 'actif']
+    owner: Optional[Literal['sahelpay', 'application']]
+    eligible: bool
+    would_send: bool
+    step: Optional[Literal[1, 5]]
+    email: Optional[ReminderEmail]
+    whatsapp: ReminderWhatsApp

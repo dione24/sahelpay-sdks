@@ -151,3 +151,17 @@ export interface BillingEventPayloads {
   'invoice.paid': InvoicePaidData;
   'subscription.renewed': SubscriptionRenewedData;
 }
+
+/** Read-only rendering. TEST never sends; calling this method never sends in any mode. */
+export interface ReminderPreview {
+  application_id: string;
+  subscription_id: string;
+  livemode: boolean;
+  mode: 'desactive' | 'simulation' | 'actif';
+  owner: 'sahelpay' | 'application' | null;
+  eligible: boolean;
+  would_send: boolean;
+  step: 1 | 5 | null;
+  email: { subject: string; html: string; text: string } | null;
+  whatsapp: { enabled: false; consent_required: true };
+}

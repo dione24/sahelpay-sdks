@@ -3,6 +3,8 @@
 ## 1.3.0 — 2026-10-30
 
 - Add canonical trial/access/grace/calendar fields and subscription.cancelled.
+- Add read-only application-scoped reminder preview, nullable email rendering,
+  existing-key authentication and TEST-only preview semantics; no sends or activation.
 - Add take/cursor SQL pagination across Billing lists, preserving existing returns;
   JS plans.listPage / Python plans.list_page expose outer pagination.
 - Document persistent creation idempotency and nullable settled send-link replays.

@@ -1,6 +1,6 @@
 # Billing contract source
 
-`billing-openapi.json` is the unmodified projection of the 13 supported Billing
+`billing-openapi.json` is the unmodified projection of the 14 supported Billing
 paths and referenced schemas from backend main. `source.revision` pins its commit.
 
 ```sh
@@ -28,3 +28,7 @@ production changes or reminder enablement are performed by the SDK.
 
 PATCH plan bodies are still absent from backend OpenAPI; the existing update fields
 remain sourced from merchant.controller.ts. All response envelopes are formalized.
+
+#221 adds the read-only reminder-preview operation, including registered-key-only
+401 behavior and nullable rendering. Both eligible TEST and blocked/null fixtures
+are schema validated. No SDK operation registers keys, enables or sends reminders.
