@@ -12,10 +12,6 @@ description: "Annuler l'abonnement d'un client"
 DELETE /v1/billing/subscriptions/{id}
 ```
 
-<Warning>
-  Les helpers `subscriptions.cancel()` des SDKs appellent encore `DELETE /v1/subscriptions/{id}`, qui n'existe pas.
-</Warning>
-
 ## Exemple
 
 ```bash
@@ -29,4 +25,4 @@ curl -X DELETE https://api.sahelpay.ml/v1/billing/subscriptions/SUBSCRIPTION_ID 
 { "success": true }
 ```
 
-L'abonnement passe immédiatement à `CANCELLED` ; aucune nouvelle échéance n'est générée. Abonnement inconnu : `400` « Subscription not found ».
+L'abonnement passe immédiatement à `CANCELLED` ; aucune nouvelle échéance n'est générée. Abonnement inconnu : `404` « Subscription not found ».

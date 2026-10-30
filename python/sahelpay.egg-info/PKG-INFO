@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: sahelpay
-Version: 1.1.0
+Version: 1.2.0
 Summary: SDK officiel SahelPay pour Python - Paiements Mobile Money en Afrique de l'Ouest
 Home-page: https://github.com/dione24/sahelpay-sdks
 Author: SahelPay
@@ -81,7 +81,7 @@ Points clés :
 ## Sandbox et production
 
 - **Sandbox** (`sk_test_...`) : gratuite, sans abonnement.
-- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay et **abonnement SahelPay payé en cours** (`403 PAID_SUBSCRIPTION_REQUIRED` sinon). Plafond mensuel live selon le forfait (200 000 FCFA pour Starter et Pro).
+- **Production** (`sk_live_...`) : KYC approuvé, accès production ouvert par SahelPay. Inscription gratuite et sans abonnement : SahelPay facture une commission par transaction réussie. Pas de plafond de forfait : seuls les plafonds KYC s'appliquent.
 
 ## Tests
 
@@ -212,7 +212,7 @@ except sahelpay.AuthenticationError as e:   # 401
     print(f"Clé API invalide: {e.code}")
 except sahelpay.ValidationError as e:       # 400
     print(f"Paramètres invalides: {e.code} - {e.message}")
-except sahelpay.APIError as e:              # autres statuts (403 plafond/abonnement, 409, 503…)
+except sahelpay.APIError as e:              # autres statuts (403 plafond/accès production, 409, 503…)
     print(f"Erreur API: {e.code} - {e.message}")
 except sahelpay.SahelPayError as e:
     print(f"Erreur: {e}")
@@ -227,3 +227,29 @@ except sahelpay.SahelPayError as e:
 ## License
 
 MIT
+
+## Billing 1.2.0
+
+```python
+result = client.subscriptions.create_with_payment(
+    plan_id="PLAN_ID", customer_external_ref="test_user_PLACEHOLDER",
+    external_ref="test_checkout_PLACEHOLDER", idempotency_key="test_checkout_PLACEHOLDER",
+)
+current = client.subscriptions.retrieve(result["subscription"]["id"])
+page = client.invoices.list(subscription_id=current["id"], limit=20, offset=0)
+# page["invoices"], page["pagination"]
+```
+
+Le téléphone est facultatif avec une autre identité client. `trial_end` crée un essai
+avec facture/lien null ; les périodes peuvent être null pour les anciennes lignes.
+ACTIVE ≠ paid : relire abonnement et facture avant les droits payés. Les clés
+`idempotency_key` passent en header ; sur ec4548f, utiliser aussi la référence stable
+`external_ref` + `customer_external_ref` pour un checkout rejouable. Listes clients
+page/limit, factures limit/offset. Guide français/anglais :
+https://docs.sahelpay.ml/guides/subscriptions
+
+Phone is optional with another identity. Trial checkouts have no invoice/payment
+link. ACTIVE is not proof of payment. Verify signatures, deduplicate event IDs and
+retrieve canonical state. Manual Orange Money renewal only, no automatic debit.
+
+Types importables : `sahelpay.billing` (TypedDict, Literal). Les réponses restent des dictionnaires.

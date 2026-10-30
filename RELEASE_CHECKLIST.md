@@ -19,11 +19,11 @@ Use this checklist before publishing new versions.
 ## 3) Contract Parity Smoke Tests
 
 - [ ] JS unit tests: `cd javascript && npm test`
-- [ ] Python smoke: `cd python && SAHELPAY_SECRET_KEY=sk_test_xxx python test_sdk.py`
+- [ ] Python smoke: `cd python && python3 -m unittest discover -s tests -v`
 - [ ] PHP webhook smoke: `cd php && ./vendor/bin/phpunit tests/Unit/WebhookTest.php`
 - [ ] Sandbox payment with an explicit `X-Idempotency-Key` (required by `POST /v1/payments`); replaying the same key returns the same payment.
 - [ ] Simulator run (`mock: true`, amount `4000`, `hosted_checkout: false`) ends `SUCCESS` and delivers a signed `payment.success`.
-- [ ] Every SDK helper hits a route that exists in the backend `openapi.json` (known gaps: `plans` / `subscriptions` / `customers` must target `/v1/billing/*`; `refunds.list` has no route; `withdrawals.create` payload; PHP error parsing reads `code`/`message` at the root instead of under `error`).
+- [ ] Every SDK helper hits a route that exists in the backend `openapi.json` (Billing contract: run `scripts/sync-billing-contract.py <fresh-backend-openapi> --revision <SHA> --check` and the offline SDK tests; do not run network smoke tests with invented contacts).
 - [ ] No helper or doc promises removed rails (Wave, Moov, cards), automatic payouts, online refunds, splits or production OPR.
 
 ## 4) Documentation

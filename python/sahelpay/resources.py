@@ -254,6 +254,7 @@ class WebhookEvent:
     # Identifiant unique de l'événement : dédupliquez sur ce champ.
     id: str = ""
     version: Optional[str] = None
+    livemode: Optional[bool] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "WebhookEvent":
@@ -273,4 +274,5 @@ class WebhookEvent:
             timestamp=data.get("timestamp", ""),
             id=data.get("id") or data.get("event_id") or "",
             version=data.get("version"),
+            livemode=data.get("livemode"),
         )

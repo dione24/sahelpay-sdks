@@ -76,3 +76,15 @@ description: "Codes d'erreur renvoyés par l'API SahelPay"
   Certaines routes renvoient encore `200` avec `{ "success": false, "message": "..." }` quand une ressource
   est introuvable (`GET /v1/payments/{id}/status`, `/details`, `/search`). Testez toujours `success`.
 </Note>
+
+## Billing — SDK 1.2.0
+
+| HTTP | Code courant | Cause / action |
+| --- | --- | --- |
+| 400 | `BAD_REQUEST` / `VALIDATION_ERROR` | Identité manquante, plan inactif, date d'essai invalide ou import hors période courante |
+| 404 | `NOT_FOUND` | Plan, abonnement ou facture absent/hors application ou mode |
+| 409 | `CONFLICT` | Référence externe réutilisée avec d'autres paramètres |
+
+Le SDK conserve le code renvoyé par l'API. `X-Idempotency-Key` seul ne garantit pas
+le rejeu de toutes les créations Billing sur ec4548f : utiliser la référence stable
+de checkout/import. Voir le [contrat Billing](/guides/subscriptions).

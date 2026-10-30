@@ -173,3 +173,12 @@ def webhook(request):
 | `withdrawals.*` | Retraits traités manuellement : demandez-les depuis le dashboard |
 | `has_capability()` & co. | Table statique non fiable : seul `ORANGE_MONEY` est disponible |
 | `gateway_stream` | Flux réservé à l'administration SahelPay |
+
+## Billing 1.2.0
+
+Clients sans téléphone via `customer_external_ref`/`customer_email`/`customer_id`,
+essais (`trial_end`), périodes (`current_period_start/end`), lecture par ID et import.
+Les trois SDK exposent aussi les factures et la pagination. ACTIVE ≠ paid : lire la
+facture et l'abonnement canoniques avant d'accorder des droits payés.
+Voir le [guide Billing français/anglais](/guides/subscriptions) pour les signatures,
+les garanties de rejeu et le parcours TEST sans numéro inventé.

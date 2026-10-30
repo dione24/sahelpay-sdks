@@ -36,7 +36,9 @@ class Plan
     {
         $this->validateRequired($data, ['name', 'amount', 'interval']);
 
-        return $this->client->post('/billing/plans', $data);
+        $key = $data['idempotency_key'] ?? null;
+        unset($data['idempotency_key']);
+        return $this->client->post('/billing/plans', $data, $key ? ['X-Idempotency-Key' => $key] : []);
     }
 
     /**
@@ -80,11 +82,13 @@ class Plan
      * Créer un abonnement INCOMPLETE et un lien de paiement.
      * POST /v1/billing/plans/:id/send-link
      */
-    public function sendLink(string $planId, string $customerPhone): Response
+    public function sendLink(string $planId, string|array $customer): Response
     {
-        return $this->client->post('/billing/plans/' . rawurlencode($planId) . '/send-link', [
-            'customer_phone' => $customerPhone,
-        ]);
+        $data = is_string($customer) ? ['customer_phone' => $customer] : $customer;
+        $key = $data['idempotency_key'] ?? null;
+        unset($data['idempotency_key']);
+        return $this->client->post('/billing/plans/' . rawurlencode($planId) . '/send-link', $data,
+            $key ? ['X-Idempotency-Key' => $key] : []);
     }
 
     private function validateRequired(array $data, array $required): void

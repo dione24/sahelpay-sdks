@@ -5,7 +5,7 @@ description: "SDK PHP pour SahelPay"
 
 # PHP SDK
 
-Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP 8+ et Laravel.
+Le SDK PHP officiel pour intégrer SahelPay dans vos applications PHP 8.1+ et Laravel.
 
 ## Installation
 
@@ -188,3 +188,12 @@ public function handle(Request $request, SahelPay $sahelpay)
 | `transactions->get()` | Appelle l'endpoint public de statut ; préférez `payments->verify()` |
 
 Les plans, abonnements et clients passent par `/v1/billing/*`.
+
+## Billing 1.2.0
+
+Clients sans téléphone via `customer_external_ref`/`customer_email`/`customer_id`,
+essais (`trial_end`), périodes (`current_period_start/end`), lecture par ID et import.
+Les trois SDK exposent aussi les factures et la pagination. ACTIVE ≠ paid : lire la
+facture et l'abonnement canoniques avant d'accorder des droits payés.
+Voir le [guide Billing français/anglais](/guides/subscriptions) pour les signatures,
+les garanties de rejeu et le parcours TEST sans numéro inventé.

@@ -39,7 +39,7 @@ export {
   type ProviderCapabilities,
 } from './capabilities';
 
-export const SDK_VERSION = '1.1.0';
+export const SDK_VERSION = '1.2.0';
 
 async function generateIdempotencyKey(explicit?: string): Promise<string> {
   if (explicit) return explicit;
@@ -300,8 +300,9 @@ export type WebhookEventType =
   | 'payment.failed'
   | 'payment.pending'
   | 'payment.expired'
-  | 'payment.cancelled'
   | 'payment.updated'
+  /** @deprecated Historical handler compatibility; not emitted by the current API. */
+  | 'payment.cancelled'
   | 'refund.pending'
   | 'secure_order.paid'
   | 'secure_order.released'
@@ -314,15 +315,22 @@ export type WebhookEventType =
   | 'invoice.paid'
   | 'webhook.test';
 
-export interface WebhookEvent {
-  /** Identifiant unique de l'événement : dédupliquez sur ce champ. */
+export interface WebhookEnvelope<T extends string, D> {
   id: string;
-  /** Les événements ajoutés plus tard arrivent comme des chaînes : ignorez ceux que vous ne gérez pas. */
-  event: WebhookEventType | (string & {});
+  event: T;
   version?: string;
-  data: Payment | Payout | SubscriptionWebhookData | Refund | Record<string, any>;
+  livemode?: boolean;
+  data: D;
   timestamp: string;
 }
+
+export type BillingWebhookEvent = {
+  [K in keyof import('./billing').BillingEventPayloads]: WebhookEnvelope<K, import('./billing').BillingEventPayloads[K]>
+}[keyof import('./billing').BillingEventPayloads];
+
+/** Narrow event.event before reading data; ignore unhandled future event names. */
+export type WebhookEvent = BillingWebhookEvent
+  | WebhookEnvelope<Exclude<WebhookEventType, keyof import('./billing').BillingEventPayloads>, Record<string, any>>;
 
 // ==================== REFUNDS ====================
 
@@ -349,145 +357,16 @@ export interface CreateRefundParams {
   idempotency_key?: string;
 }
 
-// ==================== PLANS ====================
-
-export type PlanInterval = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-
-export interface Plan {
-  id: string;
-  name: string;
-  description?: string | null;
-  amount: number;
-  currency: string;
-  interval: PlanInterval;
-  is_active: boolean;
-  /** Renvoyé par `plans.list()` uniquement. */
-  subscriber_count?: number;
-  created_at: string;
-}
-
-export interface CreatePlanParams {
-  name: string;
-  amount: number;
-  interval: 'WEEKLY' | 'MONTHLY';
-  description?: string;
-}
-
-export interface UpdatePlanParams {
-  name?: string;
-  description?: string;
-  amount?: number;
-  is_active?: boolean;
-}
-
-export interface DeletePlanResult {
-  /** false si le plan avait déjà des abonnements : il est alors seulement désactivé. */
-  deleted: boolean;
-  is_active?: boolean;
-  message?: string;
-}
-
-export interface SendPlanLinkResult {
-  subscription_id: string;
-  invoice_id: string;
-  payment_link: {
-    id: string;
-    url: string;
-    amount: number;
-  };
-  sms_sent: boolean;
-  message: string;
-}
-
-// ==================== SUBSCRIPTIONS ====================
-
-export type SubscriptionStatus = 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'INCOMPLETE';
-
-export interface Subscription {
-  id: string;
-  /** Renvoyé par `subscriptions.create()` ; dans `list()`, utilisez `plan.id`. */
-  plan_id?: string;
-  plan_name?: string;
-  customer_phone: string;
-  status: SubscriptionStatus;
-  next_billing_date: string;
-  plan?: {
-    id: string;
-    name: string;
-    amount: number;
-    interval: string;
-  };
-  created_at: string;
-}
-
-export interface CreateSubscriptionParams {
-  plan_id: string;
-  customer_phone: string;
-  start_date?: string; // ISO date, defaults to now
-}
-
-export interface CreateSubscriptionWithPaymentResult {
-  subscription: {
-    id: string;
-    plan_id: string;
-    plan_name: string;
-    plan_amount: number;
-    customer_phone: string;
-    /** `INCOMPLETE` jusqu'au paiement de la première facture. */
-    status: SubscriptionStatus;
-    next_billing_date: string;
-    created_at: string;
-  };
-  invoice: {
-    id: string;
-    invoice_number: string;
-    status: string;
-    total: number;
-    amount_due: number;
-  };
-  payment_link: {
-    id: string;
-    url: string;
-    amount: number;
-  };
-}
-
-export interface SubscriptionWebhookData {
-  subscription_id: string;
-  plan_id: string;
-  plan_name: string;
-  customer_phone: string;
-  amount: number;
-  currency: string;
-  payment_link_id: string;
-  payment_url: string;
-  billing_date: string;
-  expires_at?: string;
-}
-
-// ==================== CUSTOMERS ====================
-
-/**
- * Client final d'un marchand. Créé automatiquement par SahelPay (abonnement,
- * lien de plan, session portail) : il n'y a pas d'API de création directe.
- */
-export interface Customer {
-  id: string;
-  phone: string;
-  name?: string | null;
-  email?: string | null;
-  transaction_count: number;
-  total_spent: number;
-  last_transaction_at?: string | null;
-  created_at: string;
-}
-
-export interface ListCustomersParams {
-  /** Filtre sur téléphone, nom ou e-mail. */
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+// Billing contracts are maintained together in billing.ts.
+export * from './billing';
+import type {
+  Plan, CreatePlanParams, UpdatePlanParams, DeletePlanResult, SendPlanLinkResult,
+  CustomerIdentity, Subscription, SubscriptionStatus, SubscriptionSnapshot,
+  CreateSubscriptionParams, CreateSubscriptionWithPaymentParams,
+  CreateSubscriptionWithPaymentResult, ImportSubscriptionParams,
+  Customer, ListCustomersParams, PagePagination, Invoice, CreateInvoiceParams,
+  ListInvoicesParams, InvoicePaymentLinkResult,
+} from './billing';
 
 // ==================== PORTAL ====================
 
@@ -1133,7 +1012,8 @@ class PlansAPI {
    * POST /v1/billing/plans
    */
   async create(params: CreatePlanParams): Promise<Plan> {
-    const response = await this.client.request('POST', '/v1/billing/plans', params);
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', '/v1/billing/plans', body, billingOptions(idempotency_key));
     return response.data;
   }
 
@@ -1175,8 +1055,9 @@ class PlansAPI {
    * Créer un abonnement INCOMPLETE et un lien de paiement pour un client.
    * POST /v1/billing/plans/:id/send-link
    */
-  async sendLink(id: string, params: { customer_phone: string }): Promise<SendPlanLinkResult> {
-    const response = await this.client.request('POST', `/v1/billing/plans/${id}/send-link`, params);
+  async sendLink(id: string, params: CustomerIdentity & { idempotency_key?: string }): Promise<SendPlanLinkResult> {
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', `/v1/billing/plans/${encodeURIComponent(id)}/send-link`, body, billingOptions(idempotency_key));
     return response.data;
   }
 
@@ -1216,75 +1097,73 @@ class PlansAPI {
 
 // ==================== SUBSCRIPTIONS API ====================
 
+function billingOptions(key?: string): { headers?: Record<string, string> } {
+  return key ? { headers: { 'X-Idempotency-Key': key } } : {};
+}
+
 class SubscriptionsAPI {
   constructor(private client: SahelPayClient) {}
 
-  /**
-   * Créer un nouvel abonnement
-   * @example
-   * ```typescript
-   * const subscription = await sahelpay.subscriptions.create({
-   *   plan_id: 'plan_xxx',
-   *   customer_phone: '+22370000000',
-   * });
-   * ```
-   */
+  /** Schedule billing. ACTIVE alone is not evidence of payment. */
   async create(params: CreateSubscriptionParams): Promise<Subscription> {
-    const response = await this.client.request('POST', '/v1/billing/subscriptions', params);
+    const { idempotency_key, ...body } = params;
+    const response = await this.client.request('POST', '/v1/billing/subscriptions', body, billingOptions(idempotency_key));
     return response.data;
   }
 
-  /**
-   * Lister tous les abonnements
-   * GET /v1/billing/subscriptions
-   */
-  async list(params?: {
-    status?: SubscriptionStatus;
-  }): Promise<{ subscriptions: Subscription[]; pagination: any }> {
-    const query = new URLSearchParams();
-    if (params?.status) query.set('status', params.status);
-
-    const qs = query.toString();
-    const response = await this.client.request('GET', `/v1/billing/subscriptions${qs ? `?${qs}` : ''}`);
-    return response.data;
+  async retrieve(id: string): Promise<SubscriptionSnapshot> {
+    return (await this.client.request('GET', `/v1/billing/subscriptions/${encodeURIComponent(id)}`)).data;
   }
 
-  /**
-   * Annuler un abonnement
-   * DELETE /v1/billing/subscriptions/:id
-   */
+  async list(params: { status?: SubscriptionStatus } = {}): Promise<{ subscriptions: Subscription[]; pagination: { total: number } }> {
+    return (await this.client.request('GET', `/v1/billing/subscriptions${toQuery(params)}`)).data;
+  }
+
   async cancel(id: string): Promise<{ success: boolean }> {
-    const response = await this.client.request('DELETE', `/v1/billing/subscriptions/${id}`);
-    return response;
+    return this.client.request('DELETE', `/v1/billing/subscriptions/${encodeURIComponent(id)}`);
   }
 
-  /**
-   * Créer un abonnement avec lien de paiement immédiat
-   * 
-   * Cette méthode crée un abonnement ET génère un lien de paiement en une seule requête.
-   * Idéal pour les intégrations SaaS où vous voulez envoyer immédiatement un lien de paiement.
-   * 
-   * @example
-   * ```typescript
-   * const result = await sahelpay.subscriptions.createWithPayment({
-   *   plan_id: 'plan_xxx',
-   *   customer_phone: '+22370000000',
-   *   redirect_url: 'https://myapp.com/billing?success=true',
-   *   metadata: { organization_id: 'org_123' },
-   * });
-   * 
-   * console.log(result.subscription.id);
-   * console.log(result.payment_link.url); // URL à envoyer au client
-   * ```
-   */
-  async createWithPayment(params: {
-    plan_id: string;
-    customer_phone: string;
-    redirect_url?: string;
-    metadata?: Record<string, any>;
-  }): Promise<CreateSubscriptionWithPaymentResult> {
-    const response = await this.client.request('POST', '/v1/billing/subscriptions/with-payment', params);
-    return response.data;
+  /** Trials return invoice=null and payment_link=null. */
+  async createWithPayment(params: CreateSubscriptionWithPaymentParams): Promise<CreateSubscriptionWithPaymentResult> {
+    const { idempotency_key, ...body } = params;
+    return (await this.client.request('POST', '/v1/billing/subscriptions/with-payment', body, billingOptions(idempotency_key))).data;
+  }
+
+  /** Import a current paid period or trial. Requires an application API key. */
+  async import(params: ImportSubscriptionParams): Promise<SubscriptionSnapshot> {
+    const { idempotency_key, ...body } = params;
+    return (await this.client.request('POST', '/v1/billing/subscriptions/import', body, billingOptions(idempotency_key))).data;
+  }
+}
+
+class InvoicesAPI {
+  constructor(private client: SahelPayClient) {}
+
+  async create(params: CreateInvoiceParams): Promise<Invoice> {
+    const { idempotency_key, ...body } = params;
+    return (await this.client.request('POST', '/v1/billing/invoices', body, billingOptions(idempotency_key))).data;
+  }
+
+  /** Invoice pagination lives outside data in the API response. */
+  async list(params: ListInvoicesParams = {}): Promise<{ invoices: Invoice[]; pagination: { total: number; limit: number; offset: number } }> {
+    const response = await this.client.request('GET', `/v1/billing/invoices${toQuery({ ...params })}`);
+    return { invoices: response.data, pagination: response.pagination };
+  }
+
+  async retrieve(id: string): Promise<Invoice> {
+    return (await this.client.request('GET', `/v1/billing/invoices/${encodeURIComponent(id)}`)).data;
+  }
+
+  async open(id: string): Promise<Invoice> {
+    return (await this.client.request('PATCH', `/v1/billing/invoices/${encodeURIComponent(id)}/open`)).data;
+  }
+
+  async void(id: string): Promise<Invoice> {
+    return (await this.client.request('PATCH', `/v1/billing/invoices/${encodeURIComponent(id)}/void`)).data;
+  }
+
+  async generatePaymentLink(id: string): Promise<InvoicePaymentLinkResult> {
+    return (await this.client.request('POST', `/v1/billing/invoices/${encodeURIComponent(id)}/payment-link`)).data;
   }
 }
 
@@ -1300,7 +1179,7 @@ class CustomersAPI {
    * Les clients sont créés automatiquement (abonnement, lien de plan, session
    * portail) : il n'y a pas d'API de création, mise à jour ou suppression.
    */
-  async list(params?: ListCustomersParams): Promise<{ customers: Customer[]; pagination: any }> {
+  async list(params?: ListCustomersParams): Promise<{ customers: Customer[]; pagination: PagePagination }> {
     const query = new URLSearchParams();
     if (params?.search) query.set('search', params.search);
     if (params?.page) query.set('page', params.page.toString());
@@ -1959,6 +1838,7 @@ export class SahelPay {
   public refunds: RefundsAPI;
   public plans: PlansAPI;
   public subscriptions: SubscriptionsAPI;
+  public invoices: InvoicesAPI;
   public customers: CustomersAPI;
   public portal: PortalAPI;
   public secureOrders: SecureOrdersAPI;
@@ -1977,6 +1857,7 @@ export class SahelPay {
     this.refunds = new RefundsAPI(this.client);
     this.plans = new PlansAPI(this.client);
     this.subscriptions = new SubscriptionsAPI(this.client);
+    this.invoices = new InvoicesAPI(this.client);
     this.customers = new CustomersAPI(this.client);
     this.portal = new PortalAPI(this.client);
     this.secureOrders = new SecureOrdersAPI(this.client);
