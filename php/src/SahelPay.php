@@ -11,6 +11,7 @@ use SahelPay\Resources\Payout;
 use SahelPay\Resources\Transaction;
 use SahelPay\Resources\Webhook;
 use SahelPay\Resources\Plan;
+use SahelPay\Resources\Invoice;
 use SahelPay\Resources\Subscription;
 use SahelPay\Resources\Customer;
 use SahelPay\Resources\Portal;
@@ -45,6 +46,7 @@ class SahelPay
     public Transaction $transactions;
     public Webhook $webhooks;
     public Plan $plans;
+    public Invoice $invoices;
     public Subscription $subscriptions;
     public Customer $customers;
     public Portal $portal;
@@ -95,6 +97,7 @@ class SahelPay
         $this->transactions = new Transaction($this->client);
         $this->webhooks = new Webhook($this->config, $this->client);
         $this->plans = new Plan($this->client);
+        $this->invoices = new Invoice($this->client);
         $this->subscriptions = new Subscription($this->client);
         $this->customers = new Customer($this->client);
         $this->portal = new Portal($this->client);

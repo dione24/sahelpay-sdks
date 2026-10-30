@@ -27,15 +27,20 @@ class Subscription
      *
      * @param array{
      *   plan_id: string,
-     *   customer_phone: string,
+     *   customer_phone?: string,
+     *   customer_id?: string,
+     *   customer_external_ref?: string,
+     *   customer_email?: string,
+     *   trial_end?: string,
+     *   idempotency_key?: string,
      *   start_date?: string
      * } $data
      */
     public function create(array $data): Response
     {
-        $this->validateRequired($data, ['plan_id', 'customer_phone']);
+        $this->validateRequired($data, ['plan_id']);
 
-        return $this->client->post('/billing/subscriptions', $data);
+        return $this->write('/billing/subscriptions', $data);
     }
 
     /**
@@ -44,16 +49,21 @@ class Subscription
      *
      * @param array{
      *   plan_id: string,
-     *   customer_phone: string,
+     *   customer_phone?: string,
+     *   customer_id?: string,
+     *   customer_external_ref?: string,
+     *   customer_email?: string,
+     *   trial_end?: string,
+     *   idempotency_key?: string,
      *   redirect_url?: string,
      *   metadata?: array
      * } $data
      */
     public function createWithPayment(array $data): Response
     {
-        $this->validateRequired($data, ['plan_id', 'customer_phone']);
+        $this->validateRequired($data, ['plan_id']);
 
-        return $this->client->post('/billing/subscriptions/with-payment', $data);
+        return $this->write('/billing/subscriptions/with-payment', $data);
     }
 
     /**
@@ -76,6 +86,26 @@ class Subscription
     public function cancel(string $subscriptionId): Response
     {
         return $this->client->delete('/billing/subscriptions/' . rawurlencode($subscriptionId));
+    }
+
+    /** Canonical period, identity and current invoice link. */
+    public function retrieve(string $id): Response
+    {
+        return $this->client->get('/billing/subscriptions/' . rawurlencode($id));
+    }
+
+    /** Import an existing current period; application key + customer_external_ref required. */
+    public function importPeriod(array $data): Response
+    {
+        $this->validateRequired($data, ['plan_id', 'external_ref', 'customer_external_ref', 'current_period_start', 'current_period_end']);
+        return $this->write('/billing/subscriptions/import', $data);
+    }
+
+    private function write(string $path, array $data): Response
+    {
+        $key = $data['idempotency_key'] ?? null;
+        unset($data['idempotency_key']);
+        return $this->client->post($path, $data, $key ? ['X-Idempotency-Key' => $key] : []);
     }
 
     private function validateRequired(array $data, array $required): void

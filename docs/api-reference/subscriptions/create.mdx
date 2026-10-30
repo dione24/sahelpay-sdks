@@ -1,72 +1,33 @@
 ---
 title: Créer un abonnement
 api: POST /v1/billing/subscriptions
-description: "Abonner un client à un plan"
+description: "Identité sans téléphone, essai explicite et checkout"
 ---
 
-# Créer un abonnement
+`POST /v1/billing/subscriptions/with-payment` crée un abonnement et le premier
+lien de paiement. `POST /v1/billing/subscriptions` prépare seulement le calendrier.
+Voir le [guide Billing bilingue](/guides/subscriptions) pour la sémantique ACTIVE ≠ paid.
 
-<Warning>
-  Les helpers `subscriptions.create()` / `createWithPayment()` des SDKs appellent encore `/v1/subscriptions`,
-  qui n'existe pas. Utilisez les appels HTTP ci-dessous.
-</Warning>
+| Champ | Requis | Description |
+| --- | --- | --- |
+| `plan_id` | Oui | Plan actif dans l'application et le mode de la clé |
+| `customer_id`, `customer_external_ref`, `customer_email`, `customer_phone` | Au moins un | Téléphone facultatif |
+| `customer_name` | Non | Nom du client |
+| `trial_end` | Non | Fin d'essai ISO UTC future ; checkout sans facture/lien pendant l'essai |
+| `start_date` | Non | Première échéance ; création simple uniquement |
+| `external_ref` | Non | Référence stable de checkout ; avec `customer_external_ref`, sans ID/téléphone |
+| `redirect_url`, `metadata` | Non | Checkout uniquement |
 
-## Avec premier lien de paiement (recommandé)
-
-```
-POST /v1/billing/subscriptions/with-payment
-```
-
-| Paramètre | Type | Requis | Description |
-|-----------|------|--------|-------------|
-| `plan_id` | string | ✅ | Plan actif |
-| `customer_phone` | string | ✅ | Téléphone du client |
-| `redirect_url` | string | | Retour après paiement |
-| `metadata` | object | | Données libres, copiées sur la facture |
-
-L'abonnement est créé `INCOMPLETE` et devient `ACTIVE` après le premier paiement.
-
-```bash
-curl -X POST https://api.sahelpay.ml/v1/billing/subscriptions/with-payment \
-  -H "Authorization: Bearer sk_test_xxx" \
-  -H "Content-Type: application/json" \
-  -d '{ "plan_id": "PLAN_ID", "customer_phone": "+22370123456" }'
+```typescript
+const result = await api.subscriptions.createWithPayment({
+  plan_id: 'PLAN_ID', customer_external_ref: 'test_user_PLACEHOLDER',
+  external_ref: 'test_checkout_PLACEHOLDER', idempotency_key: 'test_checkout_PLACEHOLDER',
+});
+// result.invoice et result.payment_link peuvent être null.
 ```
 
-```json
-{
-  "success": true,
-  "data": {
-    "subscription": {
-      "id": "...",
-      "plan_id": "PLAN_ID",
-      "plan_name": "Premium Mensuel",
-      "plan_amount": 10000,
-      "customer_phone": "+22370123456",
-      "status": "INCOMPLETE",
-      "next_billing_date": "2026-10-03T10:00:00.000Z",
-      "created_at": "2026-10-03T10:00:00.000Z"
-    },
-    "invoice": { "id": "...", "invoice_number": "...", "status": "OPEN", "total": 10000, "amount_due": 10000 },
-    "payment_link": { "id": "...", "url": "https://pay.sahelpay.africa/<slug>", "amount": 10000 }
-  }
-}
-```
+L'option SDK `idempotency_key` est un en-tête, pas un champ JSON. Consultez les
+garanties de rejeu dans le guide. Les deux créations exposent `trial_end`,
+`current_period_start/end` et `next_billing_date`. `ACTIVE` ne prouve pas le paiement.
 
-## Sans paiement immédiat
-
-```
-POST /v1/billing/subscriptions
-```
-
-| Paramètre | Type | Requis | Description |
-|-----------|------|--------|-------------|
-| `plan_id` | string | ✅ | Plan actif |
-| `customer_phone` | string | ✅ | Téléphone du client |
-| `start_date` | string | | Date ISO de première échéance (défaut : maintenant) |
-
-Crée directement un abonnement `ACTIVE`. Réponse : `id`, `plan_id`, `plan_name`, `customer_phone`, `status`, `next_billing_date`, `created_at`.
-
-## Erreurs
-
-`400` « Plan not found » ou « Plan inactive ».
+Erreurs : 400 validation/plan inactif, 404 plan absent ou hors périmètre, 409 conflit.

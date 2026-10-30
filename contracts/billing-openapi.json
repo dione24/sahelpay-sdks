@@ -1,0 +1,684 @@
+{
+  "openapi": "3.0.0",
+  "source": {
+    "repository": "dione24/sahelPay",
+    "revision": "ec4548f11b228f9c1f28167536b63990623bd931"
+  },
+  "paths": {
+    "/v1/billing/invoices": {
+      "post": {
+        "description": "merchant_id, livemode and the application mode are decided by the server from the credentials; unknown fields such as merchant_id or livemode are rejected (400).",
+        "operationId": "createInvoice",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create an invoice",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      },
+      "get": {
+        "operationId": "listInvoices",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "OPEN",
+                "PAID",
+                "VOIDED",
+                "PAST_DUE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscription_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List invoices",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      }
+    },
+    "/v1/billing/invoices/{id}": {
+      "get": {
+        "operationId": "getInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get invoice by ID",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      }
+    },
+    "/v1/billing/invoices/{id}/open": {
+      "patch": {
+        "operationId": "openInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Open an invoice (DRAFT → OPEN)",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      }
+    },
+    "/v1/billing/invoices/{id}/payment-link": {
+      "post": {
+        "operationId": "generatePaymentLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Generate payment link for an invoice",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      }
+    },
+    "/v1/billing/invoices/{id}/void": {
+      "patch": {
+        "operationId": "voidInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Void an invoice",
+        "tags": [
+          "Billing - Invoices"
+        ]
+      }
+    },
+    "/v1/billing/plans": {
+      "get": {
+        "operationId": "listPlans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List merchant subscription plans (for billing customers)",
+        "tags": [
+          "Merchant"
+        ]
+      },
+      "post": {
+        "operationId": "createPlan",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a subscription plan (for billing customers)",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/plans/{id}": {
+      "patch": {
+        "operationId": "updatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update a subscription plan",
+        "tags": [
+          "Merchant"
+        ]
+      },
+      "delete": {
+        "operationId": "deletePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete a subscription plan",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/plans/{id}/send-link": {
+      "post": {
+        "operationId": "sendPlanLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string",
+                    "description": "Identifiant client de cette application"
+                  },
+                  "customer_phone": {
+                    "type": "string",
+                    "description": "Téléphone facultatif si une autre identité est fournie"
+                  },
+                  "customer_external_ref": {
+                    "type": "string",
+                    "description": "Référence externe unique dans cette application"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "customer_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_phone"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_external_ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_email"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send payment link for a plan subscription",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/subscriptions": {
+      "get": {
+        "operationId": "listSubscriptions",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List customer subscriptions",
+        "tags": [
+          "Merchant"
+        ]
+      },
+      "post": {
+        "operationId": "createSubscription",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan_id"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "customer_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_phone"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_external_ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_email"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "customer_id": {
+                    "type": "string",
+                    "description": "Identifiant client de cette application"
+                  },
+                  "customer_phone": {
+                    "type": "string",
+                    "description": "Téléphone facultatif si une autre identité est fournie"
+                  },
+                  "customer_external_ref": {
+                    "type": "string",
+                    "description": "Référence externe unique dans cette application"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  },
+                  "plan_id": {
+                    "type": "string"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "trial_end": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a subscription for a customer",
+        "tags": [
+          "Merchant"
+        ],
+        "description": "Abonnement de vos clients, distinct de votre accès marchand à SahelPay. Une identité client est requise ; le téléphone est facultatif si customer_id, customer_external_ref ou customer_email est fourni. ACTIVE ne prouve pas un paiement : la première facture est préparée par le worker horaire à start_date (maintenant si omis), ou à trial_end pour un essai explicite. Les périodes sont indicatives avant règlement complet. Aucun prélèvement automatique. Cette création ne garantit pas un rejeu idempotent via X-Idempotency-Key."
+      }
+    },
+    "/v1/billing/subscriptions/with-payment": {
+      "post": {
+        "description": "Creates a subscription and generates a payment link in one request. Dev-friendly for SaaS integrations.",
+        "operationId": "createSubscriptionWithPayment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan_id"
+                ],
+                "anyOf": [
+                  {
+                    "required": [
+                      "customer_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_phone"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_external_ref"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "customer_email"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "customer_id": {
+                    "type": "string",
+                    "description": "Identifiant client de cette application"
+                  },
+                  "customer_phone": {
+                    "type": "string",
+                    "description": "Téléphone facultatif si une autre identité est fournie"
+                  },
+                  "customer_external_ref": {
+                    "type": "string",
+                    "description": "Référence externe unique dans cette application"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  },
+                  "plan_id": {
+                    "type": "string"
+                  },
+                  "trial_end": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "redirect_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create subscription with immediate payment link",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/subscriptions/{id}": {
+      "delete": {
+        "operationId": "cancelSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Cancel a subscription",
+        "tags": [
+          "Merchant"
+        ],
+        "description": "Passe immédiatement l’abonnement à CANCELLED. Aucune annulation à fin de période ni notification subscription.cancelled n’est émise par cette route. La politique d’accès de votre client reste à gérer dans votre application."
+      }
+    },
+    "/v1/billing/customers": {
+      "get": {
+        "operationId": "listCustomers",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List customers",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,348 @@
+{
+  "source": {
+    "repository": "dione24/sahelPay",
+    "revision": "ec4548f",
+    "kind": "source-derived synthetic response recordings; no customer traffic"
+  },
+  "plan": {
+    "success": true,
+    "data": {
+      "id": "plan_fixture",
+      "name": "Premium",
+      "description": null,
+      "amount": 4000,
+      "currency": "XOF",
+      "interval": "QUARTERLY",
+      "is_active": true,
+      "created_at": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  "subscription": {
+    "success": true,
+    "data": {
+      "id": "sub_fixture",
+      "plan_id": "plan_fixture",
+      "customer_phone": null,
+      "customer_id": "cus_fixture",
+      "status": "ACTIVE",
+      "next_billing_date": "2026-11-30T00:00:00.000Z",
+      "created_at": "2026-10-30T00:00:00.000Z",
+      "current_period_start": "2026-10-30T00:00:00.000Z",
+      "current_period_end": "2026-11-30T00:00:00.000Z",
+      "trial_end": "2026-11-30T00:00:00.000Z",
+      "plan_name": "Premium"
+    }
+  },
+  "snapshot": {
+    "success": true,
+    "data": {
+      "id": "sub_fixture",
+      "external_ref": "checkout_fixture",
+      "livemode": false,
+      "application_id": "app_fixture",
+      "customer": {
+        "id": "cus_fixture",
+        "external_ref": "fixture_user",
+        "email": null
+      },
+      "plan_id": "plan_fixture",
+      "plan": {
+        "amount": 4000,
+        "currency": "XOF",
+        "interval": "QUARTERLY"
+      },
+      "status": "ACTIVE",
+      "updated_at": "2026-10-30T00:00:00.000Z",
+      "next_billing_date": "2026-11-30T00:00:00.000Z",
+      "past_due_since": null,
+      "payment_url": null,
+      "invoice_id": null,
+      "current_period_start": "2026-10-30T00:00:00.000Z",
+      "current_period_end": "2026-11-30T00:00:00.000Z",
+      "trial_end": "2026-11-30T00:00:00.000Z"
+    }
+  },
+  "trial_checkout": {
+    "success": true,
+    "data": {
+      "subscription": {
+        "id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "customer_phone": null,
+        "customer_id": "cus_fixture",
+        "status": "ACTIVE",
+        "next_billing_date": "2026-11-30T00:00:00.000Z",
+        "created_at": "2026-10-30T00:00:00.000Z",
+        "current_period_start": "2026-10-30T00:00:00.000Z",
+        "current_period_end": "2026-11-30T00:00:00.000Z",
+        "trial_end": "2026-11-30T00:00:00.000Z"
+      },
+      "invoice": null,
+      "payment_link": null
+    }
+  },
+  "paid_checkout_replay": {
+    "success": true,
+    "data": {
+      "subscription": {
+        "id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "status": "ACTIVE"
+      },
+      "invoice": {
+        "id": "inv_fixture",
+        "status": "PAID"
+      },
+      "payment_link": null
+    }
+  },
+  "invoice": {
+    "success": true,
+    "data": {
+      "id": "inv_fixture",
+      "invoice_number": "INV-FIXTURE",
+      "merchant_id": "merchant_fixture",
+      "application_id": "app_fixture",
+      "livemode": false,
+      "customer_id": "cus_fixture",
+      "subscription_id": "sub_fixture",
+      "status": "OPEN",
+      "subtotal": 4000,
+      "tax_amount": 0,
+      "total": 4000,
+      "amount_paid": 0,
+      "amount_due": 4000,
+      "currency": "XOF",
+      "issue_date": "2026-10-30T00:00:00.000Z",
+      "due_date": "2026-11-30T00:00:00.000Z",
+      "paid_at": null,
+      "payment_link_id": null,
+      "payment_url": null,
+      "description": null,
+      "notes": null,
+      "metadata": null,
+      "lines": [
+        {
+          "id": "line_fixture",
+          "description": "Premium",
+          "quantity": 1,
+          "unit_price": 4000,
+          "amount": 4000,
+          "line_type": "STANDARD",
+          "metadata": null
+        }
+      ],
+      "payments": [],
+      "created_at": "2026-10-30T00:00:00.000Z",
+      "updated_at": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  "invoices": {
+    "success": true,
+    "data": [
+      {
+        "id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "merchant_id": "merchant_fixture",
+        "application_id": "app_fixture",
+        "livemode": false,
+        "customer_id": "cus_fixture",
+        "subscription_id": "sub_fixture",
+        "status": "OPEN",
+        "subtotal": 4000,
+        "tax_amount": 0,
+        "total": 4000,
+        "amount_paid": 0,
+        "amount_due": 4000,
+        "currency": "XOF",
+        "issue_date": "2026-10-30T00:00:00.000Z",
+        "due_date": "2026-11-30T00:00:00.000Z",
+        "paid_at": null,
+        "payment_link_id": null,
+        "payment_url": null,
+        "description": null,
+        "notes": null,
+        "metadata": null,
+        "lines": [
+          {
+            "id": "line_fixture",
+            "description": "Premium",
+            "quantity": 1,
+            "unit_price": 4000,
+            "amount": 4000,
+            "line_type": "STANDARD",
+            "metadata": null
+          }
+        ],
+        "payments": [],
+        "created_at": "2026-10-30T00:00:00.000Z",
+        "updated_at": "2026-10-30T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "total": 3,
+      "limit": 1,
+      "offset": 1
+    }
+  },
+  "customers": {
+    "success": true,
+    "data": {
+      "customers": [
+        {
+          "id": "cus_fixture",
+          "application_id": "app_fixture",
+          "external_ref": "fixture_user",
+          "phone": null,
+          "name": null,
+          "email": null,
+          "transaction_count": 0,
+          "total_spent": 0,
+          "last_transaction_at": null,
+          "created_at": "2026-10-30T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "total": 3,
+        "page": 2,
+        "limit": 1,
+        "pages": 3
+      }
+    }
+  },
+  "cancel": {
+    "success": true
+  },
+  "events": [
+    {
+      "id": "evt_fixture_subscription_payment_due",
+      "event": "subscription.payment_due",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "version": "v1",
+      "data": {
+        "subscription_id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "plan_name": "Premium",
+        "customer_phone": null,
+        "customer_id": "cus_fixture",
+        "amount": 4000,
+        "currency": "XOF",
+        "payment_link_id": "link_fixture",
+        "payment_url": "https://pay.sahelpay.ml/FIXTURE",
+        "invoice_id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "billing_date": "2026-10-30T00:00:00.000Z",
+        "due_date": "2026-11-30T00:00:00.000Z",
+        "default_payment_method": null
+      }
+    },
+    {
+      "id": "evt_fixture_invoice_created",
+      "event": "invoice.created",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "version": "v1",
+      "data": {
+        "subscription_id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "plan_name": "Premium",
+        "customer_phone": null,
+        "customer_id": "cus_fixture",
+        "amount": 4000,
+        "currency": "XOF",
+        "payment_link_id": "link_fixture",
+        "payment_url": "https://pay.sahelpay.ml/FIXTURE",
+        "invoice_id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "due_date": "2026-11-30T00:00:00.000Z",
+        "default_payment_method": null,
+        "amount_due": 4000
+      }
+    },
+    {
+      "id": "evt_fixture_invoice_paid",
+      "event": "invoice.paid",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "version": "v1",
+      "data": {
+        "invoice_id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "subscription_id": "sub_fixture",
+        "amount_paid": 4000,
+        "amount_due": 0,
+        "status": "PAID",
+        "transaction_id": null,
+        "payment_intent_id": "pi_fixture",
+        "currency": "XOF"
+      }
+    },
+    {
+      "id": "evt_fixture_subscription_renewed",
+      "event": "subscription.renewed",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "version": "v1",
+      "data": {
+        "subscription_id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "plan_name": "Premium",
+        "customer_phone": null,
+        "invoice_id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "next_billing_date": "2026-11-30T00:00:00.000Z",
+        "amount": 4000,
+        "currency": "XOF"
+      }
+    }
+  ],
+  "plans": {
+    "success": true,
+    "data": [
+      {
+        "id": "plan_fixture",
+        "name": "Premium",
+        "description": null,
+        "amount": 4000,
+        "currency": "XOF",
+        "interval": "QUARTERLY",
+        "is_active": true,
+        "created_at": "2026-10-30T00:00:00.000Z",
+        "subscriber_count": 1
+      }
+    ]
+  },
+  "subscriptions": {
+    "success": true,
+    "data": {
+      "subscriptions": [
+        {
+          "id": "sub_fixture",
+          "customer_phone": null,
+          "customer_id": "cus_fixture",
+          "status": "ACTIVE",
+          "next_billing_date": "2026-11-30T00:00:00.000Z",
+          "created_at": "2026-10-30T00:00:00.000Z",
+          "current_period_start": "2026-10-30T00:00:00.000Z",
+          "current_period_end": "2026-11-30T00:00:00.000Z",
+          "trial_end": "2026-11-30T00:00:00.000Z",
+          "customer": {
+            "name": null,
+            "email": null,
+            "external_ref": "fixture_user"
+          },
+          "plan": {
+            "id": "plan_fixture",
+            "name": "Premium",
+            "amount": 4000,
+            "interval": "QUARTERLY"
+          }
+        }
+      ],
+      "pagination": {
+        "total": 1
+      }
+    }
+  }
+}

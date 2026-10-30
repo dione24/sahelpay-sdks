@@ -112,6 +112,7 @@
                         "pages": [
                             "api-reference/subscriptions/create",
                             "api-reference/subscriptions/list",
+                            "api-reference/subscriptions/get",
                             "api-reference/subscriptions/cancel"
                         ]
                     },

@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sahelpay",
-    version="1.1.0",
+    version="1.2.0",
     author="SahelPay",
     author_email="dev@sahelpay.ml",
     description="SDK officiel SahelPay pour Python - Paiements Mobile Money en Afrique de l'Ouest",
@@ -17,6 +17,7 @@ setup(
         "Bug Tracker": "https://github.com/dione24/sahelpay-sdks/issues",
     },
     license="MIT",
+    package_data={"sahelpay": ["py.typed"]},
     packages=find_packages(exclude=("tests", "tests.*")),
     classifiers=[
         "Development Status :: 5 - Production/Stable",

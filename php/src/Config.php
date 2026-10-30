@@ -9,7 +9,7 @@ namespace SahelPay;
  */
 class Config
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
     public const DEFAULT_BASE_URL = 'https://api.sahelpay.ml';
     public const SANDBOX_BASE_URL = self::DEFAULT_BASE_URL;
 

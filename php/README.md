@@ -1,6 +1,6 @@
 # SahelPay PHP SDK
 
-SDK PHP officiel pour intégrer les paiements SahelPay (Orange Money, Mali) dans vos applications PHP 8+ et Laravel. Documentation : [docs.sahelpay.ml](https://docs.sahelpay.ml)
+SDK PHP officiel pour intégrer les paiements SahelPay (Orange Money, Mali) dans vos applications PHP 8.1+ et Laravel. Documentation : [docs.sahelpay.ml](https://docs.sahelpay.ml)
 
 ## Installation
 
@@ -240,3 +240,29 @@ try {
 ## Licence
 
 MIT License - voir [LICENSE](LICENSE) pour plus de détails.
+
+## Billing 1.2.0
+
+```php
+$result = $sahelpay->subscriptions->createWithPayment([
+    'plan_id' => 'PLAN_ID', 'customer_external_ref' => 'test_user_PLACEHOLDER',
+    'external_ref' => 'test_checkout_PLACEHOLDER', 'idempotency_key' => 'test_checkout_PLACEHOLDER',
+]);
+$current = $sahelpay->subscriptions->retrieve($result->getData()['subscription']['id']);
+$page = $sahelpay->invoices->all(['subscription_id' => $current->id, 'limit' => 20, 'offset' => 0]);
+// $page->getData(), $page->getRawData()['pagination']
+```
+
+Le téléphone est facultatif avec une autre identité client. `trial_end` crée un essai
+avec facture/lien null ; les périodes peuvent être null pour les anciennes lignes.
+ACTIVE ≠ paid : relire abonnement et facture avant les droits payés. Les clés
+`idempotency_key` passent en header ; sur ec4548f, utiliser aussi la référence stable
+`external_ref` + `customer_external_ref` pour un checkout rejouable. Listes clients
+page/limit, factures limit/offset. Guide français/anglais :
+https://docs.sahelpay.ml/guides/subscriptions
+
+Phone is optional with another identity. Trial checkouts have no invoice/payment
+link. ACTIVE is not proof of payment. Verify signatures, deduplicate event IDs and
+retrieve canonical state. Manual Orange Money renewal only, no automatic debit.
+
+PHP conserve les tableaux et Response ; les types statiques Billing sont fournis dans `SahelPay\BillingTypes` (PHPStan). `getBillingData()` expose les charges utiles Billing vérifiées via `constructEvent()`.

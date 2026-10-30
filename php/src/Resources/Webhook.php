@@ -200,6 +200,10 @@ class Webhook
 
 /**
  * Représentation d'un événement webhook
+ * @phpstan-import-type InvoicePaidData from \SahelPay\BillingTypes
+ * @phpstan-import-type SubscriptionRenewedData from \SahelPay\BillingTypes
+ * @phpstan-import-type InvoiceCreatedData from \SahelPay\BillingTypes
+ * @phpstan-import-type SubscriptionPaymentDueData from \SahelPay\BillingTypes
  */
 class WebhookEvent
 {
@@ -242,6 +246,23 @@ class WebhookEvent
     public function getData(): array
     {
         return $this->data['data'] ?? $this->data;
+    }
+
+    public function getId(): string
+    {
+        return $this->data['id'] ?? '';
+    }
+
+    public function getLivemode(): ?bool
+    {
+        return $this->data['livemode'] ?? null;
+    }
+
+    /** @return InvoicePaidData|SubscriptionRenewedData|InvoiceCreatedData|SubscriptionPaymentDueData|null */
+    public function getBillingData(): ?array
+    {
+        return in_array($this->getType(), ['invoice.paid', 'invoice.created', 'subscription.renewed', 'subscription.payment_due'], true)
+            ? $this->getData() : null;
     }
 
     /**

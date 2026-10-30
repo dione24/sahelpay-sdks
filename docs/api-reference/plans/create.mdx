@@ -12,17 +12,13 @@ description: "Créer un plan d'abonnement pour vos clients"
 POST /v1/billing/plans
 ```
 
-<Warning>
-  Les helpers `plans.create()` des SDKs appellent encore `POST /v1/plans`, qui n'existe pas. Utilisez l'appel HTTP.
-</Warning>
-
 ## Body
 
 | Paramètre | Type | Requis | Description |
 |-----------|------|--------|-------------|
 | `name` | string | ✅ | Nom du plan |
 | `amount` | integer | ✅ | Montant par période (FCFA) |
-| `interval` | string | ✅ | `WEEKLY` ou `MONTHLY` |
+| `interval` | string | ✅ | `WEEKLY`, `MONTHLY`, `QUARTERLY` ou `YEARLY` |
 | `description` | string | | Description |
 
 ## Exemple

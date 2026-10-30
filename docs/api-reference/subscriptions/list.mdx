@@ -16,9 +16,10 @@ GET /v1/billing/subscriptions
 |-----------|------|-------------|
 | `status` | string | `INCOMPLETE`, `ACTIVE`, `PAST_DUE` ou `CANCELLED` |
 
-<Warning>
-  Les helpers `subscriptions.list()` des SDKs appellent encore `GET /v1/subscriptions`, qui n'existe pas.
-</Warning>
+Cette révision renvoie un total sans pagination page/limit. Pour relire un abonnement,
+utilisez [GET par identifiant](/api-reference/subscriptions/get). `customer_phone` peut
+être `null` ; les réponses incluent `customer_id`, `customer.external_ref`,
+`trial_end` et `current_period_start/end`.
 
 ## Exemple
 
@@ -36,7 +37,7 @@ curl "https://api.sahelpay.ml/v1/billing/subscriptions?status=ACTIVE" \
     "subscriptions": [
       {
         "id": "...",
-        "customer_phone": "+22370123456",
+        "customer_phone": null,
         "status": "ACTIVE",
         "next_billing_date": "2026-11-03T10:00:00.000Z",
         "plan": { "id": "...", "name": "Premium Mensuel", "amount": 10000, "interval": "MONTHLY" },

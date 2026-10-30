@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, quote
 
-__sdk_version__ = "1.1.0"
+__sdk_version__ = "1.2.0"
 
 
 def _path(value: str) -> str:
@@ -26,6 +26,7 @@ def _query(params: Dict[str, Any]) -> str:
     return f"?{urlencode(clean)}" if clean else ""
 
 from .exceptions import SahelPayError, APIError, AuthenticationError, ValidationError
+from .billing import PlansAPI, SubscriptionsAPI, CustomersAPI, InvoicesAPI
 from .resources import Payment, PaymentLink, WebhookEvent
 
 
@@ -776,175 +777,6 @@ class WithdrawalsAPI:
         return response.get("data", {})
 
 
-class PlansAPI:
-    """API pour gérer les plans d'abonnement"""
-
-    def __init__(self, client: "Client"):
-        self._client = client
-
-    def create(
-        self,
-        name: str,
-        amount: float,
-        interval: str = "MONTHLY",
-        description: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Créer un nouveau plan d'abonnement
-
-        Args:
-            name: Nom du plan
-            amount: Montant en FCFA
-            interval: WEEKLY ou MONTHLY
-            description: Description du plan (optionnel)
-
-        Returns:
-            Dict avec les détails du plan créé
-        """
-        data = {
-            "name": name,
-            "amount": amount,
-            "interval": interval,
-        }
-        if description:
-            data["description"] = description
-
-        response = self._client._request("POST", "/v1/billing/plans", data)
-        return response.get("data", {})
-
-    def list(self) -> List[Dict[str, Any]]:
-        """Lister tous les plans. GET /v1/billing/plans"""
-        response = self._client._request("GET", "/v1/billing/plans")
-        return response.get("data", [])
-
-    def update(self, plan_id: str, **fields: Any) -> Dict[str, Any]:
-        """Modifier un plan. PATCH /v1/billing/plans/:id"""
-        return self._client._request("PATCH", f"/v1/billing/plans/{plan_id}", fields)
-
-    def deactivate(self, plan_id: str) -> Dict[str, Any]:
-        """Désactiver un plan (PATCH is_active=false)."""
-        return self.update(plan_id, is_active=False)
-
-    def delete(self, plan_id: str) -> Dict[str, Any]:
-        """Supprimer un plan. DELETE /v1/billing/plans/:id"""
-        response = self._client._request("DELETE", f"/v1/billing/plans/{plan_id}")
-        return response.get("data", {})
-
-    def send_link(self, plan_id: str, customer_phone: str) -> Dict[str, Any]:
-        """Créer un abonnement INCOMPLETE et un lien de paiement."""
-        response = self._client._request(
-            "POST",
-            f"/v1/billing/plans/{plan_id}/send-link",
-            {"customer_phone": customer_phone},
-        )
-        return response.get("data", {})
-
-
-class SubscriptionsAPI:
-    """API pour gérer les abonnements"""
-
-    def __init__(self, client: "Client"):
-        self._client = client
-
-    def create(
-        self,
-        plan_id: str,
-        customer_phone: str,
-        start_date: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Créer un nouvel abonnement
-
-        Args:
-            plan_id: ID du plan
-            customer_phone: Numéro de téléphone du client
-            start_date: Date de début (ISO format, optionnel)
-
-        Returns:
-            Dict avec les détails de l'abonnement créé
-
-        Example:
-            >>> subscription = client.subscriptions.create(
-            ...     plan_id="plan_xxx",
-            ...     customer_phone="+22370000000"
-            ... )
-        """
-        data = {
-            "plan_id": plan_id,
-            "customer_phone": customer_phone,
-        }
-        if start_date:
-            data["start_date"] = start_date
-
-        response = self._client._request("POST", "/v1/billing/subscriptions", data)
-        return response.get("data", {})
-
-    def list(
-        self,
-        status: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Lister les abonnements. GET /v1/billing/subscriptions"""
-        path = "/v1/billing/subscriptions"
-        if status:
-            path = f"{path}?{urlencode({'status': status})}"
-        response = self._client._request("GET", path)
-        return response.get("data", {})
-
-    def cancel(self, subscription_id: str) -> Dict[str, Any]:
-        """Annuler un abonnement. DELETE /v1/billing/subscriptions/:id"""
-        response = self._client._request(
-            "DELETE", f"/v1/billing/subscriptions/{subscription_id}")
-        return response
-
-    def create_with_payment(
-        self,
-        plan_id: str,
-        customer_phone: str,
-        redirect_url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """Créer un abonnement INCOMPLETE + lien de premier paiement."""
-        data: Dict[str, Any] = {
-            "plan_id": plan_id,
-            "customer_phone": customer_phone,
-        }
-        if redirect_url:
-            data["redirect_url"] = redirect_url
-        if metadata:
-            data["metadata"] = metadata
-        response = self._client._request(
-            "POST", "/v1/billing/subscriptions/with-payment", data
-        )
-        return response.get("data", {})
-
-
-class CustomersAPI:
-    """API pour lister les clients.
-
-    Les clients sont créés automatiquement (abonnement, lien de plan, portail) :
-    il n'y a pas d'API de création, mise à jour ou suppression.
-    """
-
-    def __init__(self, client: "Client"):
-        self._client = client
-
-    def list(
-        self,
-        search: Optional[str] = None,
-        page: int = 1,
-        limit: int = 20,
-    ) -> Dict[str, Any]:
-        """Lister les clients. GET /v1/billing/customers"""
-        params: Dict[str, Any] = {"page": page, "limit": limit}
-        if search:
-            params["search"] = search
-        response = self._client._request(
-            "GET",
-            f"/v1/billing/customers?{urlencode(params)}"
-        )
-        return response.get("data", {})
-
-
 class PortalAPI:
     """API pour le Customer Portal (comme Stripe Billing Portal)"""
 
@@ -1142,6 +974,7 @@ class Client:
         self.plans = PlansAPI(self)
         self.subscriptions = SubscriptionsAPI(self)
         self.customers = CustomersAPI(self)
+        self.invoices = InvoicesAPI(self)
         self.portal = PortalAPI(self)
         self.secure_orders = SecureOrdersAPI(self)
 

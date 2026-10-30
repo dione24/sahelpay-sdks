@@ -1,0 +1,20 @@
+---
+title: Relire un abonnement
+api: GET /v1/billing/subscriptions/{id}
+description: "État canonique, identité, périodes et lien de facture"
+---
+
+```typescript
+const subscription = await api.subscriptions.retrieve('SUBSCRIPTION_ID');
+```
+
+Réponse `data` : `id`, `external_ref`, `livemode`, `application_id`,
+`customer: {id, external_ref, email}` (ou null), `plan_id`,
+`plan: {amount, currency, interval}`, `status`, `updated_at`,
+`current_period_start/end`, `trial_end`, `next_billing_date`, `past_due_since`,
+`payment_url`, `invoice_id`. Les périodes historiques et les liens peuvent être null.
+L'expiration d'un abonnement ACTIVE est lue PAST_DUE sans repousser sa période.
+Un lien expiré/inactif n'est pas présenté comme payable. 404 si absent ou hors périmètre.
+
+Le webhook est un signal pour effectuer cette relecture ; ne calculez pas la période
+à partir de sa date de réception. Voir le [guide Billing](/guides/subscriptions).
