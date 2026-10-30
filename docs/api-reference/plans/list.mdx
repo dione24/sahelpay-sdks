@@ -43,3 +43,10 @@ curl https://api.sahelpay.ml/v1/billing/plans \
 ## Plans publics
 
 `GET /v1/public/plans?merchant_id=...` (sans clé) renvoie vos plans actifs pour une page de pricing ; `GET /v1/public/plans/{id}` renvoie un plan. Côté SDK JS : `SahelPay.getPublicPlans(merchantId)` et `SahelPay.getPublicPlan(planId)`.
+
+## Pagination
+
+`take` de 1 à 200 (défaut 50), `cursor` opaque. La réponse conserve `data[]` et
+ajoute `pagination: {total, take, next_cursor, has_more}` à la racine. JavaScript :
+`plans.listPage({take, cursor})`, Python : `plans.list_page(take=..., cursor=...)`.
+Les méthodes `list()` existantes conservent leur tableau/liste.

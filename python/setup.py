@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sahelpay",
-    version="1.2.0",
+    version="1.3.0",
     author="SahelPay",
     author_email="dev@sahelpay.ml",
     description="SDK officiel SahelPay pour Python - Paiements Mobile Money en Afrique de l'Ouest",

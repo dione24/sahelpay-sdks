@@ -12,8 +12,12 @@ Réponse `data` : `id`, `external_ref`, `livemode`, `application_id`,
 `customer: {id, external_ref, email}` (ou null), `plan_id`,
 `plan: {amount, currency, interval}`, `status`, `updated_at`,
 `current_period_start/end`, `trial_end`, `next_billing_date`, `past_due_since`,
-`payment_url`, `invoice_id`. Les périodes historiques et les liens peuvent être null.
-L'expiration d'un abonnement ACTIVE est lue PAST_DUE sans repousser sa période.
+`payment_url`, `invoice_id`, et les champs additifs `access_status`, `grace_until`,
+`billing_anchor_at`. Les périodes historiques et les liens peuvent être null.
+ACTIVE canonique signifie une période payée courante ; un essai courant est TRIALING.
+Après l’échéance, status reste PAST_DUE pour le règlement et access_status devient
+EXPIRED après trois jours de grâce payée. Aucun jour de grâce après un essai.
+La frontière temporelle ne modifie pas updated_at : prévoir une relecture à cette date.
 Un lien expiré/inactif n'est pas présenté comme payable. 404 si absent ou hors périmètre.
 
 Le webhook est un signal pour effectuer cette relecture ; ne calculez pas la période

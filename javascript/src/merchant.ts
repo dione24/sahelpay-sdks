@@ -375,7 +375,7 @@ export class SahelPayMerchant {
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.secretKey}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'SahelPay-Merchant-SDK/1.2.0',
+      'User-Agent': 'SahelPay-Merchant-SDK/1.3.0',
       ...extraHeaders,
     };
 

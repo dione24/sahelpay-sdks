@@ -143,7 +143,7 @@ def webhook():
     return {"received": True}
 ```
 
-Événements émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated`, `secure_order.*`, `invoice.created`, `invoice.paid`, `subscription.payment_due`, `subscription.renewed`, `webhook.test`. `construct_event()` convertit `data` en `Payment` uniquement pour `payment.*` ; le reste reste un dict.
+Événements émis : `payment.success`, `payment.failed`, `payment.pending`, `payment.expired`, `payment.updated`, `secure_order.*`, `invoice.created`, `invoice.paid`, `subscription.payment_due`, `subscription.renewed`, `subscription.cancelled`, `webhook.test`. `construct_event()` convertit `data` en `Payment` uniquement pour `payment.*` ; le reste reste un dict.
 
 ### Customer Portal
 
@@ -191,7 +191,7 @@ except sahelpay.SahelPayError as e:
 
 MIT
 
-## Billing 1.2.0
+## Billing 1.3.0
 
 ```python
 result = client.subscriptions.create_with_payment(
@@ -205,14 +205,43 @@ page = client.invoices.list(subscription_id=current["id"], limit=20, offset=0)
 
 Le téléphone est facultatif avec une autre identité client. `trial_end` crée un essai
 avec facture/lien null ; les périodes peuvent être null pour les anciennes lignes.
-ACTIVE ≠ paid : relire abonnement et facture avant les droits payés. Les clés
-`idempotency_key` passent en header ; sur ec4548f, utiliser aussi la référence stable
-`external_ref` + `customer_external_ref` pour un checkout rejouable. Listes clients
-page/limit, factures limit/offset. Guide français/anglais :
+Le statut de création seul ne prouve pas un paiement : le GET canonique distingue
+ACTIVE payé et TRIALING en essai ; relire abonnement/facture avant les droits payés. Les clés
+`idempotency_key` passent en header : les six créations Billing sont dédupliquées
+durablement par clé/corps (409 IDEMPOTENCY_KEY_REUSED si le corps change). Sans clé,
+seuls checkout/import gardent leur référence naturelle. Les listes acceptent take/cursor ;
+page/limit clients et limit/offset factures restent disponibles. Guide français/anglais :
 https://docs.sahelpay.ml/guides/subscriptions
 
 Phone is optional with another identity. Trial checkouts have no invoice/payment
-link. ACTIVE is not proof of payment. Verify signatures, deduplicate event IDs and
+link. A creation status is not payment proof; canonical ACTIVE is a current paid period. Verify signatures, deduplicate event IDs and
 retrieve canonical state. Manual Orange Money renewal only, no automatic debit.
 
 Types importables : `sahelpay.billing` (TypedDict, Literal). Les réponses restent des dictionnaires.
+
+### Cycle Billing après backend #214
+
+Le GET canonique distingue `ACTIVE` (période payée) et `TRIALING` (essai). Une
+création d’essai conserve sa réponse historique ACTIVE avec trial_end : relire
+le GET. Après l’échéance payée, trois jours de grâce puis access_status EXPIRED ;
+status reste PAST_DUE pour le règlement. Aucun jour de grâce après un essai.
+`subscription.cancelled` signale l’annulation immédiate avec un event.id stable.
+Les nouveaux champs SDK sont facultatifs pour les anciens serveurs.
+Voir le guide Billing pour l’ancre UTC et les frontières temporelles.
+
+Canonical GET now distinguishes paid ACTIVE from TRIALING. Paid grace lasts
+three days; access_status becomes EXPIRED while status remains collectable
+PAST_DUE. Trials have no grace. Historical trial creation still returns ACTIVE
+with trial_end; retrieve the canonical snapshot before access decisions. New
+fields remain optional for older servers; subscription.cancelled signals
+immediate cancellation with a stable event ID.
+
+### Preview de relance (backend #221)
+
+Lecture seule : JS `subscriptions.previewReminder(applicationId, subscriptionId)`,
+Python `subscriptions.preview_reminder(application_id, subscription_id)`,
+PHP `subscriptions->previewReminder($applicationId, $subscriptionId)`.
+Clé déjà enregistrée et portée application/mode requises (401 sinon, sans migration
+ou modification de clé). TEST prévisualise sans envoi. `email` peut être null ;
+`would_send` reste une prévision, le GET n'envoie jamais. Mode livré `desactive`,
+WhatsApp désactivé et consentement requis ; aucun lien créé ni activation SDK.

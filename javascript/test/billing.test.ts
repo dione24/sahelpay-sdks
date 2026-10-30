@@ -88,3 +88,52 @@ describe('Billing response fixtures and HTTP contract', () => {
     await expect(client.subscriptions.create({plan_id:'plan_fixture',customer_external_ref:'fixture_user'})).rejects.toMatchObject({code:'IDEMPOTENCY_CONFLICT'});
   });
 });
+
+
+describe('persistent replay and cursor compatibility',()=>{
+ it.each(['plans','subscriptions','customers','invoices'])('forwards opaque cursor/take for %s',async resource=>{
+  const {client,fetch}=setup(fixtures[resource]);const cursor='cursor+fixture/=';
+  const result=resource==='plans'?await client.plans.listPage({take:1,cursor}):await client[resource].list({take:1,cursor});
+  expect(request(fetch).url.searchParams.get('cursor')).toBe(cursor);
+  expect(request(fetch).url.searchParams.get('take')).toBe('1');
+  expect(result.pagination).toMatchObject({take:1,next_cursor:cursor,has_more:true});
+ });
+ it('preserves legacy plan arrays and tolerates missing outer pagination',async()=>{
+  const {client}=setup({success:true,data:fixtures.plans.data});
+  expect(await client.plans.list()).toEqual(fixtures.plans.data);
+  expect(await client.plans.listPage()).toEqual({plans:fixtures.plans.data,pagination:undefined});
+ });
+ it('preserves null send-link replay and invoice status',async()=>{
+  const {client,fetch}=setup(fixtures.send_link_paid);
+  expect(await client.plans.sendLink('plan_fixture',{customer_external_ref:'fixture_user',idempotency_key:'send-link-fixture'})).toEqual(fixtures.send_link_paid.data);
+  expect(request(fetch).headers['X-Idempotency-Key']).toBe('send-link-fixture');
+  expect(request(fetch).body.idempotency_key).toBeUndefined();
+ });
+ it('forwards empty explicit keys for server rejection, never silently removes them',async()=>{
+  const {client,fetch}=setup(fixtures.plan);
+  await client.plans.create({name:'Premium',amount:4000,interval:'MONTHLY',idempotency_key:''});
+  expect(request(fetch).headers['X-Idempotency-Key']).toBe('');
+ });
+ it('propagates persistent replay conflicts',async()=>{
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:409,text:async()=>JSON.stringify({success:false,error:{code:'IDEMPOTENCY_KEY_REUSED',message:'Conflict'}})}));
+  await expect(new SahelPay({secretKey:'sk_test_PLACEHOLDER'}).plans.create({name:'Premium',amount:4000,interval:'MONTHLY',idempotency_key:'fixture'})).rejects.toMatchObject({code:'IDEMPOTENCY_KEY_REUSED'});
+ });
+});
+
+
+describe('read-only reminder preview',()=>{
+ it.each(['reminder_preview','reminder_preview_blocked'])('preserves rendering and nulls: %s',async name=>{
+  const {client,fetch}=setup(fixtures[name]);
+  expect(await client.subscriptions.previewReminder('app/fixture','sub/fixture')).toEqual(fixtures[name].data);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(request(fetch).method).toBe('GET');
+  expect(request(fetch).url.pathname).toBe('/v1/billing/applications/app%2Ffixture/subscriptions/sub%2Ffixture/reminder-preview');
+  expect(request(fetch).body).toBeUndefined();
+ });
+ it('propagates 401 without trying to register/import a key',async()=>{
+  const fetch=vi.fn().mockResolvedValue({ok:false,status:401,text:async()=>JSON.stringify({success:false,error:{code:'INVALID_API_KEY',message:'Registered key required'}})});
+  vi.stubGlobal('fetch',fetch);
+  await expect(new SahelPay({secretKey:'sk_test_PLACEHOLDER'}).subscriptions.previewReminder('app_fixture','sub_fixture')).rejects.toMatchObject({code:'INVALID_API_KEY',statusCode:401});
+  expect(fetch).toHaveBeenCalledTimes(1);
+ });
+});

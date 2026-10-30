@@ -6,7 +6,7 @@ description: "Identité sans téléphone, essai explicite et checkout"
 
 `POST /v1/billing/subscriptions/with-payment` crée un abonnement et le premier
 lien de paiement. `POST /v1/billing/subscriptions` prépare seulement le calendrier.
-Voir le [guide Billing bilingue](/guides/subscriptions) pour la sémantique ACTIVE ≠ paid.
+Voir le [guide Billing bilingue](/guides/subscriptions) pour les périodes payées et les essais explicites.
 
 | Champ | Requis | Description |
 | --- | --- | --- |
@@ -28,6 +28,8 @@ const result = await api.subscriptions.createWithPayment({
 
 L'option SDK `idempotency_key` est un en-tête, pas un champ JSON. Consultez les
 garanties de rejeu dans le guide. Les deux créations exposent `trial_end`,
-`current_period_start/end` et `next_billing_date`. `ACTIVE` ne prouve pas le paiement.
+`current_period_start/end` et `next_billing_date`. Sans essai ni paiement : INCOMPLETE.
+Une création d’essai conserve ACTIVE avec trial_end ; son GET canonique est
+TRIALING. ACTIVE canonique signifie une période payée courante.
 
 Erreurs : 400 validation/plan inactif, 404 plan absent ou hors périmètre, 409 conflit.

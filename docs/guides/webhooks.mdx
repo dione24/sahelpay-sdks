@@ -43,7 +43,7 @@ Les webhooks vous notifient en temps réel des changements de statut. Configurez
 
 | Événement | Description |
 |-----------|-------------|
-| `invoice.created`, `subscription.payment_due`, `invoice.paid`, `subscription.renewed` | [Abonnements clients](/guides/subscriptions) |
+| `invoice.created`, `subscription.payment_due`, `invoice.paid`, `subscription.renewed`, `subscription.cancelled` | [Abonnements clients](/guides/subscriptions) |
 
 
 ## Format du payload (paiement)
@@ -190,6 +190,12 @@ En cas d'échec (réponse non 2xx ou timeout), SahelPay retente avec un backoff 
 Après 5 tentatives, le webhook est marqué comme `FAILED`. Vous pouvez consulter les livraisons et relancer depuis le dashboard ou via l'API ([Livraisons](/api-reference/webhooks/deliveries)).
 
 Un même événement peut arriver plus d'une fois (relance, rejeu) : son `id` est stable, dédupliquez dessus.
+
+La rotation du secret d'un endpoint est **immédiate**, sans période de grâce pour
+l'ancien secret. Une livraison déjà en transit peut encore porter l'ancien secret ;
+chaque nouvelle tentative utilise le secret courant. Coordonnez le changement avec le récepteur : le SDK vérifie le
+corps brut avec le secret que vous lui fournissez. Les reprises gardent le même
+identifiant d'événement ; dédupliquez-le après vérification de la signature.
 
 ## Tester les webhooks
 

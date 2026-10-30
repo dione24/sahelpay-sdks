@@ -17,14 +17,14 @@ class Invoice
     {
         $key = $data['idempotency_key'] ?? null;
         unset($data['idempotency_key']);
-        return $this->client->post('/billing/invoices', $data, $key ? ['X-Idempotency-Key' => $key] : []);
+        return $this->client->post('/billing/invoices', $data, $key !== null ? ['X-Idempotency-Key' => $key] : []);
     }
 
-    /** @param array{status?: string, customer_id?: string, subscription_id?: string, limit?: int, offset?: int} $options */
+    /** @param array{status?: string, customer_id?: string, subscription_id?: string, limit?: int, offset?: int, take?: int, cursor?: string} $options */
     public function all(array $options = []): Response
     {
         return $this->client->get('/billing/invoices', array_intersect_key($options,
-            array_flip(['status', 'customer_id', 'subscription_id', 'limit', 'offset'])));
+            array_flip(['status', 'customer_id', 'subscription_id', 'limit', 'offset', 'take', 'cursor'])));
     }
 
     public function retrieve(string $id): Response

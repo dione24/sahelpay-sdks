@@ -1,15 +1,15 @@
 ---
 title: Billing — abonnements clients
-description: "Clients sans téléphone, essais, périodes, factures et renouvellement manuel — SDK 1.2.0"
+description: "Clients sans téléphone, essais, périodes, factures et renouvellement manuel — SDK 1.3.0"
 ---
 
 <Tabs>
 <Tab title="Français">
 
-## Contrat Billing 1.2.0
+## Contrat Billing — SDK 1.3.0 — cycle de vie, rejeu et pagination
 
 Billing facture **vos clients** ; il ne conditionne pas votre accès marchand à SahelPay.
-Tous les SDK 1.2.0 utilisent `/v1/billing/*`. Orange Money Mali/XOF est le seul moyen
+Tous les SDK 1.3.0 utilisent `/v1/billing/*`. Orange Money Mali/XOF est le seul moyen
 intégré, chaque règlement exige une action du client : **aucun prélèvement automatique**.
 
 Un plan définit un montant et une fréquence `WEEKLY`, `MONTHLY`, `QUARTERLY` ou `YEARLY`.
@@ -33,12 +33,12 @@ partagés entre TEST et LIVE : utilisez des références de test distinctes.
 
 ## Parcours en mode TEST
 
-Utilisez le SDK **1.2.0**. Vérifiez `npm view @sahelpay/sdk version` : si le registre
-propose 1.2.0, installez `npm install @sahelpay/sdk@^1.2.0`. Si npm est encore à
+Utilisez le SDK **1.3.0**. Vérifiez `npm view @sahelpay/sdk version` : si le registre
+propose 1.3.0, installez `npm install @sahelpay/sdk@^1.3.0`. Si npm est encore à
 1.1.0, installez les sources taguées en attendant la publication :
 
 ```bash
-git clone --branch javascript-v1.2.0 https://github.com/dione24/sahelpay-sdks.git
+git clone --branch javascript-v1.3.0 https://github.com/dione24/sahelpay-sdks.git
 cd sahelpay-sdks/javascript
 npm ci
 npm run build
@@ -80,35 +80,56 @@ Pour vérifier un paiement sans opérateur ni personne réelle, utilisez le
 signatures, doublons et réponses de reprise. Aucun test clock public n'est promis.
 `webhook.test` vérifie la connectivité, pas le cycle Billing.
 
-## ACTIVE ≠ paid
+## Périodes payées, essais et impayés (backend #214)
+
+Relisez le GET canonique avant d’accorder les droits : ses états sont calculés
+à l’heure de lecture, même lorsque le passage horaire a du retard.
 
 | État / champ | Sens |
 | --- | --- |
-| `INCOMPLETE` | Premier paiement attendu, hors essai |
-| `ACTIVE` | Calendrier actif ; peut être un essai, un import ou une création sans paiement |
-| `PAST_DUE` | Échéance dépassée ; GET canonique expose aussi ce statut à l'expiration |
-| `CANCELLED` | Annulation immédiate ; votre application décide des droits restants |
-| `trial_end` | Fin de l'essai explicite ; `null` signifie aucun essai explicite |
-| `current_period_start/end` | Période canonique, nullable pour les anciennes lignes |
-| `next_billing_date` | Prochaine échéance, pas une preuve de règlement |
+| `INCOMPLETE` | Premier paiement attendu, aucune période payée |
+| `ACTIVE` canonique | Période payée courante, ou période explicitement importée comme payée |
+| `TRIALING` canonique | Essai explicite courant |
+| `PAST_DUE` | Facture encore payable, y compris après expiration des droits |
+| `access_status` | Droits ; `EXPIRED` à la fin de la grâce payée ou de l’essai |
+| `grace_until` | Fin de période payée + trois jours ; null après essai ou sans période payée |
+| `CANCELLED` | Annulation immédiate, aucun accès réactivé par un paiement tardif |
+| `billing_anchor_at` | Ancre UTC conservée au renouvellement dans la grâce |
 
-Avant d'accorder des droits payés, relisez l'abonnement et la facture correspondante :
-mode/application/identité attendus, facture `PAID`, `amount_due === 0` et période
-valide. Un paiement partiel ne prolonge pas l'abonnement. Les bornes peuvent être
-indicatives avant règlement ; un import affirme une période existante, sans créer
-un nouveau paiement. Aucune grâce de trois jours n'est garantie par l'API : la
-politique d'accès appartient à votre application.
+La réponse historique de création d’essai reste `ACTIVE` avec `trial_end` ; son
+GET canonique renvoie `TRIALING`. La création sans essai et sans paiement est
+`INCOMPLETE`. Un paiement partiel ne prolonge pas les droits. Reçu, facture PAID
+et période sont écrits atomiquement ; le rejeu n’accorde pas de seconde période.
+
+Le premier paiement complet et le paiement après la grâce accordent un intervalle
+entier depuis le règlement, sans arriérés. Dans la grâce, le renouvellement garde
+l’échéance et l’ancre UTC : 31 janvier → 28/29 février → 31 mars. Même règle pour
+le trimestre et l’année. L’import accepte une ancre historique `billing_anchor_at`
+antérieure ou égale au début de période ; les deux bornes importées restent exactes.
+
+`status` reste `PAST_DUE` après la grâce pour permettre le règlement de la même
+facture ; utilisez `access_status` et les dates pour les droits. Le passage du temps
+ne change pas `updated_at` : planifiez une relecture à la fin de période/grâce,
+en plus des signaux webhook. Les champs ajoutés sont facultatifs dans les types
+SDK pour permettre la lecture d’une ancienne version du backend.
 
 ## Reprise, idempotence et pagination
 
-Les méthodes de création acceptent `idempotency_key` et l'envoient en en-tête
-`X-Idempotency-Key`, jamais dans le JSON. **Sur cette révision, la présence de cet
-en-tête ne garantit pas le rejeu de toutes les créations Billing.** Pour la reprise
-fiable d'un checkout, utilisez aussi `external_ref` stable + `customer_external_ref` ;
-un rejeu renvoie la même ressource, des paramètres différents sont refusés (`409`).
-Ne créez pas un nouveau checkout pour renouveler : relisez `payment_url` et
-`invoice_id` via GET. Après un paiement ou une facture annulée, le rejeu peut
-renvoyer une facture minimale et `payment_link: null`.
+Les six créations Billing (`plans.create`, `subscriptions.create`, checkout, import,
+`plans.sendLink`, `invoices.create`) acceptent `idempotency_key` : en-tête
+`X-Idempotency-Key` de 1 à 128 caractères, jamais dans le JSON. Le backend réserve
+l'identité avant la création et conserve la clé sans expiration. Même portée
+marchand/application/mode/route et même JSON (ordre des propriétés indifférent) :
+même ressource. Corps différent : `409 IDEMPOTENCY_KEY_REUSED` ; clé invalide :
+`400 INVALID_IDEMPOTENCY_KEY`. Gardez la clé stable lors des reprises réseau.
+Le rejeu renvoie l'état **actuel**, pas une copie de la première réponse.
+
+Sans en-tête, les garanties précédentes subsistent : `external_ref` déduplique
+checkout/import, les autres créations ne sont pas dédupliquées. Une référence de
+checkout exige `customer_external_ref`, sans ID/téléphone. Après règlement ou
+annulation de la facture, checkout et `plans.sendLink` peuvent renvoyer un lien
+`null` ; `sendLink` ajoute alors `invoice_status`. Aucun nouvel encaissement n'est
+créé. Renouvelez via `invoice_id`/`payment_url` du GET canonique.
 
 `subscriptions.import()` (Python : `import_period`, PHP : `importPeriod`) reprend
 une période **courante** avec `plan_id`, `external_ref`, `customer_external_ref`,
@@ -117,12 +138,30 @@ une période **courante** avec `plan_id`, `external_ref`, `customer_external_ref
 
 | Ressource | Méthodes JS | Pagination |
 | --- | --- | --- |
-| Plans | `create`, `list`, `update`, `deactivate`, `delete`, `sendLink` | Liste complète sur cette révision |
-| Clients | `customers.list({search, page, limit})` | `customers`, `pagination: {page, limit, total, pages}` |
-| Abonnements | `create`, `createWithPayment`, `retrieve`, `import`, `list`, `cancel` | Filtre `status`, total uniquement sur cette révision |
-| Factures | `create`, `list`, `retrieve`, `open`, `void`, `generatePaymentLink` | `limit`, `offset` ; SDK JS/Python : `{invoices, pagination}` |
+| Plans | `create`, `list`, `listPage`, `update`, `deactivate`, `delete`, `sendLink` | `take/cursor` ; `list()` conserve son tableau, `listPage()` expose la pagination |
+| Clients | `customers.list({search, page, limit, take, cursor})` | `customers`, pagination par curseur et anciens champs page/limit/pages |
+| Abonnements | `create`, `createWithPayment`, `retrieve`, `import`, `list`, `cancel` | `status`, `take/cursor` ; `{subscriptions, pagination}` |
+| Factures | `create`, `list`, `retrieve`, `open`, `void`, `generatePaymentLink` | `take/cursor` ou `limit/offset` ; SDK JS/Python : `{invoices, pagination}` |
 
-Les plafonds de liste clients/factures sont de 200. En PHP, les factures sont dans
+Toutes les listes acceptent `take` entre 1 et 200 (défaut 50, clients 20), et un
+`cursor` opaque. La pagination contient `total`, `take`, `next_cursor` nullable et
+`has_more`. Réutilisez le curseur avec les mêmes filtres, application et mode ;
+`total` compte tous les résultats filtrés avant le curseur. L'ordre est
+`created_at DESC, id DESC`. La page suivante n'insère pas les objets plus récents ;
+un curseur reste utilisable après suppression de sa ligne.
+
+```typescript
+let cursor: string | undefined;
+do {
+  const page = await api.plans.listPage({ take: 50, cursor });
+  // Traitez page.plans ; list() continue à renvoyer un tableau.
+  cursor = page.pagination?.has_more ? page.pagination.next_cursor ?? undefined : undefined;
+} while (cursor);
+```
+
+Python expose `plans.list_page()` pour les métadonnées ; `plans.list()` garde sa
+liste. Les nouveaux champs de pagination sont facultatifs pour lire les anciens
+serveurs. En PHP, les factures sont dans
 `getData()` et la pagination dans `getRawData()['pagination']`. Les noms de méthodes
 Python utilisent snake_case, PHP utilise `all()` pour les listes.
 
@@ -170,11 +209,52 @@ sur `event.id`, supportez le désordre et ignorez les événements inconnus.
 | `invoice.created` | `invoice_id`, `subscription_id`, `amount_due`, `payment_url`, `due_date` |
 | `subscription.payment_due` | Même échéance, avec `billing_date` ; compatibilité, éviter un double envoi |
 | `invoice.paid` | `invoice_id`, `subscription_id`, `amount_paid`, `amount_due`, `status` |
-| `subscription.renewed` | `subscription_id`, `next_billing_date`, `invoice_id` |
+| `subscription.renewed` | `subscription_id`, `next_billing_date`, `invoice_id`, `current_period_start/end`, `updated_at`, `billing_anchor_at` |
+| `subscription.cancelled` | Annulation immédiate ; `subscription_id`, `plan_id`, `status`, `updated_at`, `current_period_start/end` ; même event.id au rejeu |
 
-Sur cette révision, `cancel()` n'émet pas de `subscription.cancelled` : relisez
-l'état après votre appel et utilisez le polling pour les annulations externes.
+`cancel()` émet `subscription.cancelled` avec un event.id stable. Si votre
+endpoint filtre les événements, abonnez-le explicitement à ce type, puis relisez
+le GET canonique. La relecture après l’appel et le polling restent disponibles.
 Les relances e-mail restent pilotées par le backend ; le SDK n'active aucun envoi.
+
+## Prévisualiser une relance, sans envoi
+
+```typescript
+const preview = await api.subscriptions.previewReminder('APPLICATION_ID', 'SUBSCRIPTION_ID');
+// preview.email : {subject, html, text} ou null ; aucun destinataire retourné.
+// Un GET ne déclenche jamais l'envoi, même si would_send est true.
+```
+
+Équivalents : Python `client.subscriptions.preview_reminder(application_id, subscription_id)` ;
+PHP `$sahelpay->subscriptions->previewReminder($applicationId, $subscriptionId)`.
+[Référence de la preview](/api-reference/subscriptions/reminder-preview).
+
+La lecture vérifie marchand, application et mode. Elle exige une **clé déjà
+enregistrée** : sinon `401`, sans import/migration, création d'application ni mise
+à jour de la clé. Les tests utilisent une clé TEST existante. La preview ne crée
+aucun lien, contact, consentement ou événement et n'envoie rien.
+
+| Champ | Sens |
+| --- | --- |
+| `mode` | `desactive`, `simulation` ou `actif` ; livré `desactive` |
+| `owner` | `sahelpay`, `application` ou `null` : responsable explicite des relances |
+| `eligible` | Profil, fenêtre J-5/J-1 et CTA valides ; TEST peut être éligible |
+| `would_send` | Exige éligibilité, LIVE et mode actif ; n'est jamais un envoi par GET |
+| `step` | `1`, `5` ou `null` |
+| `email` | `subject`, `html`, `text`, ou `null` si aucun rendu éligible |
+| `whatsapp` | Toujours `enabled: false`, `consent_required: true` ; conception opt-in uniquement |
+
+Le responsable est configuré séparément par l'opérateur dans
+`subscription_reminders_application:<applicationId>` : `owner` et éventuellement
+`renewal_url`. Une configuration absente/invalide/inactive ou `owner: application`
+ne déclenche aucun rappel SahelPay. Il n'existe pas de setter SDK pour l'activer.
+
+Le CTA utilise seulement une facture collectable et un lien existant sûrs dans la
+même portée. Sans facture, seule l'URL de renouvellement explicitement configurée,
+HTTPS et de même origine que le site de l'application, peut servir de repli. Une
+dette historique au mode indéterminé ou un SUCCESS sans reçu bloque ce repli et le
+rendu éligible : ne construisez pas de lien de remplacement. Les flags restent
+`desactive` et aucun transport WhatsApp n'est disponible.
 
 ## Erreurs
 
@@ -184,6 +264,7 @@ Les relances e-mail restent pilotées par le backend ; le SDK n'active aucun env
 | `401` / `INVALID_API_KEY` | Vérifier la clé serveur et son mode |
 | `404` / `NOT_FOUND` | Ressource absente ou hors application/mode ; ne pas réessayer avec une clé d'un autre périmètre |
 | `409` / `CONFLICT` | Référence externe déjà utilisée avec d'autres paramètres |
+| `409` / `INVOICE_PAYMENT_SETTLEMENT_PENDING` | Un paiement a réussi ; le backend reprend son règlement. Ne pas payer à nouveau : relire le paiement et la facture, puis le GET canonique de l’abonnement |
 | `429` | Respecter la limitation et réessayer avec la même référence |
 | Timeout réseau | Relire la ressource ; rejouer seulement avec une garantie d'idempotence applicable |
 
@@ -193,7 +274,7 @@ et les [types et versions SDK](/sdks/overview).
 </Tab>
 <Tab title="English">
 
-## Billing contract 1.2.0
+## Billing contract — SDK 1.3.0 — lifecycle and persistent replay
 
 Billing manages **your customers' subscriptions**, separately from merchant access
 to SahelPay. All three SDKs use `/v1/billing/*`. Orange Money Mali/XOF requires the
@@ -218,50 +299,92 @@ const result = await api.subscriptions.createWithPayment({
 const current = await api.subscriptions.retrieve(result.subscription.id);
 ```
 
-Use SDK 1.2.0 and a TEST application key. Check `npm view @sahelpay/sdk version`
-before installing `@sahelpay/sdk@^1.2.0`. If npm still serves 1.1.0, clone tag
-`javascript-v1.2.0`, run `npm ci && npm run build` inside `javascript`, and install that
+Use SDK 1.3.0 and a TEST application key. Check `npm view @sahelpay/sdk version`
+before installing `@sahelpay/sdk@^1.3.0`. If npm still serves 1.1.0, clone tag
+`javascript-v1.3.0`, run `npm ci && npm run build` inside `javascript`, and install that
 local directory into your application until registry publication is available.
 These examples contain no real phone or customer email.
 For a trial, add a future ISO UTC `trial_end`: status is `ACTIVE`, while `invoice` and
 `payment_link` are `null`. The hourly worker prepares the invoice when the trial ends.
 `create()` also supports `start_date` and does not create an immediate checkout.
 
-**ACTIVE ≠ paid.** It can mean a trial, an imported period, or scheduled billing before
-payment. `current_period_start/end` and `trial_end` can be null for legacy records.
-`next_billing_date` is a due date, not proof of settlement. Re-read the canonical
-subscription and invoice, verify identity/application/mode, require `PAID` with
-`amount_due === 0` for a paid invoice and validate the period. Partial payments do not
-extend the subscription. The API guarantees no three-day access grace period.
-`PAST_DUE` indicates expiry; `CANCELLED` is immediate and access policy is yours.
+**Canonical lifecycle (backend #214).** `ACTIVE` means a current paid or explicitly
+imported paid period; `TRIALING` means an explicit trial. The historical trial
+creation response still says `ACTIVE` with `trial_end`: retrieve the canonical
+snapshot before granting access. Unpaid creation is `INCOMPLETE`. Paid access has
+three days of grace anchored to `current_period_end`; a trial has no grace.
+`access_status` becomes `EXPIRED`, while `status` stays collectable `PAST_DUE` so
+the same invoice can still be paid. Cancellation wins over any late payment.
 
-`idempotency_key` is transmitted as `X-Idempotency-Key`, never JSON. On this revision,
-the header alone does **not** guarantee replay for every Billing creation. Reuse a
-stable checkout `external_ref` plus `customer_external_ref` (omit customer ID/phone in
-this referenced flow). Conflicting parameters return 409. A completed/voided checkout
-replay may return a minimal invoice and a null link. Renew using the canonical GET's
-`invoice_id`/`payment_url`, not a new checkout.
+Receipt, invoice and subscription period commit atomically. Partial payment grants
+no paid period; replay never grants a second one. First payment and payment after
+grace start one full interval at settlement, without arrears. During grace, retain
+the UTC calendar anchor: Jan 31 → Feb 28/29 → Mar 31. Imports optionally accept
+`billing_anchor_at` no later than period start. New SDK fields remain optional for
+older servers. Time alone does not change `updated_at`: schedule reads at period
+and grace boundaries. Subscribe explicitly to `subscription.cancelled` if your
+endpoint filters event types; its event ID is stable on cancellation replay.
+
+All six Billing creation helpers send `idempotency_key` as `X-Idempotency-Key`
+(1–128 characters), never JSON. The server reserves the identity before creation
+and retains it without expiry. Same merchant/application/mode/route and JSON body
+(property order ignored): same resource. A changed body returns
+`409 IDEMPOTENCY_KEY_REUSED`; invalid keys return `400 INVALID_IDEMPOTENCY_KEY`.
+Replay returns current state. Without a header, only checkout/import retain their
+natural `external_ref` replay guarantee. Completed/voided checkout or send-link
+replays can return a null link; send-link adds `invoice_status`. Renew using the
+canonical GET's `invoice_id`/`payment_url`, not a new checkout.
 
 Import a current period with `subscriptions.import()` (Python `import_period`, PHP
 `importPeriod`), `external_ref`, `customer_external_ref`, `plan_id` and both period
 bounds. An explicit `trial_end` must equal the period end. An application API key is
 required; import creates no payment, invoice or notification.
 
-Customers use `page/limit` and return `{customers,pagination:{page,limit,total,pages}}`.
-Subscriptions currently support `status` and return `{subscriptions,pagination:{total}}`;
-plans return a full list. Invoices use `limit/offset` and JS/Python return
-`{invoices,pagination:{total,limit,offset}}`. PHP exposes invoice pagination via
-`getRawData()['pagination']`. Customer/invoice page sizes are capped at 200.
+All lists accept `take` (1–200; default 50, customers 20) and an opaque `cursor`.
+Pagination exposes `total`, `take`, nullable `next_cursor` and `has_more`. Reuse the
+same filters, application and mode. Order is `created_at DESC, id DESC`; `total`
+counts all filtered rows before the cursor. Newer objects do not enter later pages,
+and deleting the cursor row does not invalidate the cursor. Customer `page/limit`
+and invoice `limit/offset` options remain available. JS `plans.list()` still returns
+an array; use `plans.listPage()` (Python `list_page`) for `{plans,pagination}`.
+Subscriptions/customers keep pagination inside `data`; invoices/plans expose it
+outside `data`. PHP uses `getRawData()['pagination']` for those outer envelopes.
+New cursor metadata is optional in SDK types for older servers.
 
 The lifecycle diagram in the French tab applies to both languages: checkout → manual
 payment → `subscription.renewed` / `invoice.paid` → canonical GET; at each due date,
 `invoice.created` and compatibility `subscription.payment_due` signal the new invoice.
 Verify HMAC-SHA256 on `timestamp + '.' + raw_body` using `X-SahelPay-Signature`, default
-300-second tolerance. Use `webhooks.constructEvent` (Python `construct_event`, PHP
+300-second tolerance. Automatic retries use 1/2/4/8-minute delays; endpoint secret
+rotation is immediate, with no grace period for the old secret. Use `webhooks.constructEvent` (Python `construct_event`, PHP
 `constructEvent`), deduplicate `event.id`, validate `livemode`, re-read canonical state
 and compare `updated_at`. Delivery order is not guaranteed. Ignore unknown event names.
-Cancellation currently emits no lifecycle webhook: re-read or poll. Reminders are
+Cancellation emits subscription.cancelled with a stable event ID. Explicitly
+subscribe to this type when your endpoint filters events, then retrieve canonical
+state. Reads after cancellation and polling remain available. Reminders stay
 backend controlled; no SDK call enables sending.
+
+### Read-only reminder preview
+
+Use `api.subscriptions.previewReminder(applicationId, subscriptionId)` (Python
+`preview_reminder`, PHP `previewReminder`). It performs one scoped GET and requires
+an already registered key; otherwise 401, without importing, creating or touching
+a key/application. It creates no link, contact, consent, event or delivery.
+
+The response includes application/subscription IDs, `livemode`, `mode`
+(`desactive|simulation|actif`), nullable `owner` (`sahelpay|application`), `eligible`,
+`would_send`, nullable `step` (1 or 5), nullable `email:{subject,html,text}` and
+`whatsapp:{enabled:false,consent_required:true}`. TEST can be eligible but never
+would_send; the GET itself never sends in any mode. No recipient is returned.
+
+An operator must separately configure the unique reminder owner and optional
+renewal URL in `subscription_reminders_application:<applicationId>`. Missing,
+invalid or application-owned settings disable SahelPay reminders. CTA uses a safe,
+existing collectable invoice/link; fallback requires an explicitly configured HTTPS
+renewal URL on the application's origin. Unknown-mode legacy debt or SUCCESS
+without a receipt blocks fallback/rendering. Do not invent a replacement link.
+Mode remains `desactive`; WhatsApp is opt-in design only, with no sender or SDK
+activation method. See the [preview reference](/api-reference/subscriptions/reminder-preview).
 
 For offline tests, use the repository's Billing response/signature fixtures. For an
 operator-free payment test, use a TEST key and the [simulator](/guides/testing) with
@@ -270,7 +393,10 @@ alone does not settle a Billing invoice. `webhook.test` checks connectivity only
 
 Errors: 400 validation/invalid identity or dates; 401 invalid key; 404 missing or
 out-of-scope resource; 409 conflicting reference; 429 rate limit. On network timeout,
-retrieve the resource or replay only with a supported idempotency guarantee. See
+retrieve the resource or replay only with a supported idempotency guarantee.
+`409 INVOICE_PAYMENT_SETTLEMENT_PENDING` means a payment already succeeded and
+the backend is recovering its settlement. Do not collect again: retrieve payment,
+invoice and canonical subscription state. This also protects Sarali instructions. See
 [error codes](/resources/error-codes) and [SDK installation](/sdks/overview).
 
 </Tab>

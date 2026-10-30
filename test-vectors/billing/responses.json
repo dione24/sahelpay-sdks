@@ -1,7 +1,7 @@
 {
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "ec4548f",
+    "revision": "d59eacdfb2250e7896b0047196a8df9a12c8fb43",
     "kind": "source-derived synthetic response recordings; no customer traffic"
   },
   "plan": {
@@ -30,7 +30,8 @@
       "current_period_start": "2026-10-30T00:00:00.000Z",
       "current_period_end": "2026-11-30T00:00:00.000Z",
       "trial_end": "2026-11-30T00:00:00.000Z",
-      "plan_name": "Premium"
+      "plan_name": "Premium",
+      "plan_amount": 4000
     }
   },
   "snapshot": {
@@ -51,7 +52,7 @@
         "currency": "XOF",
         "interval": "QUARTERLY"
       },
-      "status": "ACTIVE",
+      "status": "TRIALING",
       "updated_at": "2026-10-30T00:00:00.000Z",
       "next_billing_date": "2026-11-30T00:00:00.000Z",
       "past_due_since": null,
@@ -59,7 +60,10 @@
       "invoice_id": null,
       "current_period_start": "2026-10-30T00:00:00.000Z",
       "current_period_end": "2026-11-30T00:00:00.000Z",
-      "trial_end": "2026-11-30T00:00:00.000Z"
+      "trial_end": "2026-11-30T00:00:00.000Z",
+      "access_status": "TRIALING",
+      "grace_until": null,
+      "billing_anchor_at": "2026-11-30T00:00:00.000Z"
     }
   },
   "trial_checkout": {
@@ -182,7 +186,10 @@
     "pagination": {
       "total": 3,
       "limit": 1,
-      "offset": 1
+      "offset": 1,
+      "take": 1,
+      "next_cursor": "cursor+fixture/=",
+      "has_more": true
     }
   },
   "customers": {
@@ -206,7 +213,10 @@
         "total": 3,
         "page": 2,
         "limit": 1,
-        "pages": 3
+        "pages": 3,
+        "take": 1,
+        "next_cursor": "cursor+fixture/=",
+        "has_more": true
       }
     }
   },
@@ -282,7 +292,7 @@
       "id": "evt_fixture_subscription_renewed",
       "event": "subscription.renewed",
       "livemode": false,
-      "timestamp": "2026-10-30T00:00:00.000Z",
+      "timestamp": "2026-11-30T00:00:00.000Z",
       "version": "v1",
       "data": {
         "subscription_id": "sub_fixture",
@@ -291,9 +301,27 @@
         "customer_phone": null,
         "invoice_id": "inv_fixture",
         "invoice_number": "INV-FIXTURE",
-        "next_billing_date": "2026-11-30T00:00:00.000Z",
+        "next_billing_date": "2027-02-28T00:00:00.000Z",
         "amount": 4000,
-        "currency": "XOF"
+        "currency": "XOF",
+        "current_period_start": "2026-11-30T00:00:00.000Z",
+        "current_period_end": "2027-02-28T00:00:00.000Z",
+        "updated_at": "2026-11-30T00:00:00.000Z",
+        "billing_anchor_at": "2026-11-30T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "evt_fixture_cancelled",
+      "event": "subscription.cancelled",
+      "livemode": false,
+      "timestamp": "2026-10-30T00:00:00.000Z",
+      "data": {
+        "subscription_id": "sub_fixture",
+        "plan_id": "plan_fixture",
+        "status": "CANCELLED",
+        "updated_at": "2026-10-30T00:00:00.000Z",
+        "current_period_start": "2026-10-30T00:00:00.000Z",
+        "current_period_end": "2026-11-30T00:00:00.000Z"
       }
     }
   ],
@@ -309,9 +337,17 @@
         "interval": "QUARTERLY",
         "is_active": true,
         "created_at": "2026-10-30T00:00:00.000Z",
-        "subscriber_count": 1
+        "subscriber_count": 1,
+        "application_id": "app_fixture",
+        "livemode": false
       }
-    ]
+    ],
+    "pagination": {
+      "total": 1,
+      "take": 1,
+      "next_cursor": "cursor+fixture/=",
+      "has_more": true
+    }
   },
   "subscriptions": {
     "success": true,
@@ -321,7 +357,7 @@
           "id": "sub_fixture",
           "customer_phone": null,
           "customer_id": "cus_fixture",
-          "status": "ACTIVE",
+          "status": "TRIALING",
           "next_billing_date": "2026-11-30T00:00:00.000Z",
           "created_at": "2026-10-30T00:00:00.000Z",
           "current_period_start": "2026-10-30T00:00:00.000Z",
@@ -337,11 +373,170 @@
             "name": "Premium",
             "amount": 4000,
             "interval": "QUARTERLY"
-          }
+          },
+          "application_id": "app_fixture",
+          "livemode": false,
+          "external_ref": null,
+          "access_status": "TRIALING",
+          "grace_until": null
         }
       ],
       "pagination": {
-        "total": 1
+        "total": 1,
+        "take": 1,
+        "next_cursor": "cursor+fixture/=",
+        "has_more": true
+      }
+    }
+  },
+  "paid_snapshot": {
+    "success": true,
+    "data": {
+      "id": "sub_fixture",
+      "external_ref": "checkout_fixture",
+      "livemode": false,
+      "application_id": "app_fixture",
+      "customer": {
+        "id": "cus_fixture",
+        "external_ref": "fixture_user",
+        "email": null
+      },
+      "plan_id": "plan_fixture",
+      "plan": {
+        "amount": 4000,
+        "currency": "XOF",
+        "interval": "QUARTERLY"
+      },
+      "status": "ACTIVE",
+      "updated_at": "2026-11-30T00:00:00.000Z",
+      "next_billing_date": "2027-02-28T00:00:00.000Z",
+      "past_due_since": null,
+      "payment_url": null,
+      "invoice_id": null,
+      "current_period_start": "2026-11-30T00:00:00.000Z",
+      "current_period_end": "2027-02-28T00:00:00.000Z",
+      "trial_end": "2026-11-30T00:00:00.000Z",
+      "access_status": "ACTIVE",
+      "grace_until": "2027-03-03T00:00:00.000Z",
+      "billing_anchor_at": "2026-11-30T00:00:00.000Z"
+    }
+  },
+  "send_link_paid": {
+    "success": true,
+    "data": {
+      "subscription_id": "sub_fixture",
+      "invoice_id": "inv_fixture",
+      "payment_link": null,
+      "invoice_status": "PAID",
+      "sms_sent": false,
+      "message": "Cette facture est déjà réglée."
+    }
+  },
+  "invoice_link": {
+    "success": true,
+    "data": {
+      "invoice": {
+        "id": "inv_fixture",
+        "invoice_number": "INV-FIXTURE",
+        "merchant_id": "merchant_fixture",
+        "application_id": "app_fixture",
+        "livemode": false,
+        "customer_id": "cus_fixture",
+        "subscription_id": "sub_fixture",
+        "status": "OPEN",
+        "subtotal": 4000,
+        "tax_amount": 0,
+        "total": 4000,
+        "amount_paid": 0,
+        "amount_due": 4000,
+        "currency": "XOF",
+        "issue_date": "2026-10-30T00:00:00.000Z",
+        "due_date": "2026-11-30T00:00:00.000Z",
+        "paid_at": null,
+        "payment_link_id": null,
+        "payment_url": null,
+        "description": null,
+        "notes": null,
+        "metadata": null,
+        "lines": [
+          {
+            "id": "line_fixture",
+            "description": "Premium",
+            "quantity": 1,
+            "unit_price": 4000,
+            "amount": 4000,
+            "line_type": "STANDARD",
+            "metadata": null
+          }
+        ],
+        "payments": [],
+        "created_at": "2026-10-30T00:00:00.000Z",
+        "updated_at": "2026-10-30T00:00:00.000Z"
+      },
+      "payment_link_id": "link_fixture",
+      "payment_url": "https://pay.sahelpay.ml/FIXTURE"
+    }
+  },
+  "plan_delete": {
+    "success": true,
+    "data": {
+      "deleted": true
+    }
+  },
+  "plan_update": {
+    "success": true
+  },
+  "send_link_open": {
+    "success": true,
+    "data": {
+      "subscription_id": "sub_fixture",
+      "invoice_id": "inv_fixture",
+      "payment_link": {
+        "id": "link_fixture",
+        "url": "https://pay.sahelpay.ml/FIXTURE",
+        "amount": 4000
+      },
+      "sms_sent": false,
+      "message": "Lien de paiement créé."
+    }
+  },
+  "reminder_preview": {
+    "success": true,
+    "data": {
+      "application_id": "app_fixture",
+      "subscription_id": "sub_fixture",
+      "livemode": false,
+      "mode": "desactive",
+      "owner": "sahelpay",
+      "eligible": true,
+      "would_send": false,
+      "step": 5,
+      "email": {
+        "subject": "Renouvellement TEST",
+        "html": "<p><a href=\"https://merchant.example/billing\">Renouveler</a></p>",
+        "text": "Renouveler : https://merchant.example/billing"
+      },
+      "whatsapp": {
+        "enabled": false,
+        "consent_required": true
+      }
+    }
+  },
+  "reminder_preview_blocked": {
+    "success": true,
+    "data": {
+      "application_id": "app_fixture",
+      "subscription_id": "sub_fixture",
+      "livemode": false,
+      "mode": "desactive",
+      "owner": null,
+      "eligible": false,
+      "would_send": false,
+      "step": null,
+      "email": null,
+      "whatsapp": {
+        "enabled": false,
+        "consent_required": true
       }
     }
   }

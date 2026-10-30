@@ -28,11 +28,11 @@ class Customer
      * Lister les clients
      * GET /v1/billing/customers
      *
-     * @param array{search?: string, page?: int, limit?: int} $options
+     * @param array{search?: string, page?: int, limit?: int, take?: int, cursor?: string} $options
      */
     public function all(array $options = []): Response
     {
-        $query = array_intersect_key($options, array_flip(['search', 'page', 'limit']));
+        $query = array_intersect_key($options, array_flip(['search', 'page', 'limit', 'take', 'cursor']));
 
         return $this->client->get('/billing/customers', $query);
     }
@@ -40,7 +40,7 @@ class Customer
     /**
      * Alias de all().
      *
-     * @param array{search?: string, page?: int, limit?: int} $options
+     * @param array{search?: string, page?: int, limit?: int, take?: int, cursor?: string} $options
      */
     public function list(array $options = []): Response
     {

@@ -2,14 +2,26 @@
   "openapi": "3.0.0",
   "source": {
     "repository": "dione24/sahelPay",
-    "revision": "ec4548f11b228f9c1f28167536b63990623bd931"
+    "revision": "48a71072109d36634ed7d0307fd2167842778789"
   },
   "paths": {
     "/v1/billing/invoices": {
       "post": {
         "description": "merchant_id, livemode and the application mode are decided by the server from the credentials; unknown fields such as merchant_id or livemode are rejected (400).",
         "operationId": "createInvoice",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -22,7 +34,240 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "invoice_number",
+                        "merchant_id",
+                        "application_id",
+                        "livemode",
+                        "customer_id",
+                        "subscription_id",
+                        "status",
+                        "subtotal",
+                        "tax_amount",
+                        "total",
+                        "amount_paid",
+                        "amount_due",
+                        "currency",
+                        "issue_date",
+                        "due_date",
+                        "paid_at",
+                        "payment_link_id",
+                        "payment_url",
+                        "description",
+                        "notes",
+                        "metadata",
+                        "lines",
+                        "payments",
+                        "created_at",
+                        "updated_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "invoice_number": {
+                          "type": "string"
+                        },
+                        "merchant_id": {
+                          "type": "string"
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "customer_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "subscription_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "OPEN",
+                            "PAID",
+                            "PAST_DUE",
+                            "VOIDED"
+                          ]
+                        },
+                        "subtotal": {
+                          "type": "number"
+                        },
+                        "tax_amount": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "amount_paid": {
+                          "type": "number"
+                        },
+                        "amount_due": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "issue_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "due_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "paid_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "payment_link_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "notes": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": true
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "description",
+                              "quantity",
+                              "unit_price",
+                              "amount",
+                              "line_type",
+                              "metadata"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "number"
+                              },
+                              "unit_price": {
+                                "type": "number"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "line_type": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "payments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "amount",
+                              "currency",
+                              "provider",
+                              "paid_at",
+                              "transaction_id",
+                              "payment_intent_id"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "paid_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "transaction_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "payment_intent_id": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -39,30 +284,16 @@
         "operationId": "listInvoices",
         "parameters": [
           {
-            "name": "status",
+            "name": "cursor",
             "required": false,
             "in": "query",
             "schema": {
-              "enum": [
-                "DRAFT",
-                "OPEN",
-                "PAID",
-                "VOIDED",
-                "PAST_DUE"
-              ],
               "type": "string"
-            }
+            },
+            "description": "Curseur opaque renvoyé par next_cursor, à réutiliser avec les mêmes filtres et la même portée."
           },
           {
             "name": "customer_id",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subscription_id",
             "required": false,
             "in": "query",
             "schema": {
@@ -84,11 +315,315 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "DRAFT",
+                "OPEN",
+                "PAID",
+                "VOIDED",
+                "PAST_DUE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscription_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Taille de page, maximum 200."
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "pagination"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "invoice_number",
+                          "merchant_id",
+                          "application_id",
+                          "livemode",
+                          "customer_id",
+                          "subscription_id",
+                          "status",
+                          "subtotal",
+                          "tax_amount",
+                          "total",
+                          "amount_paid",
+                          "amount_due",
+                          "currency",
+                          "issue_date",
+                          "due_date",
+                          "paid_at",
+                          "payment_link_id",
+                          "payment_url",
+                          "description",
+                          "notes",
+                          "metadata",
+                          "lines",
+                          "payments",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoice_number": {
+                            "type": "string"
+                          },
+                          "merchant_id": {
+                            "type": "string"
+                          },
+                          "application_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "livemode": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "customer_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "subscription_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "OPEN",
+                              "PAID",
+                              "PAST_DUE",
+                              "VOIDED"
+                            ]
+                          },
+                          "subtotal": {
+                            "type": "number"
+                          },
+                          "tax_amount": {
+                            "type": "number"
+                          },
+                          "total": {
+                            "type": "number"
+                          },
+                          "amount_paid": {
+                            "type": "number"
+                          },
+                          "amount_due": {
+                            "type": "number"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "issue_date": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "due_date": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "paid_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "payment_link_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "payment_url": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "notes": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": true
+                          },
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "description",
+                                "quantity",
+                                "unit_price",
+                                "amount",
+                                "line_type",
+                                "metadata"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "unit_price": {
+                                  "type": "number"
+                                },
+                                "amount": {
+                                  "type": "number"
+                                },
+                                "line_type": {
+                                  "type": "string"
+                                },
+                                "metadata": {
+                                  "type": "object",
+                                  "nullable": true,
+                                  "additionalProperties": true
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "payments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "amount",
+                                "currency",
+                                "provider",
+                                "paid_at",
+                                "transaction_id",
+                                "payment_intent_id"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "amount": {
+                                  "type": "number"
+                                },
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "paid_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "transaction_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "payment_intent_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "take",
+                        "next_cursor",
+                        "has_more",
+                        "limit",
+                        "offset"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "take": {
+                          "type": "integer"
+                        },
+                        "next_cursor": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "has_more": {
+                          "type": "boolean"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "offset": {
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -117,7 +652,240 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "invoice_number",
+                        "merchant_id",
+                        "application_id",
+                        "livemode",
+                        "customer_id",
+                        "subscription_id",
+                        "status",
+                        "subtotal",
+                        "tax_amount",
+                        "total",
+                        "amount_paid",
+                        "amount_due",
+                        "currency",
+                        "issue_date",
+                        "due_date",
+                        "paid_at",
+                        "payment_link_id",
+                        "payment_url",
+                        "description",
+                        "notes",
+                        "metadata",
+                        "lines",
+                        "payments",
+                        "created_at",
+                        "updated_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "invoice_number": {
+                          "type": "string"
+                        },
+                        "merchant_id": {
+                          "type": "string"
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "customer_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "subscription_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "OPEN",
+                            "PAID",
+                            "PAST_DUE",
+                            "VOIDED"
+                          ]
+                        },
+                        "subtotal": {
+                          "type": "number"
+                        },
+                        "tax_amount": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "amount_paid": {
+                          "type": "number"
+                        },
+                        "amount_due": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "issue_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "due_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "paid_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "payment_link_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "notes": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": true
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "description",
+                              "quantity",
+                              "unit_price",
+                              "amount",
+                              "line_type",
+                              "metadata"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "number"
+                              },
+                              "unit_price": {
+                                "type": "number"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "line_type": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "payments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "amount",
+                              "currency",
+                              "provider",
+                              "paid_at",
+                              "transaction_id",
+                              "payment_intent_id"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "paid_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "transaction_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "payment_intent_id": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -146,7 +914,240 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "invoice_number",
+                        "merchant_id",
+                        "application_id",
+                        "livemode",
+                        "customer_id",
+                        "subscription_id",
+                        "status",
+                        "subtotal",
+                        "tax_amount",
+                        "total",
+                        "amount_paid",
+                        "amount_due",
+                        "currency",
+                        "issue_date",
+                        "due_date",
+                        "paid_at",
+                        "payment_link_id",
+                        "payment_url",
+                        "description",
+                        "notes",
+                        "metadata",
+                        "lines",
+                        "payments",
+                        "created_at",
+                        "updated_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "invoice_number": {
+                          "type": "string"
+                        },
+                        "merchant_id": {
+                          "type": "string"
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "customer_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "subscription_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "OPEN",
+                            "PAID",
+                            "PAST_DUE",
+                            "VOIDED"
+                          ]
+                        },
+                        "subtotal": {
+                          "type": "number"
+                        },
+                        "tax_amount": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "amount_paid": {
+                          "type": "number"
+                        },
+                        "amount_due": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "issue_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "due_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "paid_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "payment_link_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "notes": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": true
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "description",
+                              "quantity",
+                              "unit_price",
+                              "amount",
+                              "line_type",
+                              "metadata"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "number"
+                              },
+                              "unit_price": {
+                                "type": "number"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "line_type": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "payments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "amount",
+                              "currency",
+                              "provider",
+                              "paid_at",
+                              "transaction_id",
+                              "payment_intent_id"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "paid_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "transaction_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "payment_intent_id": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -175,7 +1176,260 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "invoice",
+                        "payment_link_id",
+                        "payment_url"
+                      ],
+                      "properties": {
+                        "invoice": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "invoice_number",
+                            "merchant_id",
+                            "application_id",
+                            "livemode",
+                            "customer_id",
+                            "subscription_id",
+                            "status",
+                            "subtotal",
+                            "tax_amount",
+                            "total",
+                            "amount_paid",
+                            "amount_due",
+                            "currency",
+                            "issue_date",
+                            "due_date",
+                            "paid_at",
+                            "payment_link_id",
+                            "payment_url",
+                            "description",
+                            "notes",
+                            "metadata",
+                            "lines",
+                            "payments",
+                            "created_at",
+                            "updated_at"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "invoice_number": {
+                              "type": "string"
+                            },
+                            "merchant_id": {
+                              "type": "string"
+                            },
+                            "application_id": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "livemode": {
+                              "type": "boolean",
+                              "nullable": true
+                            },
+                            "customer_id": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "subscription_id": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "DRAFT",
+                                "OPEN",
+                                "PAID",
+                                "PAST_DUE",
+                                "VOIDED"
+                              ]
+                            },
+                            "subtotal": {
+                              "type": "number"
+                            },
+                            "tax_amount": {
+                              "type": "number"
+                            },
+                            "total": {
+                              "type": "number"
+                            },
+                            "amount_paid": {
+                              "type": "number"
+                            },
+                            "amount_due": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "issue_date": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "due_date": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "paid_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "nullable": true
+                            },
+                            "payment_link_id": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "payment_url": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "description": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "notes": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "metadata": {
+                              "type": "object",
+                              "nullable": true,
+                              "additionalProperties": true
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "description",
+                                  "quantity",
+                                  "unit_price",
+                                  "amount",
+                                  "line_type",
+                                  "metadata"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "number"
+                                  },
+                                  "unit_price": {
+                                    "type": "number"
+                                  },
+                                  "amount": {
+                                    "type": "number"
+                                  },
+                                  "line_type": {
+                                    "type": "string"
+                                  },
+                                  "metadata": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "additionalProperties": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "payments": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "amount",
+                                  "currency",
+                                  "provider",
+                                  "paid_at",
+                                  "transaction_id",
+                                  "payment_intent_id"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "number"
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  },
+                                  "provider": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "paid_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  },
+                                  "transaction_id": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "payment_intent_id": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                },
+                                "additionalProperties": true
+                              }
+                            },
+                            "created_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "updated_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        "payment_link_id": {
+                          "type": "string"
+                        },
+                        "payment_url": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "INVOICE_PAYMENT_SETTLEMENT_PENDING : un paiement a déjà réussi pour cette facture, son reçu est en cours de reprise. Ne pas payer à nouveau ; relire le paiement et la facture."
           }
         },
         "security": [
@@ -204,7 +1458,240 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "invoice_number",
+                        "merchant_id",
+                        "application_id",
+                        "livemode",
+                        "customer_id",
+                        "subscription_id",
+                        "status",
+                        "subtotal",
+                        "tax_amount",
+                        "total",
+                        "amount_paid",
+                        "amount_due",
+                        "currency",
+                        "issue_date",
+                        "due_date",
+                        "paid_at",
+                        "payment_link_id",
+                        "payment_url",
+                        "description",
+                        "notes",
+                        "metadata",
+                        "lines",
+                        "payments",
+                        "created_at",
+                        "updated_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "invoice_number": {
+                          "type": "string"
+                        },
+                        "merchant_id": {
+                          "type": "string"
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "customer_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "subscription_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "OPEN",
+                            "PAID",
+                            "PAST_DUE",
+                            "VOIDED"
+                          ]
+                        },
+                        "subtotal": {
+                          "type": "number"
+                        },
+                        "tax_amount": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "amount_paid": {
+                          "type": "number"
+                        },
+                        "amount_due": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "issue_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "due_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "paid_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "payment_link_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "notes": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "nullable": true,
+                          "additionalProperties": true
+                        },
+                        "lines": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "description",
+                              "quantity",
+                              "unit_price",
+                              "amount",
+                              "line_type",
+                              "metadata"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "number"
+                              },
+                              "unit_price": {
+                                "type": "number"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "line_type": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "nullable": true,
+                                "additionalProperties": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "payments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "amount",
+                              "currency",
+                              "provider",
+                              "paid_at",
+                              "transaction_id",
+                              "payment_intent_id"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "amount": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              },
+                              "provider": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "paid_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "transaction_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "payment_intent_id": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -221,10 +1708,145 @@
     "/v1/billing/plans": {
       "get": {
         "operationId": "listPlans",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Curseur opaque renvoyé par next_cursor, à réutiliser avec les mêmes filtres et la même portée."
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Taille de page, maximum 200."
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "pagination"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "amount",
+                          "currency",
+                          "interval",
+                          "is_active",
+                          "created_at",
+                          "subscriber_count",
+                          "application_id",
+                          "livemode"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "amount": {
+                            "type": "number"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "XOF"
+                            ]
+                          },
+                          "interval": {
+                            "type": "string",
+                            "enum": [
+                              "WEEKLY",
+                              "MONTHLY",
+                              "QUARTERLY",
+                              "YEARLY"
+                            ]
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "subscriber_count": {
+                            "type": "integer"
+                          },
+                          "application_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "livemode": {
+                            "type": "boolean",
+                            "nullable": true
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "take",
+                        "next_cursor",
+                        "has_more"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": "integer"
+                        },
+                        "take": {
+                          "type": "integer"
+                        },
+                        "next_cursor": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "has_more": {
+                          "type": "boolean"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -239,10 +1861,131 @@
       },
       "post": {
         "operationId": "createPlan",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "amount",
+                  "interval"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "WEEKLY",
+                      "MONTHLY",
+                      "QUARTERLY",
+                      "YEARLY"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "description",
+                        "amount",
+                        "currency",
+                        "interval",
+                        "is_active",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "amount": {
+                          "type": "number"
+                        },
+                        "currency": {
+                          "type": "string",
+                          "enum": [
+                            "XOF"
+                          ]
+                        },
+                        "interval": {
+                          "type": "string",
+                          "enum": [
+                            "WEEKLY",
+                            "MONTHLY",
+                            "QUARTERLY",
+                            "YEARLY"
+                          ]
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -271,7 +2014,26 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -298,7 +2060,45 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "deleted"
+                      ],
+                      "properties": {
+                        "deleted": {
+                          "type": "boolean"
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -316,6 +2116,17 @@
       "post": {
         "operationId": "sendPlanLink",
         "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -380,7 +2191,80 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "subscription_id",
+                        "invoice_id",
+                        "payment_link",
+                        "sms_sent",
+                        "message"
+                      ],
+                      "properties": {
+                        "subscription_id": {
+                          "type": "string"
+                        },
+                        "invoice_id": {
+                          "type": "string"
+                        },
+                        "payment_link": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "url",
+                            "amount"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "type": "number"
+                            }
+                          },
+                          "additionalProperties": true,
+                          "nullable": true
+                        },
+                        "sms_sent": {
+                          "type": "boolean"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "invoice_status": {
+                          "type": "string",
+                          "enum": [
+                            "PAID",
+                            "VOIDED"
+                          ]
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -399,17 +2283,254 @@
         "operationId": "listSubscriptions",
         "parameters": [
           {
-            "name": "status",
+            "name": "cursor",
             "required": false,
             "in": "query",
             "schema": {
               "type": "string"
+            },
+            "description": "Curseur opaque renvoyé par next_cursor, à réutiliser avec les mêmes filtres et la même portée."
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "État de collecte comme le GET canonique ; access_status indique EXPIRED après la grâce.",
+            "schema": {
+              "enum": [
+                "ACTIVE",
+                "TRIALING",
+                "PAST_DUE",
+                "CANCELLED",
+                "INCOMPLETE"
+              ],
+              "type": "string"
             }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Taille de page, maximum 200."
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "subscriptions",
+                        "pagination"
+                      ],
+                      "properties": {
+                        "subscriptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "application_id",
+                              "livemode",
+                              "external_ref",
+                              "customer_phone",
+                              "customer_id",
+                              "customer",
+                              "status",
+                              "access_status",
+                              "grace_until",
+                              "next_billing_date",
+                              "current_period_start",
+                              "current_period_end",
+                              "trial_end",
+                              "plan",
+                              "created_at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "application_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "livemode": {
+                                "type": "boolean",
+                                "nullable": true
+                              },
+                              "external_ref": {
+                                "description": "Métadonnée historique external_ref ; chaîne pour les créations avec external_ref typé."
+                              },
+                              "customer_phone": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "customer_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "customer": {
+                                "type": "object",
+                                "required": [
+                                  "name",
+                                  "email",
+                                  "external_ref"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "email": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "external_ref": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                },
+                                "additionalProperties": true,
+                                "nullable": true
+                              },
+                              "status": {
+                                "type": "string",
+                                "description": "Collecte : ACTIVE = période payée courante, TRIALING = essai courant. Une échéance impayée reste PAST_DUE et payable même après fin des droits. CANCELLED prévaut. Lire access_status et les bornes pour les droits.",
+                                "enum": [
+                                  "ACTIVE",
+                                  "TRIALING",
+                                  "PAST_DUE",
+                                  "CANCELLED",
+                                  "INCOMPLETE"
+                                ]
+                              },
+                              "access_status": {
+                                "type": "string",
+                                "description": "Droits : EXPIRED à period_end + 3 jours après période payée ; essai terminé = EXPIRED sans grâce. Champ additif ; les consommateurs historiques calculent la même frontière depuis les dates.",
+                                "enum": [
+                                  "ACTIVE",
+                                  "TRIALING",
+                                  "PAST_DUE",
+                                  "EXPIRED",
+                                  "CANCELLED",
+                                  "INCOMPLETE"
+                                ]
+                              },
+                              "grace_until": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "next_billing_date": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "current_period_start": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "current_period_end": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "trial_end": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "plan": {
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "amount",
+                                  "interval"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "amount": {
+                                    "type": "number"
+                                  },
+                                  "interval": {
+                                    "type": "string",
+                                    "enum": [
+                                      "WEEKLY",
+                                      "MONTHLY",
+                                      "QUARTERLY",
+                                      "YEARLY"
+                                    ]
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "required": [
+                            "total",
+                            "take",
+                            "next_cursor",
+                            "has_more"
+                          ],
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "take": {
+                              "type": "integer"
+                            },
+                            "next_cursor": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "has_more": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -423,8 +2544,21 @@
         ]
       },
       "post": {
+        "description": "Abonnement de vos clients, distinct de votre accès marchand à SahelPay. Création INCOMPLETE sans paiement, ou essai explicite identifié par trial_end (GET canonique TRIALING). Le worker horaire prépare la facture à start_date, ou à trial_end. ACTIVE canonique signifie une période payée courante ; access_status passe de PAST_DUE à EXPIRED après trois jours de grâce payée. status reste PAST_DUE pour permettre de régler la même facture après expiration des droits. Un essai terminé n’a aucune grâce. Aucun prélèvement automatique. X-Idempotency-Key permet une reprise persistée ; sans ce header cette route ne déduplique pas les créations.",
         "operationId": "createSubscription",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -494,7 +2628,99 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "plan_id",
+                        "plan_name",
+                        "plan_amount",
+                        "customer_phone",
+                        "customer_id",
+                        "status",
+                        "next_billing_date",
+                        "current_period_start",
+                        "current_period_end",
+                        "trial_end",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "plan_id": {
+                          "type": "string"
+                        },
+                        "plan_name": {
+                          "type": "string"
+                        },
+                        "plan_amount": {
+                          "type": "number"
+                        },
+                        "customer_phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "customer_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE",
+                            "PAST_DUE",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "next_billing_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "current_period_start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "current_period_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "trial_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -505,15 +2731,26 @@
         "summary": "Create a subscription for a customer",
         "tags": [
           "Merchant"
-        ],
-        "description": "Abonnement de vos clients, distinct de votre accès marchand à SahelPay. Une identité client est requise ; le téléphone est facultatif si customer_id, customer_external_ref ou customer_email est fourni. ACTIVE ne prouve pas un paiement : la première facture est préparée par le worker horaire à start_date (maintenant si omis), ou à trial_end pour un essai explicite. Les périodes sont indicatives avant règlement complet. Aucun prélèvement automatique. Cette création ne garantit pas un rejeu idempotent via X-Idempotency-Key."
+        ]
       }
     },
     "/v1/billing/subscriptions/with-payment": {
       "post": {
         "description": "Creates a subscription and generates a payment link in one request. Dev-friendly for SaaS integrations.",
         "operationId": "createSubscriptionWithPayment",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -572,6 +2809,11 @@
                     "type": "string",
                     "format": "date-time"
                   },
+                  "external_ref": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_:-]{1,160}$",
+                    "description": "Référence stable de checkout par application et mode. Nécessite customer_external_ref et une clé API d’application ; reprise identique = même abonnement et première facture, conflit des paramètres = 409."
+                  },
                   "redirect_url": {
                     "type": "string",
                     "format": "uri"
@@ -587,7 +2829,203 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "subscription",
+                        "invoice",
+                        "payment_link"
+                      ],
+                      "properties": {
+                        "subscription": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "plan_id",
+                                "plan_name",
+                                "plan_amount",
+                                "customer_phone",
+                                "customer_id",
+                                "status",
+                                "next_billing_date",
+                                "current_period_start",
+                                "current_period_end",
+                                "trial_end",
+                                "created_at"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "plan_id": {
+                                  "type": "string"
+                                },
+                                "plan_name": {
+                                  "type": "string"
+                                },
+                                "plan_amount": {
+                                  "type": "number"
+                                },
+                                "customer_phone": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "customer_id": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ACTIVE",
+                                    "PAST_DUE",
+                                    "CANCELLED",
+                                    "INCOMPLETE"
+                                  ]
+                                },
+                                "next_billing_date": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "current_period_start": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "nullable": true
+                                },
+                                "current_period_end": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "nullable": true
+                                },
+                                "trial_end": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "nullable": true
+                                },
+                                "created_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              },
+                              "additionalProperties": true
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "plan_id",
+                                "status"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "plan_id": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          ]
+                        },
+                        "invoice": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "invoice_number",
+                                "total",
+                                "amount_due"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "invoice_number": {
+                                  "type": "string"
+                                },
+                                "total": {
+                                  "type": "number"
+                                },
+                                "amount_due": {
+                                  "type": "number"
+                                }
+                              },
+                              "additionalProperties": true,
+                              "nullable": true
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "status"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          ]
+                        },
+                        "payment_link": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "url",
+                            "amount"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "type": "number"
+                            }
+                          },
+                          "additionalProperties": true,
+                          "nullable": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "INVOICE_PAYMENT_SETTLEMENT_PENDING : un paiement a déjà réussi pour cette facture, son reçu est en cours de reprise. Ne pas payer à nouveau ; relire le paiement et la facture."
           }
         },
         "security": [
@@ -602,7 +3040,222 @@
       }
     },
     "/v1/billing/subscriptions/{id}": {
+      "get": {
+        "operationId": "getSubscription",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "external_ref",
+                        "livemode",
+                        "application_id",
+                        "customer",
+                        "plan_id",
+                        "plan",
+                        "status",
+                        "updated_at",
+                        "current_period_start",
+                        "current_period_end",
+                        "trial_end",
+                        "next_billing_date",
+                        "past_due_since",
+                        "payment_url",
+                        "invoice_id",
+                        "grace_until",
+                        "billing_anchor_at",
+                        "access_status"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "external_ref": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "customer": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "external_ref",
+                            "email"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "external_ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "email": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "email"
+                            }
+                          }
+                        },
+                        "plan_id": {
+                          "type": "string"
+                        },
+                        "plan": {
+                          "type": "object",
+                          "required": [
+                            "amount",
+                            "currency",
+                            "interval"
+                          ],
+                          "properties": {
+                            "amount": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "XOF"
+                              ]
+                            },
+                            "interval": {
+                              "type": "string",
+                              "enum": [
+                                "WEEKLY",
+                                "MONTHLY",
+                                "QUARTERLY",
+                                "YEARLY"
+                              ]
+                            }
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Collecte : ACTIVE = période payée courante, TRIALING = essai courant. Une échéance impayée reste PAST_DUE et payable même après fin des droits. CANCELLED prévaut. Lire access_status et les bornes pour les droits.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "access_status": {
+                          "type": "string",
+                          "description": "Droits : EXPIRED à period_end + 3 jours après période payée ; essai terminé = EXPIRED sans grâce. Champ additif ; les consommateurs historiques calculent la même frontière depuis les dates.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "EXPIRED",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Version de l’abonnement, indépendante de la livraison du webhook."
+                        },
+                        "current_period_start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "current_period_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "trial_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "next_billing_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "past_due_since": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "grace_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fin de grâce d’une période payée, ancrée à current_period_end + 3 jours ; null pour essai, INCOMPLETE ou CANCELLED."
+                        },
+                        "billing_anchor_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Ancre UTC conservée pendant les renouvellements à l’heure ; redémarre au paiement initial ou après la grâce."
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri"
+                        },
+                        "invoice_id": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Read the canonical subscription, period and current invoice link",
+        "tags": [
+          "Merchant"
+        ]
+      },
       "delete": {
+        "description": "Annulation immédiate CANCELLED, sans prorata ni remboursement automatique. Émet subscription.cancelled comme signal de GET canonique. Rejeu : même event.id, sans changer updated_at ; un paiement tardif règle la facture sans réactiver un abonnement annulé. Pas d’annulation programmée à fin de période.",
         "operationId": "cancelSubscription",
         "parameters": [
           {
@@ -616,7 +3269,26 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -627,8 +3299,7 @@
         "summary": "Cancel a subscription",
         "tags": [
           "Merchant"
-        ],
-        "description": "Passe immédiatement l’abonnement à CANCELLED. Aucune annulation à fin de période ni notification subscription.cancelled n’est émise par cette route. La politique d’accès de votre client reste à gérer dans votre application."
+        ]
       }
     },
     "/v1/billing/customers": {
@@ -636,12 +3307,13 @@
         "operationId": "listCustomers",
         "parameters": [
           {
-            "name": "search",
+            "name": "cursor",
             "required": false,
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Curseur opaque renvoyé par next_cursor, à réutiliser avec les mêmes filtres et la même portée."
           },
           {
             "name": "limit",
@@ -654,11 +3326,156 @@
             "required": false,
             "in": "query",
             "schema": {}
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Taille de page, maximum 200."
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "customers",
+                        "pagination"
+                      ],
+                      "properties": {
+                        "customers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "phone",
+                              "application_id",
+                              "external_ref",
+                              "name",
+                              "email",
+                              "transaction_count",
+                              "total_spent",
+                              "last_transaction_at",
+                              "created_at"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "phone": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "application_id": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "external_ref": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "name": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "email": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "transaction_count": {
+                                "type": "integer"
+                              },
+                              "total_spent": {
+                                "type": "number"
+                              },
+                              "last_transaction_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "required": [
+                            "total",
+                            "take",
+                            "next_cursor",
+                            "has_more",
+                            "page",
+                            "limit",
+                            "pages"
+                          ],
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "take": {
+                              "type": "integer"
+                            },
+                            "next_cursor": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "has_more": {
+                              "type": "boolean"
+                            },
+                            "page": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            },
+                            "pages": {
+                              "type": "integer"
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "security": [
@@ -671,13 +3488,561 @@
           "Merchant"
         ]
       }
+    },
+    "/v1/billing/subscriptions/import": {
+      "post": {
+        "operationId": "importSubscription",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Clé stable de 1 à 128 caractères, persistée par compte/application/mode/route. Même corps = même ressource ; autre corps = 409 IDEMPOTENCY_KEY_REUSED. Facultative pour préserver les appels v1 existants.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "external_ref",
+                  "plan_id",
+                  "customer_external_ref",
+                  "current_period_start",
+                  "current_period_end"
+                ],
+                "properties": {
+                  "external_ref": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_:-]{1,160}$",
+                    "description": "Référence stable de l’unité facturée, propre à l’application et au mode. Rejeu identique = même abonnement ; paramètres différents = 409."
+                  },
+                  "plan_id": {
+                    "type": "string"
+                  },
+                  "customer_external_ref": {
+                    "type": "string",
+                    "description": "Référence externe unique dans cette application"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "customer_name": {
+                    "type": "string"
+                  },
+                  "current_period_start": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "current_period_end": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "trial_end": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Si fourni, égal à current_period_end. Aucun paiement ni facture créé."
+                  },
+                  "billing_anchor_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Ancre calendaire historique facultative, antérieure ou égale au début de période. Utile après un mois tronqué ; défaut : début de période, ou fin d’essai."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "external_ref",
+                        "livemode",
+                        "application_id",
+                        "customer",
+                        "plan_id",
+                        "plan",
+                        "status",
+                        "updated_at",
+                        "current_period_start",
+                        "current_period_end",
+                        "trial_end",
+                        "next_billing_date",
+                        "past_due_since",
+                        "payment_url",
+                        "invoice_id",
+                        "grace_until",
+                        "billing_anchor_at",
+                        "access_status"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "external_ref": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "livemode": {
+                          "type": "boolean",
+                          "nullable": true
+                        },
+                        "application_id": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "customer": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "external_ref",
+                            "email"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "external_ref": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "email": {
+                              "type": "string",
+                              "nullable": true,
+                              "format": "email"
+                            }
+                          }
+                        },
+                        "plan_id": {
+                          "type": "string"
+                        },
+                        "plan": {
+                          "type": "object",
+                          "required": [
+                            "amount",
+                            "currency",
+                            "interval"
+                          ],
+                          "properties": {
+                            "amount": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "XOF"
+                              ]
+                            },
+                            "interval": {
+                              "type": "string",
+                              "enum": [
+                                "WEEKLY",
+                                "MONTHLY",
+                                "QUARTERLY",
+                                "YEARLY"
+                              ]
+                            }
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Collecte : ACTIVE = période payée courante, TRIALING = essai courant. Une échéance impayée reste PAST_DUE et payable même après fin des droits. CANCELLED prévaut. Lire access_status et les bornes pour les droits.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "access_status": {
+                          "type": "string",
+                          "description": "Droits : EXPIRED à period_end + 3 jours après période payée ; essai terminé = EXPIRED sans grâce. Champ additif ; les consommateurs historiques calculent la même frontière depuis les dates.",
+                          "enum": [
+                            "ACTIVE",
+                            "TRIALING",
+                            "PAST_DUE",
+                            "EXPIRED",
+                            "CANCELLED",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Version de l’abonnement, indépendante de la livraison du webhook."
+                        },
+                        "current_period_start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "current_period_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "trial_end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "next_billing_date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "past_due_since": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "grace_until": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "description": "Fin de grâce d’une période payée, ancrée à current_period_end + 3 jours ; null pour essai, INCOMPLETE ou CANCELLED."
+                        },
+                        "billing_anchor_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Ancre UTC conservée pendant les renouvellements à l’heure ; redémarre au paiement initial ou après la grâce."
+                        },
+                        "payment_url": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "uri"
+                        },
+                        "invoice_id": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Import an existing paid period or explicit trial without creating an invoice",
+        "tags": [
+          "Merchant"
+        ]
+      }
+    },
+    "/v1/billing/applications/{applicationId}/subscriptions/{subscriptionId}/reminder-preview": {
+      "get": {
+        "description": "Lecture seule, sans création de lien, contact, consentement, événement ou envoi. Clé API limitée à son application et son mode ; session limitée au marchand et au mode affiché. Aucun WhatsApp disponible. Une configuration explicite du responsable et un CTA sûr sont requis. Relances livrées désactivées. Clé déjà enregistrée requise : une ancienne clé à importer est refusée (401), sans migration automatique.",
+        "operationId": "preview",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subscriptionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "application_id",
+                        "subscription_id",
+                        "livemode",
+                        "mode",
+                        "owner",
+                        "eligible",
+                        "would_send",
+                        "step",
+                        "email",
+                        "whatsapp"
+                      ],
+                      "properties": {
+                        "application_id": {
+                          "type": "string"
+                        },
+                        "subscription_id": {
+                          "type": "string"
+                        },
+                        "livemode": {
+                          "type": "boolean"
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "desactive",
+                            "simulation",
+                            "actif"
+                          ]
+                        },
+                        "owner": {
+                          "type": "string",
+                          "enum": [
+                            "sahelpay",
+                            "application",
+                            null
+                          ],
+                          "nullable": true
+                        },
+                        "eligible": {
+                          "type": "boolean",
+                          "description": "Profil, fenêtre J-5/J-1 et CTA valides, indépendamment du mode global ; TEST prévisualisable seulement."
+                        },
+                        "would_send": {
+                          "type": "boolean",
+                          "description": "Exige eligible, LIVE et mode actif. Cet endpoint ne déclenche jamais cet envoi."
+                        },
+                        "step": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            5,
+                            null
+                          ],
+                          "nullable": true
+                        },
+                        "email": {
+                          "type": "object",
+                          "required": [
+                            "subject",
+                            "html",
+                            "text"
+                          ],
+                          "properties": {
+                            "subject": {
+                              "type": "string"
+                            },
+                            "html": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": true,
+                          "nullable": true
+                        },
+                        "whatsapp": {
+                          "type": "object",
+                          "required": [
+                            "enabled",
+                            "consent_required"
+                          ],
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "enum": [
+                                false
+                              ]
+                            },
+                            "consent_required": {
+                              "type": "boolean",
+                              "enum": [
+                                true
+                              ]
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Prévisualiser le rappel e-mail d’un abonnement de cette application",
+        "tags": [
+          "Merchant"
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
       "CreateInvoiceDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "application_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "customer_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "subscription_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "subtotal": {
+            "type": "number",
+            "minimum": 0
+          },
+          "tax_amount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "total": {
+            "type": "number",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "maxLength": 8,
+            "default": "XOF"
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Date ISO 8601 : YYYY-MM-DD ou date et heure."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Objet JSON borné : 4 Kio par ligne, 8 Kio pour la facture."
+          },
+          "include_usage": {
+            "type": "boolean"
+          },
+          "usage_period_start": {
+            "type": "string",
+            "description": "Date ISO 8601, convertie en date côté serveur."
+          },
+          "usage_period_end": {
+            "type": "string",
+            "description": "Date ISO 8601, convertie en date côté serveur."
+          },
+          "lines": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineDto"
+            }
+          }
+        },
+        "required": [
+          "subtotal",
+          "total",
+          "due_date",
+          "lines"
+        ]
+      },
+      "InvoiceLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Clé de ligne du dashboard, ignorée à la création."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit_price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "line_type": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Objet JSON borné : 4 Kio par ligne, 8 Kio pour la facture."
+          }
+        },
+        "required": [
+          "description",
+          "unit_price",
+          "amount"
+        ]
       }
     }
   }

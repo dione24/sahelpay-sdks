@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, quote
 
-__sdk_version__ = "1.2.0"
+__sdk_version__ = "1.3.0"
 
 
 def _path(value: str) -> str:

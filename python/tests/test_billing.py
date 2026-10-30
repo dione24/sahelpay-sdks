@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from sahelpay import Client
 from sahelpay.billing import Plan, Subscription, InvoicePaidData
-from typing import get_type_hints, get_args
+from typing import Any, get_type_hints, get_args
 
 FIXTURES = json.loads((Path(__file__).resolve().parents[2] / 'test-vectors/billing/responses.json').read_text())
 
@@ -82,7 +82,7 @@ class BillingTests(unittest.TestCase):
             self.assertLessEqual(set(data), set(annotations), model.__name__)
             self.assertLessEqual(model.__required_keys__, set(data), model.__name__)
             for key, value in data.items():
-                if value is None:
+                if value is None and annotations[key] is not Any:
                     self.assertIn(type(None), get_args(annotations[key]), model.__name__ + '.' + key)
         check(Plan, FIXTURES['plan']['data'])
         check(Plan, FIXTURES['plans']['data'][0])
@@ -95,3 +95,36 @@ class BillingTests(unittest.TestCase):
             result = self.client.subscriptions.list()
             self.assertEqual(result, FIXTURES['subscriptions']['data'])
             self.assertIsNone(result['subscriptions'][0]['customer']['email'])
+
+    def test_cursor_lists_preserve_envelopes_and_legacy_plan_arrays(self):
+        for resource in ['plans', 'subscriptions', 'customers', 'invoices']:
+            with self.subTest(resource=resource), patch.object(self.client, '_request', return_value=FIXTURES[resource]) as request:
+                api=getattr(self.client, resource)
+                result=api.list_page(take=1,cursor='cursor+fixture/=') if resource=='plans' else api.list(take=1,cursor='cursor+fixture/=')
+                self.assertEqual(result['pagination']['next_cursor'],'cursor+fixture/=')
+                self.assertIn('cursor=cursor%2Bfixture%2F%3D',request.call_args.args[1])
+                self.assertIn('take=1',request.call_args.args[1])
+        with patch.object(self.client, '_request', return_value={'success':True,'data':FIXTURES['plans']['data']}):
+            self.assertEqual(self.client.plans.list(),FIXTURES['plans']['data'])
+            self.assertNotIn('pagination',self.client.plans.list_page())
+
+    def test_send_link_replay_and_empty_explicit_key(self):
+        with patch.object(self.client, '_request', return_value=FIXTURES['send_link_paid']) as request:
+            result=self.client.plans.send_link('plan_fixture',customer_external_ref='fixture_user',idempotency_key='')
+            self.assertIsNone(result['payment_link'])
+            self.assertEqual(result['invoice_status'],'PAID')
+            self.assertEqual(request.call_args.kwargs['headers'],{'X-Idempotency-Key':''})
+            self.assertNotIn('idempotency_key',request.call_args.args[2])
+
+    def test_reminder_preview_is_one_get_and_preserves_null_email(self):
+        for key in ['reminder_preview','reminder_preview_blocked']:
+            with self.subTest(key=key), patch.object(self.client, '_request', return_value=FIXTURES[key]) as request:
+                self.assertEqual(self.client.subscriptions.preview_reminder('app/fixture','sub/fixture'),FIXTURES[key]['data'])
+                request.assert_called_once_with('GET','/v1/billing/applications/app%2Ffixture/subscriptions/sub%2Ffixture/reminder-preview')
+
+    def test_reminder_preview_propagates_unregistered_key_error_without_recovery_write(self):
+        from sahelpay.exceptions import AuthenticationError
+        with patch.object(self.client,'_request',side_effect=AuthenticationError('Registered key required','INVALID_API_KEY',401)) as request:
+            with self.assertRaises(AuthenticationError):
+                self.client.subscriptions.preview_reminder('app_fixture','sub_fixture')
+            request.assert_called_once()

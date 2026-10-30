@@ -38,16 +38,16 @@ class Plan
 
         $key = $data['idempotency_key'] ?? null;
         unset($data['idempotency_key']);
-        return $this->client->post('/billing/plans', $data, $key ? ['X-Idempotency-Key' => $key] : []);
+        return $this->client->post('/billing/plans', $data, $key !== null ? ['X-Idempotency-Key' => $key] : []);
     }
 
     /**
      * Lister tous les plans
      * GET /v1/billing/plans
      */
-    public function all(): Response
+    public function all(array $options = []): Response
     {
-        return $this->client->get('/billing/plans');
+        return $this->client->get('/billing/plans', array_intersect_key($options, array_flip(['take', 'cursor'])));
     }
 
     /**
@@ -88,7 +88,7 @@ class Plan
         $key = $data['idempotency_key'] ?? null;
         unset($data['idempotency_key']);
         return $this->client->post('/billing/plans/' . rawurlencode($planId) . '/send-link', $data,
-            $key ? ['X-Idempotency-Key' => $key] : []);
+            $key !== null ? ['X-Idempotency-Key' => $key] : []);
     }
 
     private function validateRequired(array $data, array $required): void

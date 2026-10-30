@@ -1,8 +1,7 @@
 # Billing contract source
 
-`billing-openapi.json` is the unmodified projection of supported Billing paths and
-referenced schemas in `dione24/sahelPay/openapi.json`. `source.revision` pins the
-backend commit. Update/check it with:
+`billing-openapi.json` is the unmodified projection of the 14 supported Billing
+paths and referenced schemas from backend main. `source.revision` pins its commit.
 
 ```sh
 python3 scripts/sync-billing-contract.py /path/to/sahelPay/openapi.json --revision BACKEND_SHA
@@ -10,14 +9,30 @@ python3 scripts/sync-billing-contract.py /path/to/sahelPay/openapi.json --revisi
 cd javascript && npm test
 ```
 
-The public SDK CI uses this checked-in projection: the private backend need not be
-accessible from a public CI job. Release checks must compare fresh backend main
-with `--check`; editing the snapshot causes the TypeScript contract tests to check
-request fields, optionality, primitives and enum values against the actual exports.
+Release checks compare fresh backend main before merge; CI uses the checked-in
+projection because it cannot access the private backend. Contract tests cover every
+supported operation, all documented creation/query fields, server response assignability
+in public TypeScript types, and schema validation of source-derived synthetic
+fixtures. Fixtures are not customer traffic or proof of real settlement. The three
+SDK test suites replay the same fixtures without network calls.
 
-At ec4548f the generated OpenAPI omits GET subscription by ID, subscription import,
-`external_ref` on with-payment, plan bodies, invoice DTO properties and response
-schemas. These are implemented from the same revision's controller/service and
-covered with source-derived fixtures in `test-vectors/billing`. Fixtures are
-synthetic recordings of those response shapes, not customer traffic or evidence of
-a live payment. No upstream gaps are silently filled into the OpenAPI snapshot.
+Additive fields stay optional for servers before #214/#215. Existing list return
+shapes remain unchanged; JS `plans.listPage`/Python `plans.list_page` expose the
+new outer pagination. Explicit idempotency keys are never generated silently for
+Billing; a caller must keep its key stable across retries. An empty explicit key
+is sent so the server can reject it, rather than silently creating a new resource.
+
+The public package is prepared as 1.3.0; immutable 1.2.0 tags remain unchanged.
+Registry publication is blocked; use the source release or main. No backend
+production changes or reminder enablement are performed by the SDK.
+
+PATCH plan bodies are still absent from backend OpenAPI; the existing update fields
+remain sourced from merchant.controller.ts. All response envelopes are formalized.
+
+#221 adds the read-only reminder-preview operation, including registered-key-only
+401 behavior and nullable rendering. Both eligible TEST and blocked/null fixtures
+are schema validated. No SDK operation registers keys, enables or sends reminders.
+
+Contract provenance: `48a71072109d36634ed7d0307fd2167842778789`. Its API/OpenAPI
+is identical to the contract reviewed at `d59eacd`; the later commit fixes only the
+dashboard cursor consumer. No SDK behavior changed in this provenance update.

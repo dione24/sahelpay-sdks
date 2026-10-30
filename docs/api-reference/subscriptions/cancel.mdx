@@ -26,3 +26,10 @@ curl -X DELETE https://api.sahelpay.ml/v1/billing/subscriptions/SUBSCRIPTION_ID 
 ```
 
 L'abonnement passe immédiatement à `CANCELLED` ; aucune nouvelle échéance n'est générée. Abonnement inconnu : `404` « Subscription not found ».
+
+Le signal additif `subscription.cancelled` contient `subscription_id`, `plan_id`,
+`status`, `updated_at`, `current_period_start/end`. Même `event.id` au rejeu,
+sans changer `updated_at`. Sélectionnez ce type dans le filtre de votre endpoint
+pour recevoir sa livraison HTTP. Relisez ensuite le GET canonique. Un paiement
+tardif règle la facture sans restaurer un abonnement annulé ; aucun prorata ou
+remboursement automatique n’est effectué.
